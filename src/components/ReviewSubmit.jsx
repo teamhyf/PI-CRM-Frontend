@@ -10,7 +10,7 @@ import { evaluateCase } from '../utils/caseQualificationEngine';
 import { generateCaseSummary } from '../utils/generateCaseSummary';
 
 export function ReviewSubmit() {
-  const { formData, prevStep, submitCase } = useIntake();
+  const { formData, prevStep, submitOrUpdateCase, editingCaseId } = useIntake();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -27,11 +27,11 @@ export function ReviewSubmit() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await submitCase();
+      await submitOrUpdateCase();
       setSubmitSuccess(true);
     } catch (error) {
       console.error('Submission error:', error);
-      alert('There was an error submitting your case. Please try again.');
+      alert(`There was an error ${editingCaseId ? 'updating' : 'submitting'} your case. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -39,16 +39,20 @@ export function ReviewSubmit() {
 
   if (submitSuccess) {
     return (
-      <div className="w-full max-w-2xl mx-auto text-center py-12 animate-scale-in">
+      <div className="w-full text-center py-12 animate-scale-in">
         <div className="mb-6">
           <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-green-500/20 animate-scale-in">
             <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-3">Case Submitted Successfully!</h2>
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-3">
+            {editingCaseId ? 'Case Updated Successfully!' : 'Case Submitted Successfully!'}
+          </h2>
           <p className="text-gray-600 mb-8 text-lg">
-            Your case has been received and is pending attorney review. You will be contacted shortly.
+            {editingCaseId 
+              ? 'Your case has been updated successfully. Changes are now reflected in the system.'
+              : 'Your case has been received and is pending attorney review. You will be contacted shortly.'}
           </p>
           <button onClick={() => navigate('/dashboard')} className="btn-primary text-lg px-8 py-4">
             View Dashboard
@@ -59,9 +63,13 @@ export function ReviewSubmit() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Review & Submit</h2>
-      <p className="text-gray-600 mb-6">Please review your information before submitting</p>
+    <div className="w-full">
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        {editingCaseId ? 'Review & Update Case' : 'Review & Submit'}
+      </h2>
+      <p className="text-gray-600 mb-6">
+        {editingCaseId ? 'Please review your changes before updating' : 'Please review your information before submitting'}
+      </p>
 
       <div className="space-y-6">
         {/* AI Case Summary */}
@@ -155,10 +163,10 @@ export function ReviewSubmit() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Submitting...
+                {editingCaseId ? 'Updating...' : 'Submitting...'}
               </span>
             ) : (
-              'Submit Case'
+              editingCaseId ? 'Update Case' : 'Submit Case'
             )}
           </button>
         </div>

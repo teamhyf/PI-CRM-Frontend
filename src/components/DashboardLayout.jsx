@@ -75,7 +75,7 @@ export function DashboardLayout({ children }) {
         </header>
 
         {/* Page Content */}
-        <main className="py-6">
+        <main className="py-6 w-full">
           {children}
         </main>
       </div>

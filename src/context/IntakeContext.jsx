@@ -33,6 +33,7 @@ export function IntakeProvider({ children }) {
   });
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [editingCaseId, setEditingCaseId] = useState(null);
   const [formData, setFormData] = useState({
     contact: {},
     accident: {},
@@ -107,21 +108,95 @@ export function IntakeProvider({ children }) {
           additionalNotes: '',
         });
         setCurrentStep(1);
+        setEditingCaseId(null);
 
         resolve(newCase);
       }, 1500); // Simulate API delay
     });
   }, [formData, cases.length]);
 
+  const updateCase = useCallback(async (caseId, updatedData) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const aiEvaluation = evaluateCase(updatedData);
+        const aiSummary = generateCaseSummary(updatedData);
+
+        setCases((prev) =>
+          prev.map((c) => {
+            if (c.caseId === caseId) {
+              return {
+                ...c,
+                ...updatedData,
+                aiEvaluation,
+                aiSummary,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return c;
+          })
+        );
+
+        // Reset form
+        setFormData({
+          contact: {},
+          accident: {},
+          insurance: {},
+          injury: {},
+          propertyDamage: {},
+          additionalNotes: '',
+        });
+        setCurrentStep(1);
+        setEditingCaseId(null);
+
+        resolve({ caseId, ...updatedData, aiEvaluation, aiSummary });
+      }, 500);
+    });
+  }, []);
+
+  const deleteCase = useCallback(async (caseId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        setCases((prev) => prev.filter((c) => c.caseId !== caseId));
+        resolve();
+      }, 300);
+    });
+  }, []);
+
+  const loadCaseForEdit = useCallback((caseData) => {
+    setFormData({
+      contact: caseData.contact || {},
+      accident: caseData.accident || {},
+      insurance: caseData.insurance || {},
+      injury: caseData.injury || {},
+      propertyDamage: caseData.propertyDamage || {},
+      additionalNotes: caseData.additionalNotes || '',
+    });
+    setEditingCaseId(caseData.caseId);
+    setCurrentStep(1);
+  }, []);
+
+  const submitOrUpdateCase = useCallback(async () => {
+    if (editingCaseId) {
+      return await updateCase(editingCaseId, formData);
+    } else {
+      return await submitCase();
+    }
+  }, [editingCaseId, formData, submitCase, updateCase]);
+
   const value = {
     cases,
     currentStep,
     formData,
+    editingCaseId,
     updateFormData,
     nextStep,
     prevStep,
     goToStep,
     submitCase,
+    submitOrUpdateCase,
+    updateCase,
+    deleteCase,
+    loadCaseForEdit,
   };
 
   return <IntakeContext.Provider value={value}>{children}</IntakeContext.Provider>;

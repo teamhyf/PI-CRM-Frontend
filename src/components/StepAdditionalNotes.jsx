@@ -23,7 +23,7 @@ export function StepAdditionalNotes() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full">
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Additional Notes</h2>
       <p className="text-gray-600 mb-6">Any additional information you'd like to share?</p>
 

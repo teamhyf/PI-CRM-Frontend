@@ -4,12 +4,14 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useIntake } from '../context/IntakeContext';
 import { CaseSummaryModal } from '../components/CaseSummaryModal';
+import { sampleCases } from '../data/sampleCases';
 
 export function Cases() {
-  const { cases } = useIntake();
+  const { cases, deleteCase, loadCaseForEdit } = useIntake();
+  const navigate = useNavigate();
   const [selectedCase, setSelectedCase] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,9 +73,44 @@ export function Cases() {
     return 'badge-low';
   };
 
-  const handleRowClick = (caseData) => {
+  const handleRowClick = (caseData, e) => {
+    // Don't open modal if clicking on action buttons
+    if (e.target.closest('.action-buttons')) {
+      return;
+    }
     setSelectedCase(caseData);
     setIsModalOpen(true);
+  };
+
+  const handleView = (caseData, e) => {
+    e.stopPropagation();
+    setSelectedCase(caseData);
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (caseData, e) => {
+    e.stopPropagation();
+    loadCaseForEdit(caseData);
+    navigate('/intake');
+  };
+
+  const handleDelete = async (caseData, e) => {
+    e.stopPropagation();
+    // Don't allow deleting sample cases
+    const isSampleCase = sampleCases.some(sc => sc.caseId === caseData.caseId);
+    if (isSampleCase) {
+      alert('Sample cases cannot be deleted.');
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to delete case ${caseData.caseId}? This action cannot be undone.`)) {
+      try {
+        await deleteCase(caseData.caseId);
+      } catch (error) {
+        console.error('Error deleting case:', error);
+        alert('Failed to delete case. Please try again.');
+      }
+    }
   };
 
   const getInsuranceStatus = (insurance) => {
@@ -84,7 +121,7 @@ export function Cases() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="w-full px-6">
       {/* Page Header */}
       <div className="mb-8">
         <div className="flex justify-between items-center">
@@ -103,19 +140,51 @@ export function Cases() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <p className="text-sm text-gray-600">Total Cases</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{cases.length}</p>
+        <div className="stat-card border-l-4 border-blue-500 hover:border-blue-600 animate-fade-in group">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Total Cases</p>
+              <p className="text-4xl font-bold text-gray-900 mt-2">{cases.length}</p>
+              <p className="text-xs text-gray-500 mt-1">All cases in system</p>
+            </div>
+            <div className="bg-gradient-to-br from-blue-100 to-blue-50 rounded-2xl p-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <p className="text-sm text-gray-600">Filtered Results</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{filteredAndSortedCases.length}</p>
+
+        <div className="stat-card border-l-4 border-purple-500 hover:border-purple-600 animate-fade-in group" style={{ animationDelay: '0.1s' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Filtered Results</p>
+              <p className="text-4xl font-bold text-gray-900 mt-2">{filteredAndSortedCases.length}</p>
+              <p className="text-xs text-gray-500 mt-1">Matching filters</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-100 to-purple-50 rounded-2xl p-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+            </div>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <p className="text-sm text-gray-600">Pending Review</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">
-            {cases.filter(c => c.status === 'Pending Attorney Review').length}
-          </p>
+
+        <div className="stat-card border-l-4 border-amber-500 hover:border-amber-600 animate-fade-in group" style={{ animationDelay: '0.2s' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Pending Review</p>
+              <p className="text-4xl font-bold text-gray-900 mt-2">
+                {cases.filter(c => c.status === 'Pending Attorney Review').length}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Awaiting action</p>
+            </div>
+            <div className="bg-gradient-to-br from-amber-100 to-amber-50 rounded-2xl p-4 shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -189,40 +258,43 @@ export function Cases() {
             Cases ({filteredAndSortedCases.length})
           </h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="w-full">
+          <table className="w-full divide-y divide-gray-200 table-fixed">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-32 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Case ID
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-48 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Client Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Accident Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-32 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date of Loss
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-24 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Injury
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Viability
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-32 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Score
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="w-32 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredAndSortedCases.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="9" className="px-6 py-12 text-center text-gray-500">
                     {searchTerm || filterViability !== 'all' || filterStatus !== 'all' ? (
                       <>
                         No cases match your filters.{' '}
@@ -248,34 +320,36 @@ export function Cases() {
                   </td>
                 </tr>
               ) : (
-                filteredAndSortedCases.map((caseData) => (
-                  <tr
-                    key={caseData.caseId}
-                    onClick={() => handleRowClick(caseData)}
-                    className="hover:bg-blue-50 cursor-pointer transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                filteredAndSortedCases.map((caseData) => {
+                  const isSampleCase = sampleCases.some(sc => sc.caseId === caseData.caseId);
+                  return (
+                    <tr
+                      key={caseData.caseId}
+                      onClick={(e) => handleRowClick(caseData, e)}
+                      className="hover:bg-blue-50 cursor-pointer transition-colors"
+                    >
+                    <td className="px-4 py-4 text-sm font-medium text-gray-900 truncate">
                       {caseData.caseId}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                    <td className="px-4 py-4">
+                      <div className="text-sm font-medium text-gray-900 truncate">
                         {caseData.contact?.fullName || 'N/A'}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-xs text-gray-500 truncate">
                         {caseData.contact?.email || ''}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 py-4 text-sm text-gray-500 truncate">
                       {caseData.accident?.accidentType || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-4 py-4 text-sm text-gray-500 truncate">
                       {caseData.accident?.dateOfLoss
                         ? new Date(caseData.accident.dateOfLoss).toLocaleDateString()
                         : 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           caseData.injury?.injured === 'Yes'
                             ? 'bg-red-100 text-red-800'
                             : 'bg-gray-100 text-gray-800'
@@ -284,14 +358,14 @@ export function Cases() {
                         {caseData.injury?.injured || 'N/A'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4">
                       <span
                         className={getViabilityBadgeClass(caseData.aiEvaluation?.viabilityLevel)}
                       >
                         {caseData.aiEvaluation?.viabilityLevel || 'N/A'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4">
                       <div className="text-sm font-medium text-gray-900">
                         {caseData.aiEvaluation?.score || 0}/100
                       </div>
@@ -308,13 +382,48 @@ export function Cases() {
                         ></div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    <td className="px-4 py-4">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                         {caseData.status || 'Pending'}
                       </span>
                     </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center space-x-2 action-buttons">
+                        <button
+                          onClick={(e) => handleView(caseData, e)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => handleEdit(caseData, e)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Edit Case"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        {!isSampleCase && (
+                          <button
+                            onClick={(e) => handleDelete(caseData, e)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete Case"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -14,7 +14,7 @@ import { StepAdditionalNotes } from '../components/StepAdditionalNotes';
 import { ReviewSubmit } from '../components/ReviewSubmit';
 
 export function IntakeForm() {
-  const { currentStep } = useIntake();
+  const { currentStep, editingCaseId } = useIntake();
 
   const renderStep = () => {
     switch (currentStep) {
@@ -39,25 +39,31 @@ export function IntakeForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-6 py-4">
         {/* Header */}
-        <div className="mb-8 text-center animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/30">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mb-4 text-center animate-fade-in">
+          <div className="inline-flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mb-2 shadow-md shadow-blue-500/30">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">AI-Powered Case Intake</h1>
-          <p className="mt-2 text-gray-600 font-medium">Our intelligent system will guide you through the intake process</p>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
+            {editingCaseId ? 'Edit Case' : 'AI-Powered Case Intake'}
+          </h1>
+          <p className="text-sm text-gray-600">
+            {editingCaseId 
+              ? 'Update case information and review changes'
+              : 'Our intelligent system will guide you through the intake process'}
+          </p>
         </div>
 
         {/* Stepper */}
-        <div className="mb-8 animate-slide-up">
+        <div className="mb-4 animate-slide-up">
           <IntakeStepper />
         </div>
 
         {/* Form Content */}
-        <div className="mt-8 bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-6 md:p-10 border border-white/20 animate-scale-in">
+        <div className="mt-4 bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-6 md:p-8 border border-white/20 animate-scale-in">
           {renderStep()}
         </div>
       </div>
