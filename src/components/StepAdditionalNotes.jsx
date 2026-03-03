@@ -24,25 +24,25 @@ export function StepAdditionalNotes() {
 
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Additional Notes</h2>
-      <p className="text-gray-600 mb-6">Any additional information you'd like to share?</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Additional Notes</h2>
+      <p className="text-sm text-gray-600 mb-4">Any additional information you'd like to share?</p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label htmlFor="additionalNotes" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="additionalNotes" className="block text-sm font-medium text-gray-700 mb-1.5">
             Additional Information
           </label>
           <textarea
             id="additionalNotes"
             {...register('additionalNotes')}
             className="input-field"
-            rows="6"
-            placeholder="Please provide any additional details about the incident, witnesses, or other relevant information..."
+            rows="4"
+            placeholder="Additional details about the incident, witnesses, or other relevant information..."
           />
-          <p className="mt-1 text-sm text-gray-500">This information will be included in your case summary</p>
+          <p className="mt-1 text-xs text-gray-500">Included in your case summary</p>
         </div>
 
-        <div className="flex justify-between pt-4">
+        <div className="flex justify-between pt-2">
           <button type="button" onClick={prevStep} className="btn-secondary">
             ← Back
           </button>

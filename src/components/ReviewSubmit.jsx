@@ -8,12 +8,12 @@ import { useNavigate } from 'react-router-dom';
 import { useIntake } from '../context/IntakeContext';
 import { evaluateCase } from '../utils/caseQualificationEngine';
 import { generateCaseSummary } from '../utils/generateCaseSummary';
+import { AISparklesIcon, AIBadge } from './AIIcon';
 
 export function ReviewSubmit() {
   const { formData, prevStep, submitOrUpdateCase, editingCaseId } = useIntake();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const aiEvaluation = evaluateCase(formData);
   const aiSummary = generateCaseSummary(formData);
@@ -28,7 +28,7 @@ export function ReviewSubmit() {
     setIsSubmitting(true);
     try {
       await submitOrUpdateCase();
-      setSubmitSuccess(true);
+      navigate('/cases');
     } catch (error) {
       console.error('Submission error:', error);
       alert(`There was an error ${editingCaseId ? 'updating' : 'submitting'} your case. Please try again.`);
@@ -36,31 +36,6 @@ export function ReviewSubmit() {
       setIsSubmitting(false);
     }
   };
-
-  if (submitSuccess) {
-    return (
-      <div className="w-full text-center py-12 animate-scale-in">
-        <div className="mb-6">
-          <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-green-500/20 animate-scale-in">
-            <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-3">
-            {editingCaseId ? 'Case Updated Successfully!' : 'Case Submitted Successfully!'}
-          </h2>
-          <p className="text-gray-600 mb-8 text-lg">
-            {editingCaseId 
-              ? 'Your case has been updated successfully. Changes are now reflected in the system.'
-              : 'Your case has been received and is pending attorney review. You will be contacted shortly.'}
-          </p>
-          <button onClick={() => navigate('/dashboard')} className="btn-primary text-lg px-8 py-4">
-            View Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full">
@@ -73,16 +48,23 @@ export function ReviewSubmit() {
 
       <div className="space-y-6">
         {/* AI Case Summary */}
-        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-l-4 border-blue-500 p-6 rounded-2xl shadow-lg animate-fade-in">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <span className="mr-3 text-2xl">🤖</span> AI Case Summary
+        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-l-4 border-violet-500 p-6 rounded-2xl shadow-lg animate-fade-in">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-md">
+              <AISparklesIcon className="w-5 h-5" />
+            </span>
+            <span>AI Case Summary</span>
+            <AIBadge size="sm" />
           </h3>
           <p className="text-gray-700 leading-relaxed text-base">{aiSummary}</p>
         </div>
 
         {/* AI Evaluation */}
         <div className="bg-white border-2 border-gray-200 rounded-2xl p-6 shadow-lg animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Case Evaluation</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <AISparklesIcon className="w-5 h-5 text-violet-500" />
+            AI Case Evaluation
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <p className="text-sm text-gray-600 mb-1">Viability Level</p>

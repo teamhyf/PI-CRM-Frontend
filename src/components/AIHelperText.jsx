@@ -4,6 +4,7 @@
  */
 
 import { useIntake } from '../context/IntakeContext';
+import { AISparklesIcon } from './AIIcon';
 
 export function AIHelperText({ step, field, message }) {
   const { formData } = useIntake();
@@ -11,9 +12,10 @@ export function AIHelperText({ step, field, message }) {
   // If a specific message is provided, use it
   if (message) {
     return (
-      <div className="mt-2 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
-        <p className="text-sm text-blue-800">
-          <span className="font-semibold">💡 AI Assistant:</span> {message}
+      <div className="mt-2 p-3 bg-gradient-to-r from-violet-50 to-indigo-50 border-l-4 border-violet-500 rounded-r-lg">
+        <p className="text-sm text-gray-800 flex items-start gap-2">
+          <AISparklesIcon className="w-4 h-4 text-violet-600 flex-shrink-0 mt-0.5" />
+          <span><span className="font-semibold text-violet-800">AI Assistant:</span> {message}</span>
         </p>
       </div>
     );
@@ -60,9 +62,10 @@ export function AIHelperText({ step, field, message }) {
   }
 
   return (
-    <div className="mt-2 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg animate-fade-in">
-      <p className="text-sm text-blue-800">
-        <span className="font-semibold">💡 AI Assistant:</span> {helperMessage}
+    <div className="mt-2 p-3 bg-gradient-to-r from-violet-50 to-indigo-50 border-l-4 border-violet-500 rounded-r-lg animate-fade-in">
+      <p className="text-sm text-gray-800 flex items-start gap-2">
+        <AISparklesIcon className="w-4 h-4 text-violet-600 flex-shrink-0 mt-0.5" />
+        <span><span className="font-semibold text-violet-800">AI Assistant:</span> {helperMessage}</span>
       </p>
     </div>
   );

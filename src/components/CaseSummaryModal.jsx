@@ -3,6 +3,8 @@
  * Displays full case details in a modal overlay
  */
 
+import { AISparklesIcon, AIBadge } from './AIIcon';
+
 export function CaseSummaryModal({ caseData, isOpen, onClose }) {
   if (!isOpen || !caseData) return null;
 
@@ -38,16 +40,23 @@ export function CaseSummaryModal({ caseData, isOpen, onClose }) {
 
             <div className="space-y-6 max-h-[70vh] overflow-y-auto">
               {/* AI Summary */}
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                  <span className="mr-2">🤖</span> AI Case Summary
+              <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border-l-4 border-violet-500 p-4 rounded-r-lg">
+                <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                  <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 text-white">
+                    <AISparklesIcon className="w-4 h-4" />
+                  </span>
+                  AI Case Summary
+                  <AIBadge size="sm" />
                 </h4>
                 <p className="text-gray-700 text-sm leading-relaxed">{caseData.aiSummary}</p>
               </div>
 
               {/* AI Evaluation */}
               <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-3">AI Evaluation</h4>
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <AISparklesIcon className="w-4 h-4 text-violet-500" />
+                  AI Evaluation
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Viability Level</p>

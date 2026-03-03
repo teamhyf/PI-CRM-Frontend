@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useIntake } from '../context/IntakeContext';
 import { CaseSummaryModal } from '../components/CaseSummaryModal';
 import { sampleCases } from '../data/sampleCases';
+import { AISparklesIcon, AIBadge } from '../components/AIIcon';
 
 export function Dashboard() {
   const { cases, deleteCase, loadCaseForEdit } = useIntake();
@@ -126,8 +127,14 @@ export function Dashboard() {
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Case Dashboard</h1>
-            <p className="mt-2 text-gray-600">Manage and review all personal injury cases</p>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-3xl font-bold text-gray-900">Case Dashboard</h1>
+              <AIBadge size="sm" />
+            </div>
+            <p className="mt-2 text-gray-600 flex items-center gap-2">
+              <AISparklesIcon className="w-4 h-4 text-violet-500 flex-shrink-0" />
+              Manage and review all personal injury cases with AI insights
+            </p>
           </div>
           <Link to="/intake" className="btn-primary">
             <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

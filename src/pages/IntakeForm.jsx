@@ -5,6 +5,7 @@
 
 import { useIntake } from '../context/IntakeContext';
 import { IntakeStepper } from '../components/IntakeStepper';
+import { AISparklesIcon, AIBadge } from '../components/AIIcon';
 import { StepContactInfo } from '../components/StepContactInfo';
 import { StepAccidentDetails } from '../components/StepAccidentDetails';
 import { StepInsurance } from '../components/StepInsurance';
@@ -42,15 +43,23 @@ export function IntakeForm() {
       <div className="w-full px-6 py-4">
         {/* Header */}
         <div className="mb-4 text-center animate-fade-in">
-          <div className="inline-flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mb-2 shadow-md shadow-blue-500/30">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+          <div className="inline-flex items-center gap-2 mb-2">
+            <div className="relative inline-flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md shadow-blue-500/30">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center shadow">
+                <AISparklesIcon className="w-3 h-3 text-white" />
+              </span>
+            </div>
+            <AIBadge size="sm" />
           </div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1 flex items-center justify-center gap-2">
             {editingCaseId ? 'Edit Case' : 'AI-Powered Case Intake'}
+            <AISparklesIcon className="w-5 h-5 text-violet-500 flex-shrink-0" />
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 flex items-center justify-center gap-1.5">
+            <AISparklesIcon className="w-4 h-4 text-indigo-400" />
             {editingCaseId 
               ? 'Update case information and review changes'
               : 'Our intelligent system will guide you through the intake process'}

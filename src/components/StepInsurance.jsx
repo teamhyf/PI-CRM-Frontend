@@ -24,82 +24,53 @@ export function StepInsurance() {
 
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Insurance Information</h2>
-      <p className="text-gray-600 mb-6">Tell us about insurance coverage</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Insurance Information</h2>
+      <p className="text-sm text-gray-600 mb-4">Tell us about insurance coverage</p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Do you have auto insurance? <span className="text-red-500">*</span>
-          </label>
-          <div className="flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="Yes"
-                {...register('clientAutoInsurance', { required: true })}
-                className="mr-2"
-              />
-              Yes
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Do you have auto insurance? <span className="text-red-500">*</span>
             </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="No"
-                {...register('clientAutoInsurance', { required: true })}
-                className="mr-2"
-              />
-              No
+            <div className="flex flex-wrap gap-3">
+              <label className="flex items-center text-sm">
+                <input type="radio" value="Yes" {...register('clientAutoInsurance', { required: true })} className="mr-1.5" />
+                Yes
+              </label>
+              <label className="flex items-center text-sm">
+                <input type="radio" value="No" {...register('clientAutoInsurance', { required: true })} className="mr-1.5" />
+                No
+              </label>
+              <label className="flex items-center text-sm">
+                <input type="radio" value="Unsure" {...register('clientAutoInsurance', { required: true })} className="mr-1.5" />
+                Unsure
+              </label>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Other party have insurance? <span className="text-red-500">*</span>
             </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="Unsure"
-                {...register('clientAutoInsurance', { required: true })}
-                className="mr-2"
-              />
-              Unsure
-            </label>
+            <div className="flex flex-wrap gap-3">
+              <label className="flex items-center text-sm">
+                <input type="radio" value="Yes" {...register('otherPartyInsurance', { required: true })} className="mr-1.5" />
+                Yes
+              </label>
+              <label className="flex items-center text-sm">
+                <input type="radio" value="No" {...register('otherPartyInsurance', { required: true })} className="mr-1.5" />
+                No
+              </label>
+              <label className="flex items-center text-sm">
+                <input type="radio" value="Unsure" {...register('otherPartyInsurance', { required: true })} className="mr-1.5" />
+                Unsure
+              </label>
+            </div>
+            <AIHelperText step="insurance" field="noInsurance" />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Does the other party have insurance? <span className="text-red-500">*</span>
-          </label>
-          <div className="flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="Yes"
-                {...register('otherPartyInsurance', { required: true })}
-                className="mr-2"
-              />
-              Yes
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="No"
-                {...register('otherPartyInsurance', { required: true })}
-                className="mr-2"
-              />
-              No
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="Unsure"
-                {...register('otherPartyInsurance', { required: true })}
-                className="mr-2"
-              />
-              Unsure
-            </label>
-          </div>
-          <AIHelperText step="insurance" field="noInsurance" />
-        </div>
-
-        <div className="flex justify-between pt-4">
+        <div className="flex justify-between pt-2">
           <button type="button" onClick={prevStep} className="btn-secondary">
             ← Back
           </button>

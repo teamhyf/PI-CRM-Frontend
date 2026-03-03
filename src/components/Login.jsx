@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { AISparklesIcon, AIBadge } from './AIIcon';
 
 const loginSchema = z.object({
   email: z.string().email('Valid email is required'),
@@ -54,13 +55,22 @@ export function Login() {
       <div className="max-w-md w-full relative z-10 animate-fade-in">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl mb-4 shadow-xl shadow-blue-500/30 transform hover:scale-105 transition-transform duration-300">
-            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+          <div className="inline-flex items-center gap-2 mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl shadow-blue-500/30 transform hover:scale-105 transition-transform duration-300 relative">
+              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <span className="absolute -top-1 -right-1 flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-r from-violet-500 to-indigo-600 text-white shadow-lg">
+                <AISparklesIcon className="w-3.5 h-3.5" />
+              </span>
+            </div>
+            <AIBadge size="md" className="self-start mt-1" />
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">AI Personal Injury CRM</h1>
-          <p className="mt-2 text-gray-600 font-medium">Sign in to access your dashboard</p>
+          <p className="mt-2 text-gray-600 font-medium flex items-center justify-center gap-2">
+            <AISparklesIcon className="w-4 h-4 text-indigo-500" />
+            Sign in to access your AI-powered dashboard
+          </p>
         </div>
 
         {/* Login Card */}

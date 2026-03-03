@@ -2,6 +2,7 @@
  * Step 2: Accident Details
  */
 
+import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,6 +30,20 @@ const accidentSchema = z.object({
 
 export function StepAccidentDetails() {
   const { formData, updateFormData, nextStep, prevStep } = useIntake();
+
+  const dateInputRef = useRef(null);
+
+  const openDatePicker = () => {
+    if (dateInputRef.current) {
+      if (typeof dateInputRef.current.showPicker === 'function') {
+        // Use native date picker programmatically when supported
+        dateInputRef.current.showPicker();
+      } else {
+        // Fallback: focus so the browser shows its controls
+        dateInputRef.current.focus();
+      }
+    }
+  };
 
   const {
     register,
@@ -60,51 +75,54 @@ export function StepAccidentDetails() {
 
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Accident Details</h2>
-      <p className="text-gray-600 mb-6">Tell us about the incident</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Accident Details</h2>
+      <p className="text-sm text-gray-600 mb-4">Tell us about the incident</p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div>
-          <label htmlFor="dateOfLoss" className="block text-sm font-medium text-gray-700 mb-2">
-            Date of Loss <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="dateOfLoss"
-            type="date"
-            {...register('dateOfLoss')}
-            className="input-field"
-            max={new Date().toISOString().split('T')[0]}
-          />
-          {errors.dateOfLoss && (
-            <p className="mt-1 text-sm text-red-600">{errors.dateOfLoss.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="accidentType" className="block text-sm font-medium text-gray-700 mb-2">
-            Type of Accident <span className="text-red-500">*</span>
-          </label>
-          <select
-            id="accidentType"
-            {...register('accidentType')}
-            className="input-field"
-          >
-            <option value="">Select accident type</option>
-            <option value="Motor vehicle accident">Motor vehicle accident</option>
-            <option value="Pedestrian">Pedestrian</option>
-            <option value="Bicycle">Bicycle</option>
-            <option value="Motorcycle">Motorcycle</option>
-            <option value="Slip and fall">Slip and fall</option>
-            <option value="Other">Other</option>
-          </select>
-          {errors.accidentType && (
-            <p className="mt-1 text-sm text-red-600">{errors.accidentType.message}</p>
-          )}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="dateOfLoss" className="block text-sm font-medium text-gray-700 mb-1.5">
+              Date of Loss <span className="text-red-500">*</span>
+            </label>
+            <input
+              ref={dateInputRef}
+              id="dateOfLoss"
+              type="date"
+              {...register('dateOfLoss')}
+              className="input-field"
+              max={new Date().toISOString().split('T')[0]}
+              onClick={openDatePicker}
+            />
+            {errors.dateOfLoss && (
+              <p className="mt-1 text-sm text-red-600">{errors.dateOfLoss.message}</p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="accidentType" className="block text-sm font-medium text-gray-700 mb-1.5">
+              Type of Accident <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="accidentType"
+              {...register('accidentType')}
+              className="input-field"
+            >
+              <option value="">Select accident type</option>
+              <option value="Motor vehicle accident">Motor vehicle accident</option>
+              <option value="Pedestrian">Pedestrian</option>
+              <option value="Bicycle">Bicycle</option>
+              <option value="Motorcycle">Motorcycle</option>
+              <option value="Slip and fall">Slip and fall</option>
+              <option value="Other">Other</option>
+            </select>
+            {errors.accidentType && (
+              <p className="mt-1 text-sm text-red-600">{errors.accidentType.message}</p>
+            )}
+          </div>
         </div>
 
         {currentAccidentType === 'Other' && (
           <div className="animate-fade-in">
-            <label htmlFor="accidentTypeDescription" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="accidentTypeDescription" className="block text-sm font-medium text-gray-700 mb-1.5">
               Please describe the accident type <span className="text-red-500">*</span>
             </label>
             <input
@@ -121,99 +139,68 @@ export function StepAccidentDetails() {
         )}
 
         {isMotorVehicle && (
-          <div className="space-y-4 p-4 bg-gray-50 rounded-lg animate-fade-in">
-            <h3 className="font-semibold text-gray-900">Motor Vehicle Details</h3>
-
-            <div>
-              <label htmlFor="collisionType" className="block text-sm font-medium text-gray-700 mb-2">
-                Collision Type
-              </label>
-              <select id="collisionType" {...register('collisionType')} className="input-field">
-                <option value="">Select collision type</option>
-                <option value="Rear-end">Rear-end</option>
-                <option value="Front-end">Front-end</option>
-                <option value="Side-impact">Side-impact</option>
-                <option value="T-bone">T-bone</option>
-                <option value="Head-on">Head-on</option>
-                <option value="Sideswipe">Sideswipe</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Was the at-fault party identified?
-              </label>
-              <div className="flex gap-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="Yes"
-                    {...register('atFaultIdentified')}
-                    className="mr-2"
-                  />
-                  Yes
+          <div className="space-y-3 p-3 bg-gray-50 rounded-lg animate-fade-in">
+            <h3 className="font-semibold text-gray-900 text-sm">Motor Vehicle Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="collisionType" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Collision Type
                 </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="No"
-                    {...register('atFaultIdentified')}
-                    className="mr-2"
-                  />
-                  No
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="Unknown"
-                    {...register('atFaultIdentified')}
-                    className="mr-2"
-                  />
-                  Unknown
-                </label>
+                <select id="collisionType" {...register('collisionType')} className="input-field">
+                  <option value="">Select collision type</option>
+                  <option value="Rear-end">Rear-end</option>
+                  <option value="Front-end">Front-end</option>
+                  <option value="Side-impact">Side-impact</option>
+                  <option value="T-bone">T-bone</option>
+                  <option value="Head-on">Head-on</option>
+                  <option value="Sideswipe">Sideswipe</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Was a police report filed?
-              </label>
-              <div className="flex gap-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="Yes"
-                    {...register('policeReport')}
-                    className="mr-2"
-                  />
-                  Yes
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  At-fault party identified?
                 </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="No"
-                    {...register('policeReport')}
-                    className="mr-2"
-                  />
-                  No
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="Unknown"
-                    {...register('policeReport')}
-                    className="mr-2"
-                  />
-                  Unknown
-                </label>
+                <div className="flex flex-wrap gap-3 pt-1">
+                  <label className="flex items-center text-sm">
+                    <input type="radio" value="Yes" {...register('atFaultIdentified')} className="mr-1.5" />
+                    Yes
+                  </label>
+                  <label className="flex items-center text-sm">
+                    <input type="radio" value="No" {...register('atFaultIdentified')} className="mr-1.5" />
+                    No
+                  </label>
+                  <label className="flex items-center text-sm">
+                    <input type="radio" value="Unknown" {...register('atFaultIdentified')} className="mr-1.5" />
+                    Unknown
+                  </label>
+                </div>
               </div>
-              <AIHelperText step="accident" field="noPoliceReport" />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Police report filed?
+                </label>
+                <div className="flex flex-wrap gap-3 pt-1">
+                  <label className="flex items-center text-sm">
+                    <input type="radio" value="Yes" {...register('policeReport')} className="mr-1.5" />
+                    Yes
+                  </label>
+                  <label className="flex items-center text-sm">
+                    <input type="radio" value="No" {...register('policeReport')} className="mr-1.5" />
+                    No
+                  </label>
+                  <label className="flex items-center text-sm">
+                    <input type="radio" value="Unknown" {...register('policeReport')} className="mr-1.5" />
+                    Unknown
+                  </label>
+                </div>
+                <AIHelperText step="accident" field="noPoliceReport" />
+              </div>
             </div>
           </div>
         )}
 
-        <div className="flex justify-between pt-4">
+        <div className="flex justify-between pt-2">
           <button type="button" onClick={prevStep} className="btn-secondary">
             ← Back
           </button>

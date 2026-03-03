@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '../context/AuthContext';
+import { AIBadge } from './AIIcon';
 
 const pageTitles = {
   '/dashboard': 'Dashboard',
@@ -41,8 +42,9 @@ export function DashboardLayout({ children }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <div className="ml-4 lg:ml-0">
+              <div className="ml-4 lg:ml-0 flex items-center gap-2">
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{pageTitle}</h2>
+                <AIBadge size="sm" />
               </div>
             </div>
 

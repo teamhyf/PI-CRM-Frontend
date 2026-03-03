@@ -27,31 +27,21 @@ export function StepInjuryTreatment() {
 
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Injury & Treatment</h2>
-      <p className="text-gray-600 mb-6">Tell us about any injuries and medical treatment</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Injury & Treatment</h2>
+      <p className="text-sm text-gray-600 mb-4">Tell us about any injuries and medical treatment</p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
             Were you injured? <span className="text-red-500">*</span>
           </label>
-          <div className="flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="Yes"
-                {...register('injured', { required: true })}
-                className="mr-2"
-              />
+          <div className="flex flex-wrap gap-3">
+            <label className="flex items-center text-sm">
+              <input type="radio" value="Yes" {...register('injured', { required: true })} className="mr-1.5" />
               Yes
             </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="No"
-                {...register('injured', { required: true })}
-                className="mr-2"
-              />
+            <label className="flex items-center text-sm">
+              <input type="radio" value="No" {...register('injured', { required: true })} className="mr-1.5" />
               No
             </label>
           </div>
@@ -65,71 +55,59 @@ export function StepInjuryTreatment() {
         </div>
 
         {showTreatmentFields && (
-          <div className="space-y-4 p-4 bg-gray-50 rounded-lg animate-fade-in">
-            <h3 className="font-semibold text-gray-900">Treatment Details</h3>
-
-            <div>
-              <label htmlFor="treatmentLocation" className="block text-sm font-medium text-gray-700 mb-2">
-                Where did you receive treatment?
-              </label>
-              <select id="treatmentLocation" {...register('treatmentLocation')} className="input-field">
-                <option value="">Select treatment location</option>
-                <option value="ER">Emergency Room</option>
-                <option value="Urgent Care">Urgent Care</option>
-                <option value="Primary">Primary Care Physician</option>
-                <option value="None yet">None yet</option>
-              </select>
-              <AIHelperText step="injury" field="noTreatment" />
-              <AIHelperText step="injury" field="treatmentNotStarted" />
+          <div className="space-y-3 p-3 bg-gray-50 rounded-lg animate-fade-in">
+            <h3 className="font-semibold text-gray-900 text-sm">Treatment Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="treatmentLocation" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Where did you receive treatment?
+                </label>
+                <select id="treatmentLocation" {...register('treatmentLocation')} className="input-field">
+                  <option value="">Select treatment location</option>
+                  <option value="ER">Emergency Room</option>
+                  <option value="Urgent Care">Urgent Care</option>
+                  <option value="Primary">Primary Care Physician</option>
+                  <option value="None yet">None yet</option>
+                </select>
+                <AIHelperText step="injury" field="noTreatment" />
+                <AIHelperText step="injury" field="treatmentNotStarted" />
+              </div>
+              <div>
+                <label htmlFor="treatmentDates" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Treatment Dates
+                </label>
+                <input
+                  id="treatmentDates"
+                  type="text"
+                  {...register('treatmentDates')}
+                  className="input-field"
+                  placeholder="e.g., Jan 15, 2026 to Jan 20, 2026"
+                />
+              </div>
             </div>
-
             <div>
-              <label htmlFor="treatmentDates" className="block text-sm font-medium text-gray-700 mb-2">
-                Treatment Dates
-              </label>
-              <input
-                id="treatmentDates"
-                type="text"
-                {...register('treatmentDates')}
-                className="input-field"
-                placeholder="e.g., Jan 15, 2026 to Jan 20, 2026"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="knownInjuries" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="knownInjuries" className="block text-sm font-medium text-gray-700 mb-1.5">
                 Known Injuries
               </label>
               <textarea
                 id="knownInjuries"
                 {...register('knownInjuries')}
                 className="input-field"
-                rows="3"
+                rows="2"
                 placeholder="Describe your injuries (e.g., neck strain, lower back pain)"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Are you still receiving treatment?
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Still receiving treatment?
               </label>
-              <div className="flex gap-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="Yes"
-                    {...register('stillTreating')}
-                    className="mr-2"
-                  />
+              <div className="flex gap-3">
+                <label className="flex items-center text-sm">
+                  <input type="radio" value="Yes" {...register('stillTreating')} className="mr-1.5" />
                   Yes
                 </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="No"
-                    {...register('stillTreating')}
-                    className="mr-2"
-                  />
+                <label className="flex items-center text-sm">
+                  <input type="radio" value="No" {...register('stillTreating')} className="mr-1.5" />
                   No
                 </label>
               </div>
@@ -137,7 +115,7 @@ export function StepInjuryTreatment() {
           </div>
         )}
 
-        <div className="flex justify-between pt-4">
+        <div className="flex justify-between pt-2">
           <button type="button" onClick={prevStep} className="btn-secondary">
             ← Back
           </button>
