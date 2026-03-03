@@ -10,7 +10,7 @@ import { evaluateCase } from '../utils/caseQualificationEngine';
 import { generateCaseSummary } from '../utils/generateCaseSummary';
 import { AISparklesIcon, AIBadge } from './AIIcon';
 
-export function ReviewSubmit() {
+export function ReviewSubmit({ onSuccessCallback } = {}) {
   const { formData, prevStep, submitOrUpdateCase, editingCaseId } = useIntake();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,7 +28,11 @@ export function ReviewSubmit() {
     setIsSubmitting(true);
     try {
       await submitOrUpdateCase();
-      navigate('/cases');
+      if (typeof onSuccessCallback === 'function') {
+        onSuccessCallback();
+      } else {
+        navigate('/cases');
+      }
     } catch (error) {
       console.error('Submission error:', error);
       alert(`There was an error ${editingCaseId ? 'updating' : 'submitting'} your case. Please try again.`);

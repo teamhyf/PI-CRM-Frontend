@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { IntakeProvider } from './context/IntakeContext';
+import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
 import { Cases } from './pages/Cases';
 import { IntakeForm } from './pages/IntakeForm';
@@ -37,8 +38,8 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Landing />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

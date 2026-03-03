@@ -175,6 +175,19 @@ export function IntakeProvider({ children }) {
     setCurrentStep(1);
   }, []);
 
+  const resetForNewCase = useCallback(() => {
+    setFormData({
+      contact: {},
+      accident: {},
+      insurance: {},
+      injury: {},
+      propertyDamage: {},
+      additionalNotes: '',
+    });
+    setCurrentStep(1);
+    setEditingCaseId(null);
+  }, []);
+
   const submitOrUpdateCase = useCallback(async () => {
     if (editingCaseId) {
       return await updateCase(editingCaseId, formData);
@@ -197,6 +210,7 @@ export function IntakeProvider({ children }) {
     updateCase,
     deleteCase,
     loadCaseForEdit,
+    resetForNewCase,
   };
 
   return <IntakeContext.Provider value={value}>{children}</IntakeContext.Provider>;
