@@ -92,16 +92,9 @@ export function Landing() {
 
           {/* Success message (after submit from modal) */}
           {caseSubmitted && (
-            <div className="mt-8 p-4 rounded-xl bg-green-50 border border-green-200 text-left max-w-md mx-auto animate-fade-in">
+            <div className="mt-8 p-4 rounded-xl bg-green-50 border border-green-200 text-center max-w-md mx-auto animate-fade-in">
               <p className="text-green-800 font-medium">
-                Case submitted successfully. It’s now in the portal case list.
-              </p>
-              <p className="text-green-700 text-sm mt-1">
-                <Link to="/login" className="underline font-semibold hover:no-underline">
-                  Log in
-                </Link>
-                {' '}
-                to review and manage your case.
+                Thank you for submitting your case. We will get back to you soon.
               </p>
             </div>
           )}
