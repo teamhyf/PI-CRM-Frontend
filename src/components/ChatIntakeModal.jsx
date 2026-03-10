@@ -34,6 +34,7 @@ export function ChatIntakeModal({
   initialMessages,
   initialStatus,
   sessionError,
+  onStartChatWithContact,
   onRetrySession,
 }) {
   const { submitDraftCase, refreshCasesFromApi } = useIntake();
@@ -44,6 +45,8 @@ export function ChatIntakeModal({
   const [status, setStatus] = useState('collecting');
   const [lastAskedField, setLastAskedField] = useState(null);
 
+  const [contactForm, setContactForm] = useState({ fullName: '', phone: '', email: '' });
+  const [contactFormSubmitting, setContactFormSubmitting] = useState(false);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -156,7 +159,8 @@ export function ChatIntakeModal({
     }
   };
 
-  const isLoading = isOpen && sessionId == null && !sessionError;
+  const isLoading = isOpen && sessionId == null && !sessionError && !onStartChatWithContact;
+  const showContactForm = sessionId == null && !sessionError && !!onStartChatWithContact;
   const showChat = sessionId != null;
   const evaluation = evaluateCase(draft);
   const summary = generateCaseSummary(draft);
@@ -325,13 +329,15 @@ export function ChatIntakeModal({
             </div>
             <AIBadge size="sm" />
           </div>
-          <button
-            type="button"
-            onClick={handleStartOver}
-            className="mr-2 px-3 py-1.5 text-xs font-semibold rounded-full border border-white/40 text-white/90 hover:bg-white/10"
-          >
-            Start over
-          </button>
+          {showChat && (
+            <button
+              type="button"
+              onClick={handleStartOver}
+              className="mr-2 px-3 py-1.5 text-xs font-semibold rounded-full border border-white/40 text-white/90 hover:bg-white/10"
+            >
+              Start over
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -375,6 +381,69 @@ export function ChatIntakeModal({
                     Try again
                   </button>
                 )}
+              </div>
+            )}
+            {showContactForm && (
+              <div className="flex-1 flex flex-col p-6 overflow-y-auto">
+                <p className="text-sm text-gray-600 mb-4">
+                  Share your contact details first. Then we’ll ask about the accident.
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="pre-fullName" className="block text-xs font-semibold text-gray-700 mb-1">Full name *</label>
+                    <input
+                      id="pre-fullName"
+                      type="text"
+                      className="input-field w-full py-2 text-sm"
+                      placeholder="e.g. John Smith"
+                      value={contactForm.fullName}
+                      onChange={(e) => setContactForm((p) => ({ ...p, fullName: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="pre-phone" className="block text-xs font-semibold text-gray-700 mb-1">Phone *</label>
+                    <input
+                      id="pre-phone"
+                      type="tel"
+                      className="input-field w-full py-2 text-sm"
+                      placeholder="e.g. 5551234567"
+                      value={contactForm.phone}
+                      onChange={(e) => setContactForm((p) => ({ ...p, phone: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="pre-email" className="block text-xs font-semibold text-gray-700 mb-1">Email *</label>
+                    <input
+                      id="pre-email"
+                      type="email"
+                      className="input-field w-full py-2 text-sm"
+                      placeholder="e.g. you@example.com"
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <button
+                    type="button"
+                    className="btn-primary w-full py-2.5 text-sm"
+                    disabled={contactFormSubmitting || !contactForm.fullName.trim() || !contactForm.phone.trim() || !contactForm.email.trim()}
+                    onClick={async () => {
+                      setContactFormSubmitting(true);
+                      try {
+                        await onStartChatWithContact({
+                          fullName: contactForm.fullName.trim(),
+                          phone: contactForm.phone.trim(),
+                          email: contactForm.email.trim(),
+                        });
+                      } finally {
+                        setContactFormSubmitting(false);
+                      }
+                    }}
+                  >
+                    {contactFormSubmitting ? 'Starting chat…' : 'Start chat'}
+                  </button>
+                </div>
               </div>
             )}
             {showChat && (

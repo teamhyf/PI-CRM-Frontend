@@ -19,12 +19,18 @@ export async function getCases() {
   return res.json();
 }
 
-export async function startSession() {
+/**
+ * Start a chat session. Optionally pass initial contact (name, phone, email) to skip those questions.
+ */
+export async function startSession(initialContact = null) {
   const base = getBaseUrl();
+  const body = initialContact && typeof initialContact === 'object'
+    ? { contact: { fullName: initialContact.fullName || '', phone: initialContact.phone || '', email: initialContact.email || '' } }
+    : {};
   const res = await fetch(`${base}/api/chat/session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const text = await res.text();

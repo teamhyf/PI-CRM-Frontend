@@ -37,13 +37,17 @@ export function Landing() {
     setModalOpen(false);
   };
 
-  const openChatAssistant = useCallback(async () => {
+  const openChatAssistant = useCallback(() => {
     setCaseSubmitted(false);
     setChatSessionError('');
     setChatOpen(true);
     setChatSession(null);
+  }, []);
+
+  const handleStartChatWithContact = useCallback(async (contact) => {
+    setChatSessionError('');
     try {
-      const session = await startSession();
+      const session = await startSession(contact);
       setChatSession(session);
     } catch (err) {
       setChatSessionError(err.message || 'Failed to start chat');
@@ -186,6 +190,7 @@ export function Landing() {
         initialMessages={chatSession?.messages ?? null}
         initialStatus={chatSession?.status ?? 'collecting'}
         sessionError={chatSessionError}
+        onStartChatWithContact={handleStartChatWithContact}
         onRetrySession={async () => {
           setChatSessionError('');
           try {
