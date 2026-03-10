@@ -4,19 +4,22 @@
  * Cases appear in the portal case list; users can log in later to review.
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useIntake } from '../context/IntakeContext';
 import { IntakeModal } from '../components/IntakeModal';
 import { ChatIntakeModal } from '../components/ChatIntakeModal';
 import { AISparklesIcon, AIBadge } from '../components/AIIcon';
+import { startSession } from '../services/chatApi';
 
 export function Landing() {
   const { isAuthenticated } = useAuth();
   const { resetForNewCase } = useIntake();
   const [modalOpen, setModalOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatSession, setChatSession] = useState(null);
+  const [chatSessionError, setChatSessionError] = useState('');
   const [caseSubmitted, setCaseSubmitted] = useState(false);
 
   const openAssistant = () => {
@@ -34,18 +37,29 @@ export function Landing() {
     setModalOpen(false);
   };
 
-  const openChatAssistant = () => {
+  const openChatAssistant = useCallback(async () => {
     setCaseSubmitted(false);
+    setChatSessionError('');
     setChatOpen(true);
-  };
+    setChatSession(null);
+    try {
+      const session = await startSession();
+      setChatSession(session);
+    } catch (err) {
+      setChatSessionError(err.message || 'Failed to start chat');
+    }
+  }, []);
 
-  const closeChat = () => {
+  const closeChat = useCallback(() => {
     setChatOpen(false);
-  };
+    setChatSession(null);
+    setChatSessionError('');
+  }, []);
 
   const handleChatSuccess = () => {
     setCaseSubmitted(true);
     setChatOpen(false);
+    setChatSession(null);
   };
 
   return (
@@ -167,6 +181,20 @@ export function Landing() {
         isOpen={chatOpen}
         onClose={closeChat}
         onSuccess={handleChatSuccess}
+        sessionId={chatSession?.sessionId ?? null}
+        initialDraft={chatSession?.draft ?? null}
+        initialMessages={chatSession?.messages ?? null}
+        initialStatus={chatSession?.status ?? 'collecting'}
+        sessionError={chatSessionError}
+        onRetrySession={async () => {
+          setChatSessionError('');
+          try {
+            const session = await startSession();
+            setChatSession(session);
+          } catch (err) {
+            setChatSessionError(err.message || 'Failed to start chat');
+          }
+        }}
       />
     </div>
   );

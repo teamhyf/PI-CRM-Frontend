@@ -2,30 +2,50 @@ import { useEffect, useRef, useState } from 'react';
 import { useIntake } from '../context/IntakeContext';
 import { AISparklesIcon, AIBadge } from './AIIcon';
 import { VoiceInputButton } from './VoiceInputButton';
-import { processUserMessage, createEmptyDraft } from '../utils/chatIntakeEngine';
 import { evaluateCase } from '../utils/caseQualificationEngine';
 import { generateCaseSummary } from '../utils/generateCaseSummary';
+import { sendMessage, submitCase, uploadAudio, startSession } from '../services/chatApi';
 
-export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
+function mapBackendMessages(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row, i) => ({
+    id: `msg-${i}-${row.created_at || Date.now()}`,
+    sender: row.role === 'user' ? 'user' : 'assistant',
+    text: row.content || '',
+    createdAt: row.created_at || new Date().toISOString(),
+  }));
+}
+
+const emptyDraft = () => ({
+  contact: { fullName: '', phone: '', email: '' },
+  accident: { dateOfLoss: '', accidentType: '', accidentTypeDescription: '', atFaultIdentified: '', policeReport: '' },
+  insurance: { clientAutoInsurance: '', otherPartyInsurance: '' },
+  injury: { injured: '', treatmentLocation: '', treatmentDates: { start: '', end: '' }, knownInjuries: '', stillTreating: '' },
+  propertyDamage: { hasDamage: '', severity: '' },
+  additionalNotes: '',
+});
+
+export function ChatIntakeModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  sessionId: propsSessionId,
+  initialDraft,
+  initialMessages,
+  initialStatus,
+  sessionError,
+  onRetrySession,
+}) {
   const { submitDraftCase } = useIntake();
 
-  const createInitialState = () => ({
-    draft: createEmptyDraft(),
-    messages: [
-      {
-        id: `welcome-${Date.now()}`,
-        sender: 'assistant',
-        text:
-          'Hi, I’m your AI Assistant. You can tell me what happened in your own words, or start by sharing your name and contact details.',
-        createdAt: new Date().toISOString(),
-      },
-    ],
-    status: 'collecting',
-    lastAskedField: null,
-  });
+  const [sessionId, setSessionId] = useState(null);
+  const [draft, setDraft] = useState(emptyDraft);
+  const [messages, setMessages] = useState([]);
+  const [status, setStatus] = useState('collecting');
+  const [lastAskedField, setLastAskedField] = useState(null);
 
-  const [state, setState] = useState(createInitialState);
   const [input, setInput] = useState('');
+  const [sending, setSending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [audioError, setAudioError] = useState('');
@@ -34,41 +54,50 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
   const [treatmentEnd, setTreatmentEnd] = useState('');
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
-  const wasOpenRef = useRef(false);
+
+  // Sync from parent when backend session is ready
+  useEffect(() => {
+    if (propsSessionId != null && initialMessages != null) {
+      setSessionId(propsSessionId);
+      setDraft(initialDraft ?? emptyDraft());
+      setMessages(mapBackendMessages(initialMessages));
+      setStatus(initialStatus ?? 'collecting');
+      setLastAskedField(null);
+    }
+  }, [propsSessionId, initialDraft, initialMessages, initialStatus]);
 
   useEffect(() => {
     if (!isOpen) return;
-    // Keep the latest message visible after each send/response.
-    // Use a microtask to allow DOM to paint before scrolling.
     const t = setTimeout(() => {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, 0);
     return () => clearTimeout(t);
-  }, [isOpen, state.messages?.length, state.status]);
-
-  useEffect(() => {
-    // When modal opens from a closed state, start a brand new chat session.
-    if (isOpen && !wasOpenRef.current) {
-      setState(createInitialState());
-      setDatePick('');
-      setTreatmentStart('');
-      setTreatmentEnd('');
-      setInput('');
-      setAudioError('');
-    }
-    wasOpenRef.current = isOpen;
-  }, [isOpen]);
+  }, [isOpen, messages?.length, status]);
 
   if (!isOpen) return null;
 
-  const handleUserMessage = (text) => {
-    if (!text.trim()) return;
-    setState((prev) => processUserMessage(prev, text));
+  const handleUserMessage = async (text) => {
+    if (!text.trim() || !sessionId) return;
+    setSending(true);
+    setAudioError('');
+    try {
+      const result = await sendMessage(sessionId, text.trim());
+      setDraft(result.draft ?? draft);
+      setMessages(mapBackendMessages(result.messages ?? []));
+      setStatus(result.status ?? status);
+      setLastAskedField(result.nextField ?? null);
+    } catch (err) {
+      setAudioError(err.message || 'Failed to send. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleSend = () => {
-    handleUserMessage(input);
+    const t = input.trim();
+    if (!t || sending) return;
     setInput('');
+    handleUserMessage(t);
   };
 
   const handleVoiceTranscript = (t) => {
@@ -77,55 +106,54 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
 
   const handleAudioFileChange = async (event) => {
     const file = event.target.files?.[0];
-    // Allow selecting the same file again later
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    if (!file) return;
-
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (!file || !sessionId) return;
     setAudioError('');
     setUploadingAudio(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/chat/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Transcription failed');
-      }
-
-      const data = await response.json();
-      const text = (data && data.text) || '';
-      if (!text.trim()) {
-        throw new Error('No transcription text returned');
-      }
-
-      // Treat the transcription exactly like a typed user message.
-      handleUserMessage(text);
+      const text = await uploadAudio(sessionId, file);
+      await handleUserMessage(text);
     } catch (err) {
-      setAudioError('Unable to transcribe that audio file. Please try a shorter/clearer recording or type your message.');
-      // eslint-disable-next-line no-console
-      console.error('Audio transcription error', err);
+      setAudioError(err.message || 'Unable to transcribe that audio. Try typing your message.');
     } finally {
       setUploadingAudio(false);
     }
   };
 
   const handleSubmitCase = async () => {
+    if (!sessionId) return;
     setSubmitting(true);
     try {
-      await submitDraftCase(state.draft);
+      await submitCase(sessionId);
+      await submitDraftCase(draft);
       if (onSuccess) onSuccess();
+    } catch (err) {
+      setAudioError(err.message || 'Failed to submit case.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const { draft, messages, status, lastAskedField } = state;
+  const handleStartOver = async () => {
+    setDatePick('');
+    setTreatmentStart('');
+    setTreatmentEnd('');
+    setInput('');
+    setAudioError('');
+    try {
+      const session = await startSession();
+      setSessionId(session.sessionId);
+      setDraft(session.draft ?? emptyDraft());
+      setMessages(mapBackendMessages(session.messages ?? []));
+      setStatus(session.status ?? 'collecting');
+      setLastAskedField(null);
+    } catch (err) {
+      setAudioError(err.message || 'Failed to start over.');
+    }
+  };
+
+  const isLoading = isOpen && sessionId == null && !sessionError;
+  const showChat = sessionId != null;
   const evaluation = evaluateCase(draft);
   const summary = generateCaseSummary(draft);
 
@@ -310,11 +338,7 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
           </div>
           <button
             type="button"
-            onClick={() => {
-              setState(createInitialState());
-              clearPickers();
-              setInput('');
-            }}
+            onClick={handleStartOver}
             className="mr-2 px-3 py-1.5 text-xs font-semibold rounded-full border border-white/40 text-white/90 hover:bg-white/10"
           >
             Start over
@@ -349,6 +373,23 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
                 : 'flex-1'
             }`}
           >
+            {isLoading && (
+              <div className="flex-1 flex items-center justify-center p-8 text-gray-500">
+                Starting chat…
+              </div>
+            )}
+            {sessionError && (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 gap-3">
+                <p className="text-red-600 text-sm">{sessionError}</p>
+                {onRetrySession && (
+                  <button type="button" onClick={onRetrySession} className="btn-primary text-sm py-2 px-4">
+                    Try again
+                  </button>
+                )}
+              </div>
+            )}
+            {showChat && (
+            <>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
               {messages.map((msg) => (
                 <div
@@ -528,9 +569,10 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
                 <button
                   type="button"
                   onClick={handleSend}
-                  className="btn-primary text-sm px-4 py-2"
+                  disabled={sending}
+                  className="btn-primary text-sm px-4 py-2 disabled:opacity-60"
                 >
-                  Send
+                  {sending ? 'Sending…' : 'Send'}
                 </button>
               </div>
               {audioError && (
@@ -539,9 +581,11 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
                 </p>
               )}
             </div>
+          </>
+            )}
           </div>
 
-          {status === 'ready_for_preview' && (
+          {status === 'ready_for_preview' && showChat && (
             <div className="flex flex-col flex-[1.4] bg-gray-50">
             <div className="p-4 border-b border-gray-200">
               <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
@@ -596,9 +640,11 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
                     Treatment: {draft.injury.treatmentLocation}
                   </p>
                 )}
-                {draft.injury.treatmentDates && (
+                {(draft.injury.treatmentDates?.start || draft.injury.treatmentDates?.end || (typeof draft.injury.treatmentDates === 'string' && draft.injury.treatmentDates)) && (
                   <p className="text-sm text-gray-800">
-                    Treatment dates: {draft.injury.treatmentDates}
+                    Treatment dates: {typeof draft.injury.treatmentDates === 'string'
+                      ? draft.injury.treatmentDates
+                      : [draft.injury.treatmentDates?.start, draft.injury.treatmentDates?.end].filter(Boolean).join(' – ')}
                   </p>
                 )}
                 {draft.injury.knownInjuries && (
