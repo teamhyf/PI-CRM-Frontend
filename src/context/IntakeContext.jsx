@@ -75,25 +75,29 @@ export function IntakeProvider({ children }) {
     setCurrentStep(step);
   }, []);
 
+  const createCaseFromData = useCallback((data) => {
+    // Generate case ID based on total cases (including samples)
+    const totalCases = cases.length;
+    const caseId = `CASE-${new Date().getFullYear()}-${String(totalCases + 1).padStart(3, '0')}`;
+
+    const aiEvaluation = evaluateCase(data);
+    const aiSummary = generateCaseSummary(data);
+
+    return {
+      caseId,
+      ...data,
+      aiEvaluation,
+      aiSummary,
+      status: 'Pending Attorney Review',
+      createdAt: new Date().toISOString(),
+    };
+  }, [cases.length]);
+
   const submitCase = useCallback(async () => {
-    // Simulate async submission
+    // Simulate async submission using current formData
     return new Promise((resolve) => {
       setTimeout(() => {
-        // Generate case ID based on total cases (including samples)
-        const totalCases = cases.length;
-        const caseId = `CASE-${new Date().getFullYear()}-${String(totalCases + 1).padStart(3, '0')}`;
-        
-        const aiEvaluation = evaluateCase(formData);
-        const aiSummary = generateCaseSummary(formData);
-
-        const newCase = {
-          caseId,
-          ...formData,
-          aiEvaluation,
-          aiSummary,
-          status: 'Pending Attorney Review',
-          createdAt: new Date().toISOString(),
-        };
+        const newCase = createCaseFromData(formData);
 
         // Add new case to the list
         setCases((prev) => [...prev, newCase]);
@@ -113,7 +117,18 @@ export function IntakeProvider({ children }) {
         resolve(newCase);
       }, 1500); // Simulate API delay
     });
-  }, [formData, cases.length]);
+  }, [formData, createCaseFromData]);
+
+  const submitDraftCase = useCallback(async (draftData) => {
+    // Simulate async submission using an explicit draft (used by chat intake)
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const newCase = createCaseFromData(draftData);
+        setCases((prev) => [...prev, newCase]);
+        resolve(newCase);
+      }, 800);
+    });
+  }, [createCaseFromData]);
 
   const updateCase = useCallback(async (caseId, updatedData) => {
     return new Promise((resolve) => {
@@ -206,6 +221,7 @@ export function IntakeProvider({ children }) {
     prevStep,
     goToStep,
     submitCase,
+    submitDraftCase,
     submitOrUpdateCase,
     updateCase,
     deleteCase,
