@@ -167,41 +167,26 @@ export function ChatIntakeModal({
     setTreatmentEnd('');
   };
 
+  // Only show quick-option chips for questions that have a fixed set of answers.
+  // Open-ended questions (name, phone, email, date, accident type, insurance company name) get no chips – user types in the input.
   const renderQuickOptions = () => {
     const baseBtn =
       'px-3 py-1.5 text-xs md:text-[13px] rounded-full border font-semibold transition-colors';
 
-    const yesNoButtons = (
-      <>
-        <button
-          type="button"
-          className={`${baseBtn} bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100`}
-          onClick={() => handleUserMessage('Yes')}
-        >
-          Yes
-        </button>
-        <button
-          type="button"
-          className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`}
-          onClick={() => handleUserMessage('No')}
-        >
-          No
-        </button>
-        <button
-          type="button"
-          className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`}
-          onClick={() => handleUserMessage('Unsure')}
-        >
-          Unsure
-        </button>
-      </>
-    );
-
-    if (
-      lastAskedField === 'insurance.clientAutoInsurance' ||
-      lastAskedField === 'insurance.otherPartyInsurance'
-    ) {
-      return yesNoButtons;
+    const freeTextFields = [
+      'contact.fullName',
+      'contact.phone',
+      'contact.email',
+      'accident.dateOfLoss',
+      'accident.accidentType',
+      'accident.accidentTypeDescription',
+      'insurance.clientAutoInsurance',   // "Who is your auto insurance company?" – type company name
+      'insurance.otherPartyInsurance',   // Other party's insurance – type company name or "I don't know"
+      'injury.knownInjuries',
+      'additionalNotes',
+    ];
+    if (freeTextFields.includes(lastAskedField)) {
+      return null; // No chips; user types in the text input
     }
 
     if (lastAskedField === 'injury.injured' || lastAskedField === 'injury.stillTreating') {
