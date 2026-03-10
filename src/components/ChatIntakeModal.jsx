@@ -27,10 +27,13 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
   const [state, setState] = useState(createInitialState);
   const [input, setInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [audioError, setAudioError] = useState('');
   const [datePick, setDatePick] = useState('');
   const [treatmentStart, setTreatmentStart] = useState('');
   const [treatmentEnd, setTreatmentEnd] = useState('');
   const chatEndRef = useRef(null);
+  const fileInputRef = useRef(null);
   const wasOpenRef = useRef(false);
 
   useEffect(() => {
@@ -51,6 +54,7 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
       setTreatmentStart('');
       setTreatmentEnd('');
       setInput('');
+      setAudioError('');
     }
     wasOpenRef.current = isOpen;
   }, [isOpen]);
@@ -69,6 +73,46 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
 
   const handleVoiceTranscript = (t) => {
     setInput((prev) => (prev ? `${prev} ${t}` : t));
+  };
+
+  const handleAudioFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    // Allow selecting the same file again later
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    if (!file) return;
+
+    setAudioError('');
+    setUploadingAudio(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/chat/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Transcription failed');
+      }
+
+      const data = await response.json();
+      const text = (data && data.text) || '';
+      if (!text.trim()) {
+        throw new Error('No transcription text returned');
+      }
+
+      // Treat the transcription exactly like a typed user message.
+      handleUserMessage(text);
+    } catch (err) {
+      setAudioError('Unable to transcribe that audio file. Please try a shorter/clearer recording or type your message.');
+      // eslint-disable-next-line no-console
+      console.error('Audio transcription error', err);
+    } finally {
+      setUploadingAudio(false);
+    }
   };
 
   const handleSubmitCase = async () => {
@@ -429,28 +473,71 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
               </div>
             )}
 
-            <div className="flex items-center gap-3 px-4 py-3 border-t border-gray-200 bg-white">
-              <VoiceInputButton onTranscript={handleVoiceTranscript} />
-              <input
-                type="text"
-                className="flex-1 input-field py-2 text-sm"
-                placeholder="Type your message here…"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleSend}
-                className="btn-primary text-sm px-4 py-2"
-              >
-                Send
-              </button>
+            <div className="flex flex-col gap-1 px-4 py-3 border-t border-gray-200 bg-white">
+              <div className="flex items-center gap-3">
+                {/* Audio upload button */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAudio}
+                    title="Upload audio file"
+                  >
+                    {uploadingAudio ? (
+                      <span className="text-[10px] font-semibold">...</span>
+                    ) : (
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M8 12l4-4m0 0l4 4m-4-4v12"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="audio/*,.m4a,.mp3,.wav,.webm"
+                    className="hidden"
+                    onChange={handleAudioFileChange}
+                  />
+                </div>
+
+                <VoiceInputButton onTranscript={handleVoiceTranscript} />
+                <input
+                  type="text"
+                  className="flex-1 input-field py-2 text-sm"
+                  placeholder="Type your message here…"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  className="btn-primary text-sm px-4 py-2"
+                >
+                  Send
+                </button>
+              </div>
+              {audioError && (
+                <p className="text-[11px] text-red-500 mt-0.5">
+                  {audioError}
+                </p>
+              )}
             </div>
           </div>
 
