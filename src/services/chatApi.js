@@ -9,6 +9,16 @@ const getBaseUrl = () => {
   return '';
 };
 
+/**
+ * Fetch all cases from the backend (dynamic list from MySQL).
+ */
+export async function getCases() {
+  const base = getBaseUrl();
+  const res = await fetch(`${base}/api/cases`);
+  if (!res.ok) throw new Error('Failed to load cases');
+  return res.json();
+}
+
 export async function startSession() {
   const base = getBaseUrl();
   const res = await fetch(`${base}/api/chat/session`, {
@@ -66,12 +76,23 @@ export async function uploadAudio(sessionId, file) {
     method: 'POST',
     body: formData,
   });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err || 'Transcription failed');
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = {};
   }
-  const data = await res.json();
-  const text = (data && data.text) || '';
-  if (!text.trim()) throw new Error('No transcription text returned');
-  return text;
+  if (!res.ok) {
+    const notImplemented =
+      res.status === 501 ||
+      (data.error && String(data.error).toLowerCase().includes('not yet implemented'));
+    const message = notImplemented
+      ? 'Audio upload is not available yet. Please type your message or use the microphone (Chrome or Edge).'
+      : (data.error || text || 'Transcription failed');
+    throw new Error(message);
+  }
+  const transcript = (data && data.text) || '';
+  if (!transcript.trim()) throw new Error('No transcription text returned');
+  return transcript;
 }

@@ -36,7 +36,7 @@ export function ChatIntakeModal({
   sessionError,
   onRetrySession,
 }) {
-  const { submitDraftCase } = useIntake();
+  const { submitDraftCase, refreshCasesFromApi } = useIntake();
 
   const [sessionId, setSessionId] = useState(null);
   const [draft, setDraft] = useState(emptyDraft);
@@ -125,7 +125,11 @@ export function ChatIntakeModal({
     setSubmitting(true);
     try {
       await submitCase(sessionId);
-      await submitDraftCase(draft);
+      try {
+        await refreshCasesFromApi();
+      } catch (_e) {
+        await submitDraftCase(draft);
+      }
       if (onSuccess) onSuccess();
     } catch (err) {
       setAudioError(err.message || 'Failed to submit case.');

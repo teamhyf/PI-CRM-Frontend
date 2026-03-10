@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { evaluateCase } from '../utils/caseQualificationEngine';
 import { generateCaseSummary } from '../utils/generateCaseSummary';
 import { sampleCases } from '../data/sampleCases';
+import { getCases } from '../services/chatApi';
 
 const IntakeContext = createContext();
 
@@ -43,7 +44,22 @@ export function IntakeProvider({ children }) {
     additionalNotes: '',
   });
 
-  // Save cases to localStorage whenever cases change
+  // Load cases from backend API when available (dynamic list from MySQL)
+  useEffect(() => {
+    let cancelled = false;
+    getCases()
+      .then((apiCases) => {
+        if (!cancelled && Array.isArray(apiCases) && apiCases.length >= 0) {
+          setCases(apiCases);
+        }
+      })
+      .catch(() => {
+        // Keep initial state (samples + localStorage) when API is unavailable
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Save cases to localStorage whenever cases change (backup when API is down)
   useEffect(() => {
     try {
       // Only save non-sample cases to localStorage
@@ -120,15 +136,21 @@ export function IntakeProvider({ children }) {
   }, [formData, createCaseFromData]);
 
   const submitDraftCase = useCallback(async (draftData) => {
-    // Simulate async submission using an explicit draft (used by chat intake)
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newCase = createCaseFromData(draftData);
-        setCases((prev) => [...prev, newCase]);
-        resolve(newCase);
-      }, 800);
-    });
+    // Add case to local list (used when backend submit succeeded but we need to show it before refetch)
+    const newCase = createCaseFromData(draftData);
+    setCases((prev) => [...prev, newCase]);
+    return newCase;
   }, [createCaseFromData]);
+
+  /** Refetch cases from backend (e.g. after chat submit) so the list stays in sync with MySQL. */
+  const refreshCasesFromApi = useCallback(async () => {
+    try {
+      const apiCases = await getCases();
+      if (Array.isArray(apiCases)) setCases(apiCases);
+    } catch (_e) {
+      // Keep current cases if refetch fails
+    }
+  }, []);
 
   const updateCase = useCallback(async (caseId, updatedData) => {
     return new Promise((resolve) => {
@@ -227,6 +249,7 @@ export function IntakeProvider({ children }) {
     deleteCase,
     loadCaseForEdit,
     resetForNewCase,
+    refreshCasesFromApi,
   };
 
   return <IntakeContext.Provider value={value}>{children}</IntakeContext.Provider>;
