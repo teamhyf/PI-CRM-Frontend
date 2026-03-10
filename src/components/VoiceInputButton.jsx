@@ -1,20 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 
 export function VoiceInputButton({ onTranscript }) {
-  const [supported, setSupported] = useState(true);
+  const [supported, setSupported] = useState(null); // null = checking
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
   const transcriptRef = useRef('');
   const userRequestedStopRef = useRef(false);
 
   useEffect(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition || null;
-    if (!SpeechRecognition) {
-      setSupported(false);
-      return;
-    }
-    const recognition = new SpeechRecognition();
+    let recognition;
+    try {
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition || null;
+      if (!SpeechRecognition || typeof SpeechRecognition !== 'function') {
+        setSupported(false);
+        return;
+      }
+      recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.interimResults = true;
     recognition.continuous = true;
@@ -49,6 +51,13 @@ export function VoiceInputButton({ onTranscript }) {
     };
 
     recognitionRef.current = recognition;
+    setSupported(true);
+    return () => {
+      recognitionRef.current = null;
+    };
+    } catch (_e) {
+      setSupported(false);
+    }
   }, [onTranscript]);
 
   const handleClick = () => {
@@ -62,17 +71,40 @@ export function VoiceInputButton({ onTranscript }) {
     }
   };
 
-  if (!supported) {
+  // Show nothing while checking (avoids flash), then show disabled button if unsupported
+  if (supported === false) {
     return (
       <button
         type="button"
-        className="px-3 py-2 text-xs text-gray-400 border border-dashed border-gray-300 rounded-lg cursor-not-allowed"
-        title="Voice input is not supported in this browser"
+        className="flex items-center justify-center w-10 h-10 rounded-full border border-dashed border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed"
+        title="Voice input is not supported in this browser. Use Chrome, Edge, or Safari for voice."
         disabled
       >
-        Voice
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 1a3 3 0 00-3 3v6a3 3 0 006 0V4a3 3 0 00-3-3z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 10a7 7 0 01-14 0M12 17v4m0 0H9m3 0h3"
+          />
+        </svg>
       </button>
     );
+  }
+
+  if (supported !== true) {
+    return null; // still checking
   }
 
   return (
