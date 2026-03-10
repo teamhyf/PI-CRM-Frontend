@@ -68,6 +68,13 @@ function patchFromLastAskedField(lastAskedField, userText) {
     }
   }
 
+  if (lastAskedField === 'contact.phone') {
+    const digits = String(userText || '').replace(/[^\d+]/g, '');
+    if (digits.length >= 10) {
+      return [{ path: lastAskedField, value: digits, confidence: 0.95 }];
+    }
+  }
+
   if (lastAskedField === 'injury.treatmentLocation') {
     const t = String(userText || '').trim().toLowerCase();
     if (!t) return [];

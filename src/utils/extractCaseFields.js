@@ -58,11 +58,18 @@ export function extractCaseFields(messageText) {
     patches.push({ path: 'contact.email', value: emailMatch[0], confidence: 0.95 });
   }
 
+  // Phone detection – handle normal and unicode separators
   const phoneMatch = text.match(phoneDigitsRegex);
   if (phoneMatch) {
     const digits = phoneMatch[0].replace(/[^\d+]/g, '');
     if (digits.length >= 10) {
       patches.push({ path: 'contact.phone', value: digits, confidence: 0.9 });
+    }
+  } else if (/(phone|call|reach|contact)/i.test(text)) {
+    // Fallback: grab all digits when user is clearly talking about phone
+    const rawDigits = messageText.replace(/[^\d+]/g, '');
+    if (rawDigits.length >= 10) {
+      patches.push({ path: 'contact.phone', value: rawDigits, confidence: 0.85 });
     }
   }
 
@@ -82,6 +89,15 @@ export function extractCaseFields(messageText) {
   const accType = detectAccidentType(text);
   if (accType) {
     patches.push({ path: 'accident.accidentType', value: accType, confidence: 0.8 });
+  }
+
+  // Injury description – if user is talking about pain/injuries, capture it
+  if (/(injur|pain|hurt|twist|sprain|fracture|broke|broken|whiplash|bruise|ankle|back|neck|shoulder)/i.test(text)) {
+    patches.push({
+      path: 'injury.knownInjuries',
+      value: messageText.trim(),
+      confidence: 0.7,
+    });
   }
 
   const yn = parseYesNo(text);

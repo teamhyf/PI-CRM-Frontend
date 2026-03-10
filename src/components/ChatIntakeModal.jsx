@@ -250,7 +250,7 @@ export function ChatIntakeModal({ isOpen, onClose, onSuccess }) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative w-full max-w-5xl max-h-[96vh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-scale-in">
+      <div className="relative w-full max-w-5xl h-[70vh] max-h-[96vh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-scale-in">
         <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
           <div className="flex items-center gap-2">
             <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/20">
