@@ -182,10 +182,7 @@ export function ChatIntakeModal({
       'contact.phone',
       'contact.email',
       'accident.dateOfLoss',
-      'accident.accidentType',
       'accident.accidentTypeDescription',
-      'insurance.clientAutoInsurance',   // "Who is your auto insurance company?" – type company name
-      'insurance.otherPartyInsurance',   // Other party's insurance – type company name or "I don't know"
       'injury.knownInjuries',
       'additionalNotes',
     ];
@@ -301,6 +298,62 @@ export function ChatIntakeModal({
               {label}
             </button>
           ))}
+        </>
+      );
+    }
+
+    if (lastAskedField === 'accident.accidentType') {
+      const options = [
+        'Motor vehicle accident',
+        'Pedestrian',
+        'Bicycle',
+        'Motorcycle',
+        'Slip and fall',
+        'Other',
+      ];
+      return (
+        <>
+          {options.map((label) => (
+            <button
+              key={label}
+              type="button"
+              className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`}
+              onClick={() => handleUserMessage(label)}
+            >
+              {label}
+            </button>
+          ))}
+        </>
+      );
+    }
+
+    if (
+      lastAskedField === 'insurance.clientAutoInsurance' ||
+      lastAskedField === 'insurance.otherPartyInsurance'
+    ) {
+      return (
+        <>
+          <button
+            type="button"
+            className={`${baseBtn} bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100`}
+            onClick={() => handleUserMessage('Yes')}
+          >
+            Yes
+          </button>
+          <button
+            type="button"
+            className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`}
+            onClick={() => handleUserMessage('No')}
+          >
+            No
+          </button>
+          <button
+            type="button"
+            className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`}
+            onClick={() => handleUserMessage('Unsure')}
+          >
+            Unsure
+          </button>
         </>
       );
     }
