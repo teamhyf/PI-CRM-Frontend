@@ -3,11 +3,16 @@
   AddType application/javascript .js
 </IfModule>
 
+# Force correct MIME types for assets (some hosts ignore AddType for /assets/)
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Never rewrite /assets/ (Vite JS/CSS) — serve as static files only
+  # Serve /assets/*.css and /assets/*.js as static files with correct type (do not rewrite)
+  RewriteRule ^assets/.*\.css$ - [L,T=text/css]
+  RewriteRule ^assets/.*\.js$ - [L,T=application/javascript]
+
+  # Any other path under /assets/
   RewriteRule ^assets/ - [L]
 
   # Never rewrite real files or directories
