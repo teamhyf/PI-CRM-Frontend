@@ -200,6 +200,10 @@ export function Landing() {
             setChatSessionError(err.message || 'Failed to start chat');
           }
         }}
+        onStartOver={() => {
+          setChatSession(null);
+          setChatSessionError('');
+        }}
       />
     </div>
   );

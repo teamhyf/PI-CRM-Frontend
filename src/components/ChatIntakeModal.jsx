@@ -56,6 +56,7 @@ export function ChatIntakeModal({
   sessionError,
   onStartChatWithContact,
   onRetrySession,
+  onStartOver: onStartOverCallback,
 }) {
   const { submitDraftCase, refreshCasesFromApi } = useIntake();
 
@@ -176,23 +177,20 @@ export function ChatIntakeModal({
     }
   };
 
-  const handleStartOver = async () => {
+  const handleStartOver = () => {
+    onStartOverCallback?.();
+    setSessionId(null);
+    setDraft(emptyDraft());
+    setMessages([]);
+    setStatus('collecting');
+    setLastAskedField(null);
+    setContactForm({ fullName: '', phone: '', email: '' });
     setDatePick('');
     setTreatmentStart('');
     setTreatmentEnd('');
     setInput('');
     setAudioError('');
     setPreviewScore(null);
-    try {
-      const session = await startSession();
-      setSessionId(session.sessionId);
-      setDraft(session.draft ?? emptyDraft());
-      setMessages(mapBackendMessages(session.messages ?? []));
-      setStatus(session.status ?? 'collecting');
-      setLastAskedField(null);
-    } catch (err) {
-      setAudioError(err.message || 'Failed to start over.');
-    }
   };
 
   const isLoading = isOpen && sessionId == null && !sessionError && !onStartChatWithContact;
@@ -200,10 +198,16 @@ export function ChatIntakeModal({
   const showChat = sessionId != null;
   const evaluation = evaluateCase(draft);
   const summary = generateCaseSummary(draft);
-  const displaySummary = previewScore?.summary ?? summary;
-  const displayScore = previewScore?.score ?? evaluation.score;
-  const displayLabel = previewScore?.viabilityLabel ?? evaluation.viabilityLevel;
-  const displayFactors = previewScore?.keyFactors ?? evaluation.flags;
+  const isAIFallback =
+    previewScore &&
+    !previewScore.summary &&
+    Array.isArray(previewScore.keyFactors) &&
+    previewScore.keyFactors.some((f) => typeof f === 'string' && f.toLowerCase().includes('not available'));
+  const displaySummary = isAIFallback ? summary : (previewScore?.summary ?? summary);
+  const displayScore = isAIFallback ? evaluation.score : (previewScore?.score ?? evaluation.score);
+  const displayLabel = isAIFallback ? evaluation.viabilityLevel : (previewScore?.viabilityLabel ?? evaluation.viabilityLevel);
+  const displayFactors = isAIFallback ? evaluation.flags : (previewScore?.keyFactors ?? evaluation.flags);
+  const showRuleBasedNote = isAIFallback;
 
   const clearPickers = () => {
     setDatePick('');
@@ -956,6 +960,11 @@ export function ChatIntakeModal({
                       <p className="text-xs text-gray-600 mb-1">
                         Viability: <strong>{displayLabel}</strong> · Score: {displayScore}/100
                       </p>
+                      {showRuleBasedNote && (
+                        <p className="text-[11px] text-amber-700 mb-1">
+                          Using rule-based assessment (AI not configured).
+                        </p>
+                      )}
                       {Array.isArray(displayFactors) && displayFactors.length > 0 && displayFactors[0] !== 'No Flags' && (
                         <ul className="text-xs text-gray-600 list-disc list-inside mt-1">
                           {displayFactors.map((f, i) => (
