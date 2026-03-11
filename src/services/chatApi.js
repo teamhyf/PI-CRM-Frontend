@@ -95,28 +95,31 @@ export async function submitCase(sessionId) {
 export async function uploadAudio(sessionId, file) {
   const base = getBaseUrl();
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('audio', file);
+  formData.append('sessionId', sessionId);
   const res = await fetch(`${base}/api/chat/transcribe`, {
     method: 'POST',
     body: formData,
   });
-  const text = await res.text();
-  let data;
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = {};
-  }
+  const data = await res.json().catch(() => ({}));
+
   if (!res.ok) {
     const notImplemented =
       res.status === 501 ||
       (data.error && String(data.error).toLowerCase().includes('not yet implemented'));
     const message = notImplemented
       ? 'Audio upload is not available yet. Please type your message or use the microphone (Chrome or Edge).'
-      : (data.error || text || 'Transcription failed.');
+      : (data.error || 'Transcription failed.');
     throw new Error(message);
   }
-  const transcript = (data && data.text) || '';
-  if (!transcript.trim()) throw new Error('No transcription text returned');
+
+  // Return the transcript from the successful response
+  const transcript = (data && data.transcript) || '';
+
+  // If transcript is empty but there was no error, it might be a graceful fallback message
+  if (!transcript || transcript.startsWith('[Audio')) {
+    throw new Error(transcript || 'No transcription available. Please try again.');
+  }
+
   return transcript;
 }

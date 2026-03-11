@@ -7,7 +7,6 @@ import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useIntake } from '../context/IntakeContext';
 import { CaseSummaryModal } from '../components/CaseSummaryModal';
-import { sampleCases } from '../data/sampleCases';
 import { AISparklesIcon, AIBadge } from '../components/AIIcon';
 
 export function Cases() {

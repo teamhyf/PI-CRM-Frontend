@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { evaluateCase } from '../utils/caseQualificationEngine';
 import { generateCaseSummary } from '../utils/generateCaseSummary';
-import { sampleCases } from '../data/sampleCases';
 import { getCases } from '../services/chatApi';
 
 const IntakeContext = createContext();
@@ -15,23 +14,9 @@ export function useIntake() {
 }
 
 export function IntakeProvider({ children }) {
-  // Load cases from localStorage on mount, combine with sample cases
-  const [cases, setCases] = useState(() => {
-    try {
-      const storedCases = localStorage.getItem('crm_cases');
-      if (storedCases) {
-        const parsedCases = JSON.parse(storedCases);
-        // Merge with sample cases, avoiding duplicates
-        const sampleIds = new Set(sampleCases.map(c => c.caseId));
-        const uniqueStoredCases = parsedCases.filter(c => !sampleIds.has(c.caseId));
-        return [...sampleCases, ...uniqueStoredCases];
-      }
-      return sampleCases;
-    } catch (error) {
-      console.error('Error loading cases from localStorage:', error);
-      return sampleCases;
-    }
-  });
+  // Start with empty cases list, fetched from backend API
+  const [cases, setCases] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [editingCaseId, setEditingCaseId] = useState(null);
@@ -44,33 +29,29 @@ export function IntakeProvider({ children }) {
     additionalNotes: '',
   });
 
-  // Load cases from backend API when available (dynamic list from MySQL)
+  // Load cases from backend API on mount
   useEffect(() => {
     let cancelled = false;
+    setIsLoading(true);
     getCases()
       .then((apiCases) => {
-        if (!cancelled && Array.isArray(apiCases) && apiCases.length >= 0) {
-          setCases(apiCases);
+        if (!cancelled) {
+          setCases(Array.isArray(apiCases) ? apiCases : []);
         }
       })
-      .catch(() => {
-        // Keep initial state (samples + localStorage) when API is unavailable
+      .catch((error) => {
+        console.error('Error loading cases from API:', error);
+        if (!cancelled) {
+          setCases([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       });
     return () => { cancelled = true; };
   }, []);
-
-  // Save cases to localStorage whenever cases change (backup when API is down)
-  useEffect(() => {
-    try {
-      // Only save non-sample cases to localStorage
-      const nonSampleCases = cases.filter(c => {
-        return !sampleCases.some(sc => sc.caseId === c.caseId);
-      });
-      localStorage.setItem('crm_cases', JSON.stringify(nonSampleCases));
-    } catch (error) {
-      console.error('Error saving cases to localStorage:', error);
-    }
-  }, [cases]);
 
   const updateFormData = useCallback((step, data) => {
     setFormData((prev) => ({
@@ -153,50 +134,74 @@ export function IntakeProvider({ children }) {
   }, []);
 
   const updateCase = useCallback(async (caseId, updatedData) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const aiEvaluation = evaluateCase(updatedData);
-        const aiSummary = generateCaseSummary(updatedData);
+    // Update via API endpoint if the case came from the backend (has numeric ID)
+    // Otherwise update locally for form-submitted cases
+    const numericId = caseId.replace(/\D/g, '');
 
-        setCases((prev) =>
-          prev.map((c) => {
-            if (c.caseId === caseId) {
-              return {
-                ...c,
-                ...updatedData,
-                aiEvaluation,
-                aiSummary,
-                updatedAt: new Date().toISOString(),
-              };
-            }
-            return c;
-          })
-        );
-
-        // Reset form
-        setFormData({
-          contact: {},
-          accident: {},
-          insurance: {},
-          injury: {},
-          propertyDamage: {},
-          additionalNotes: '',
+    if (numericId) {
+      try {
+        // Call backend PATCH endpoint to update status
+        const status = updatedData.status ? updatedData.status.toLowerCase().replace(/\s+/g, '_') : 'new';
+        await fetch(`/api/cases/${caseId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
         });
-        setCurrentStep(1);
-        setEditingCaseId(null);
+      } catch (error) {
+        console.error('Error updating case via API:', error);
+      }
+    }
 
-        resolve({ caseId, ...updatedData, aiEvaluation, aiSummary });
-      }, 500);
+    // Update local state
+    const aiEvaluation = evaluateCase(updatedData);
+    const aiSummary = generateCaseSummary(updatedData);
+
+    setCases((prev) =>
+      prev.map((c) => {
+        if (c.caseId === caseId) {
+          return {
+            ...c,
+            ...updatedData,
+            aiEvaluation,
+            aiSummary,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return c;
+      })
+    );
+
+    // Reset form
+    setFormData({
+      contact: {},
+      accident: {},
+      insurance: {},
+      injury: {},
+      propertyDamage: {},
+      additionalNotes: '',
     });
+    setCurrentStep(1);
+    setEditingCaseId(null);
+
+    return { caseId, ...updatedData, aiEvaluation, aiSummary };
   }, []);
 
   const deleteCase = useCallback(async (caseId) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        setCases((prev) => prev.filter((c) => c.caseId !== caseId));
-        resolve();
-      }, 300);
-    });
+    // Delete via API endpoint if the case has a numeric ID (backend case)
+    const numericId = caseId.replace(/\D/g, '');
+
+    if (numericId) {
+      try {
+        await fetch(`/api/cases/${caseId}`, {
+          method: 'DELETE',
+        });
+      } catch (error) {
+        console.error('Error deleting case via API:', error);
+      }
+    }
+
+    // Remove from local state
+    setCases((prev) => prev.filter((c) => c.caseId !== caseId));
   }, []);
 
   const loadCaseForEdit = useCallback((caseData) => {
@@ -235,6 +240,7 @@ export function IntakeProvider({ children }) {
 
   const value = {
     cases,
+    isLoading,
     currentStep,
     formData,
     editingCaseId,
