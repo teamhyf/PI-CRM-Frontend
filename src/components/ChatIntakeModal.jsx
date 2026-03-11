@@ -4,7 +4,7 @@ import { AISparklesIcon, AIBadge } from './AIIcon';
 import { VoiceInputButton } from './VoiceInputButton';
 import { evaluateCase } from '../utils/caseQualificationEngine';
 import { generateCaseSummary } from '../utils/generateCaseSummary';
-import { sendMessage, submitCase, uploadAudio, startSession } from '../services/chatApi';
+import { sendMessage, submitCase, uploadAudio, startSession, getPreviewScore } from '../services/chatApi';
 
 function mapBackendMessages(rows) {
   if (!Array.isArray(rows)) return [];
@@ -18,7 +18,27 @@ function mapBackendMessages(rows) {
 
 const emptyDraft = () => ({
   contact: { fullName: '', phone: '', email: '' },
-  accident: { dateOfLoss: '', accidentType: '', accidentTypeDescription: '', atFaultIdentified: '', policeReport: '' },
+  accident: {
+    dateOfLoss: '',
+    accidentType: '',
+    accidentTypeDescription: '',
+    collisionType: '',
+    atFaultIdentified: '',
+    policeReport: '',
+    pedestrianInvolvement: '',
+    driverStayed: '',
+    possibleVideo: '',
+    bicycleType: '',
+    bicycleCollisionWith: '',
+    otherPartyStayed: '',
+    fallLocationType: '',
+    hazardType: '',
+    warningSignPresent: '',
+    incidentReported: '',
+    incidentLocationFreeText: '',
+    believedResponsibleParty: '',
+    officialReportType: '',
+  },
   insurance: { clientAutoInsurance: '', otherPartyInsurance: '' },
   injury: { injured: '', treatmentLocation: '', treatmentDates: { start: '', end: '' }, knownInjuries: '', stillTreating: '' },
   propertyDamage: { hasDamage: '', severity: '' },
@@ -55,8 +75,23 @@ export function ChatIntakeModal({
   const [datePick, setDatePick] = useState('');
   const [treatmentStart, setTreatmentStart] = useState('');
   const [treatmentEnd, setTreatmentEnd] = useState('');
+  const [previewScore, setPreviewScore] = useState(null);
+  const [previewScoreLoading, setPreviewScoreLoading] = useState(false);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // When we enter preview, fetch AI viability score (single LLM call)
+  useEffect(() => {
+    if (status !== 'ready_for_preview' || !sessionId) {
+      setPreviewScore(null);
+      return;
+    }
+    setPreviewScoreLoading(true);
+    getPreviewScore(sessionId)
+      .then((data) => setPreviewScore(data))
+      .catch(() => setPreviewScore({ summary: '', score: 50, viabilityLabel: 'Medium', keyFactors: ['Score unavailable.'] }))
+      .finally(() => setPreviewScoreLoading(false));
+  }, [status, sessionId]);
 
   // Sync from parent when backend session is ready
   useEffect(() => {
@@ -147,6 +182,7 @@ export function ChatIntakeModal({
     setTreatmentEnd('');
     setInput('');
     setAudioError('');
+    setPreviewScore(null);
     try {
       const session = await startSession();
       setSessionId(session.sessionId);
@@ -164,6 +200,10 @@ export function ChatIntakeModal({
   const showChat = sessionId != null;
   const evaluation = evaluateCase(draft);
   const summary = generateCaseSummary(draft);
+  const displaySummary = previewScore?.summary ?? summary;
+  const displayScore = previewScore?.score ?? evaluation.score;
+  const displayLabel = previewScore?.viabilityLabel ?? evaluation.viabilityLevel;
+  const displayFactors = previewScore?.keyFactors ?? evaluation.flags;
 
   const clearPickers = () => {
     setDatePick('');
@@ -333,29 +373,95 @@ export function ChatIntakeModal({
     ) {
       return (
         <>
-          <button
-            type="button"
-            className={`${baseBtn} bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100`}
-            onClick={() => handleUserMessage('Yes')}
-          >
-            Yes
-          </button>
-          <button
-            type="button"
-            className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`}
-            onClick={() => handleUserMessage('No')}
-          >
-            No
-          </button>
-          <button
-            type="button"
-            className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`}
-            onClick={() => handleUserMessage('Unsure')}
-          >
-            Unsure
-          </button>
+          <button type="button" className={`${baseBtn} bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100`} onClick={() => handleUserMessage('Yes')}>Yes</button>
+          <button type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage('No')}>No</button>
+          <button type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage('Unsure')}>Unsure</button>
         </>
       );
+    }
+
+    if (lastAskedField === 'accident.collisionType') {
+      const options = ['Rear-end', 'T-bone / side impact', 'Head-on', 'Sideswipe (same direction)', 'Sideswipe (opposite direction)', 'Multi-vehicle / chain reaction', 'Single-vehicle', 'Hit while parked', 'Other'];
+      return (
+        <>
+          {options.map((label) => (
+            <button key={label} type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage(label)}>
+              {label}
+            </button>
+          ))}
+        </>
+      );
+    }
+
+    if (lastAskedField === 'accident.pedestrianInvolvement') {
+      const options = ['Hit by a car', 'Hit by a truck/bus', 'Hit by motorcycle/bicycle', 'Other'];
+      return options.map((label) => (
+        <button key={label} type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage(label)}>{label}</button>
+      ));
+    }
+
+    if (lastAskedField === 'accident.driverStayed' || lastAskedField === 'accident.otherPartyStayed') {
+      return (
+        <>
+          <button type="button" className={`${baseBtn} bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100`} onClick={() => handleUserMessage('Yes')}>Yes</button>
+          <button type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage('No')}>No</button>
+          <button type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage('Unknown')}>Unknown</button>
+        </>
+      );
+    }
+
+    if (lastAskedField === 'accident.possibleVideo' || lastAskedField === 'accident.warningSignPresent') {
+      return (
+        <>
+          <button type="button" className={`${baseBtn} bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100`} onClick={() => handleUserMessage('Yes')}>Yes</button>
+          <button type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage('No')}>No</button>
+          <button type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage('Unsure')}>Unsure</button>
+        </>
+      );
+    }
+
+    if (lastAskedField === 'accident.bicycleType') {
+      const options = ['Regular bicycle', 'E-bike', 'Scooter', 'Other'];
+      return options.map((label) => (
+        <button key={label} type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage(label)}>{label}</button>
+      ));
+    }
+
+    if (lastAskedField === 'accident.bicycleCollisionWith') {
+      const options = ['Motor vehicle', 'Another bicycle/scooter', 'Pedestrian', 'Fixed object', 'Road defect', 'Other'];
+      return options.map((label) => (
+        <button key={label} type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage(label)}>{label}</button>
+      ));
+    }
+
+    if (lastAskedField === 'accident.fallLocationType') {
+      const options = ['Store/supermarket', 'Restaurant', 'Workplace', 'Apartment building', 'Private home', 'Parking lot/sidewalk', 'Other'];
+      return options.map((label) => (
+        <button key={label} type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage(label)}>{label}</button>
+      ));
+    }
+
+    if (lastAskedField === 'accident.hazardType') {
+      const options = ['Wet/slippery floor', 'Ice/snow', 'Uneven ground', 'Loose rug/mat', 'Poor lighting', 'Object on ground', 'Unknown', 'Other'];
+      return options.map((label) => (
+        <button key={label} type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage(label)}>{label}</button>
+      ));
+    }
+
+    if (lastAskedField === 'accident.incidentReported') {
+      return (
+        <>
+          <button type="button" className={`${baseBtn} bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100`} onClick={() => handleUserMessage('Yes')}>Yes</button>
+          <button type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage('No')}>No</button>
+        </>
+      );
+    }
+
+    if (lastAskedField === 'accident.officialReportType') {
+      const options = ['Police', 'Workplace report', 'Store/business report', 'No', 'Unsure', 'Other'];
+      return options.map((label) => (
+        <button key={label} type="button" className={`${baseBtn} bg-white text-gray-700 border-gray-200 hover:bg-gray-50`} onClick={() => handleUserMessage(label)}>{label}</button>
+      ));
     }
 
     return null;
@@ -779,38 +885,86 @@ export function ChatIntakeModal({
               </div>
               <div>
                 <p className="text-xs text-gray-500">Extra accident details</p>
+                {draft.accident.collisionType && (
+                  <p className="text-sm text-gray-800">Collision type: {draft.accident.collisionType}</p>
+                )}
                 {draft.accident.atFaultIdentified && (
-                  <p className="text-sm text-gray-800">
-                    At-fault identified: {draft.accident.atFaultIdentified}
-                  </p>
+                  <p className="text-sm text-gray-800">At-fault identified: {draft.accident.atFaultIdentified}</p>
                 )}
                 {draft.accident.policeReport && (
-                  <p className="text-sm text-gray-800">
-                    Police report filed: {draft.accident.policeReport}
-                  </p>
+                  <p className="text-sm text-gray-800">Police report: {draft.accident.policeReport}</p>
+                )}
+                {draft.accident.pedestrianInvolvement && (
+                  <p className="text-sm text-gray-800">Pedestrian involvement: {draft.accident.pedestrianInvolvement}</p>
+                )}
+                {draft.accident.driverStayed && (
+                  <p className="text-sm text-gray-800">Driver stayed: {draft.accident.driverStayed}</p>
+                )}
+                {draft.accident.possibleVideo && (
+                  <p className="text-sm text-gray-800">Possible video: {draft.accident.possibleVideo}</p>
+                )}
+                {draft.accident.bicycleType && (
+                  <p className="text-sm text-gray-800">Bicycle type: {draft.accident.bicycleType}</p>
+                )}
+                {draft.accident.bicycleCollisionWith && (
+                  <p className="text-sm text-gray-800">Collision with: {draft.accident.bicycleCollisionWith}</p>
+                )}
+                {draft.accident.otherPartyStayed && (
+                  <p className="text-sm text-gray-800">Other party stayed: {draft.accident.otherPartyStayed}</p>
+                )}
+                {draft.accident.fallLocationType && (
+                  <p className="text-sm text-gray-800">Fall location: {draft.accident.fallLocationType}</p>
+                )}
+                {draft.accident.hazardType && (
+                  <p className="text-sm text-gray-800">Hazard type: {draft.accident.hazardType}</p>
+                )}
+                {draft.accident.warningSignPresent && (
+                  <p className="text-sm text-gray-800">Warning sign: {draft.accident.warningSignPresent}</p>
+                )}
+                {draft.accident.incidentReported && (
+                  <p className="text-sm text-gray-800">Incident reported to property: {draft.accident.incidentReported}</p>
+                )}
+                {draft.accident.incidentLocationFreeText && (
+                  <p className="text-sm text-gray-800">Incident location: {draft.accident.incidentLocationFreeText}</p>
+                )}
+                {draft.accident.believedResponsibleParty && (
+                  <p className="text-sm text-gray-800">Believed responsible: {draft.accident.believedResponsibleParty}</p>
+                )}
+                {draft.accident.officialReportType && (
+                  <p className="text-sm text-gray-800">Official report: {draft.accident.officialReportType}</p>
                 )}
                 {draft.accident.accidentTypeDescription && (
-                  <p className="text-sm text-gray-800">
-                    Type description: {draft.accident.accidentTypeDescription}
-                  </p>
+                  <p className="text-sm text-gray-800">Type description: {draft.accident.accidentTypeDescription}</p>
                 )}
                 {draft.additionalNotes && (
-                  <p className="text-sm text-gray-800">
-                    Notes: {draft.additionalNotes}
-                  </p>
+                  <p className="text-sm text-gray-800">Notes: {draft.additionalNotes}</p>
                 )}
               </div>
 
               {status === 'ready_for_preview' && (
                 <div className="mt-2 p-3 rounded-xl bg-white border border-violet-200 shadow-sm">
                   <p className="text-xs font-semibold text-violet-700 mb-1">
-                    AI Case Summary
+                    AI Case Viability (before submit)
                   </p>
-                  <p className="text-xs text-gray-800 mb-2">{summary}</p>
-                  <p className="text-xs text-gray-600">
-                    Viability: {evaluation.viabilityLevel} · Score:{' '}
-                    {evaluation.score}/100
-                  </p>
+                  {previewScoreLoading ? (
+                    <p className="text-xs text-gray-500">Calculating score…</p>
+                  ) : (
+                    <>
+                      {displaySummary && (
+                        <p className="text-xs text-gray-800 mb-2">{displaySummary}</p>
+                      )}
+                      <p className="text-xs text-gray-600 mb-1">
+                        Viability: <strong>{displayLabel}</strong> · Score: {displayScore}/100
+                      </p>
+                      {Array.isArray(displayFactors) && displayFactors.length > 0 && displayFactors[0] !== 'No Flags' && (
+                        <ul className="text-xs text-gray-600 list-disc list-inside mt-1">
+                          {displayFactors.map((f, i) => (
+                            <li key={i}>{f}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </div>

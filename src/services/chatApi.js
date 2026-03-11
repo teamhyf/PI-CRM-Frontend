@@ -60,6 +60,24 @@ export async function sendMessage(sessionId, messageText) {
   return res.json();
 }
 
+/**
+ * Get AI viability score and summary for the current draft (preview before submit).
+ * Returns { summary, score, viabilityLabel, keyFactors }.
+ */
+export async function getPreviewScore(sessionId) {
+  const base = getBaseUrl();
+  const res = await fetch(`${base}/api/chat/preview-score`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId: Number(sessionId) }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to get preview score');
+  }
+  return res.json();
+}
+
 export async function submitCase(sessionId) {
   const base = getBaseUrl();
   const res = await fetch(`${base}/api/chat/submit`, {
