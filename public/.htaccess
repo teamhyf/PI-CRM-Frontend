@@ -5,8 +5,12 @@
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteBase /
 
-  # Never rewrite real files/folders (including Vite hashed assets).
+  # Never rewrite /assets/ (Vite JS/CSS) — serve as static files only
+  RewriteRule ^assets/ - [L]
+
+  # Never rewrite real files or directories
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
