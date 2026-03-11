@@ -140,7 +140,7 @@ export function ChatIntakeModal({
   };
 
   const handleVoiceTranscript = (t) => {
-    setInput((prev) => (prev ? `${prev} ${t}` : t));
+    if (t.trim()) handleUserMessage(t.trim());
   };
 
   const handleAudioFileChange = async (event) => {
@@ -741,13 +741,16 @@ export function ChatIntakeModal({
                 <div className="relative">
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs"
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-xs disabled:opacity-50"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingAudio}
-                    title="Upload audio file"
+                    disabled={uploadingAudio || sending}
+                    title={uploadingAudio ? 'Transcribing audio…' : 'Upload audio file (.mp3, .wav, .m4a, .webm)'}
                   >
                     {uploadingAudio ? (
-                      <span className="text-[10px] font-semibold">...</span>
+                      <svg className="w-4 h-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z" />
+                      </svg>
                     ) : (
                       <svg
                         className="w-4 h-4"
@@ -774,17 +777,24 @@ export function ChatIntakeModal({
                 </div>
 
                 <VoiceInputButton onTranscript={handleVoiceTranscript} />
-                <input
-                  type="text"
-                  className="flex-1 input-field py-2 text-sm"
-                  placeholder="Type your message here…"
+                <textarea
+                  className="flex-1 input-field py-2 text-sm resize-none overflow-hidden"
+                  style={{ minHeight: '38px', maxHeight: '120px' }}
+                  rows={1}
+                  placeholder="Type your message… or paste your full incident story here"
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    // Auto-resize: reset height then expand to fit content
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleSend();
                     }
+                    // Shift+Enter inserts newline (natural multiline behavior)
                   }}
                 />
                 <button
@@ -796,6 +806,11 @@ export function ChatIntakeModal({
                   {sending ? 'Sending…' : 'Send'}
                 </button>
               </div>
+              {uploadingAudio && (
+                <p className="text-[11px] text-blue-600 mt-0.5 animate-pulse">
+                  Transcribing audio with AI… this may take a few seconds.
+                </p>
+              )}
               {audioError && (
                 <p className="text-[11px] text-red-500 mt-0.5">
                   {audioError}
