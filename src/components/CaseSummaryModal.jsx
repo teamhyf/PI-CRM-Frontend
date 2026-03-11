@@ -177,10 +177,13 @@ export function CaseSummaryModal({ caseData, isOpen, onClose }) {
                         <p className="font-medium text-gray-900">{caseData.injury.treatmentLocation}</p>
                       </div>
                     )}
-                    {caseData.injury?.treatmentDates && (
+                    {caseData.injury?.treatmentDates && (caseData.injury.treatmentDates.start || caseData.injury.treatmentDates.end) && (
                       <div>
                         <p className="text-gray-600">Treatment Dates</p>
-                        <p className="font-medium text-gray-900">{caseData.injury.treatmentDates}</p>
+                        <p className="font-medium text-gray-900">
+                          {caseData.injury.treatmentDates.start ? new Date(caseData.injury.treatmentDates.start).toLocaleDateString() : 'Start: N/A'}
+                          {caseData.injury.treatmentDates.end ? ` to ${new Date(caseData.injury.treatmentDates.end).toLocaleDateString()}` : ''}
+                        </p>
                       </div>
                     )}
                     {caseData.injury?.knownInjuries && (
