@@ -1,0 +1,17 @@
+<IfModule mod_mime.c>
+  AddType text/css .css
+  AddType application/javascript .js
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Never rewrite real files/folders (including Vite hashed assets).
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # SPA fallback: all other paths -> index.html
+  RewriteRule . /index.html [L]
+</IfModule>
+

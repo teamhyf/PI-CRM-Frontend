@@ -95,7 +95,7 @@ export async function uploadAudio(sessionId, file) {
       (data.error && String(data.error).toLowerCase().includes('not yet implemented'));
     const message = notImplemented
       ? 'Audio upload is not available yet. Please type your message or use the microphone (Chrome or Edge).'
-      : (data.error || text || 'Transcription failed');
+      : (data.error || text || 'Transcription failed.');
     throw new Error(message);
   }
   const transcript = (data && data.text) || '';
