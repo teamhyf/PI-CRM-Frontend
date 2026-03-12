@@ -5,8 +5,10 @@ import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
 import { Cases } from './pages/Cases';
 import { IntakeForm } from './pages/IntakeForm';
+import { UserManagement } from './pages/UserManagement';
 import { Login } from './components/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { Layout } from './components/Layout';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -18,7 +20,9 @@ function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <Layout>
+              <Dashboard />
+            </Layout>
           </ProtectedRoute>
         }
       />
@@ -26,7 +30,9 @@ function AppRoutes() {
         path="/intake"
         element={
           <ProtectedRoute>
-            <IntakeForm />
+            <Layout>
+              <IntakeForm />
+            </Layout>
           </ProtectedRoute>
         }
       />
@@ -34,7 +40,19 @@ function AppRoutes() {
         path="/cases"
         element={
           <ProtectedRoute>
-            <Cases />
+            <Layout>
+              <Cases />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <Layout>
+              <UserManagement />
+            </Layout>
           </ProtectedRoute>
         }
       />
