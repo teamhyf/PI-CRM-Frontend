@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 import { evaluateCase } from '../utils/caseQualificationEngine';
 import { generateCaseSummary } from '../utils/generateCaseSummary';
 import { getCases } from '../services/chatApi';
@@ -14,6 +15,7 @@ export function useIntake() {
 }
 
 export function IntakeProvider({ children }) {
+  const { token } = useAuth();
   // Start with empty cases list, fetched from backend API
   const [cases, setCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -192,17 +194,27 @@ export function IntakeProvider({ children }) {
 
     if (numericId) {
       try {
-        await fetch(`/api/cases/${caseId}`, {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const res = await fetch(`${baseUrl}/api/cases/${caseId}`, {
           method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
         });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to delete case');
+        }
       } catch (error) {
         console.error('Error deleting case via API:', error);
+        throw error;
       }
     }
 
     // Remove from local state
     setCases((prev) => prev.filter((c) => c.caseId !== caseId));
-  }, []);
+  }, [token]);
 
   const loadCaseForEdit = useCallback((caseData) => {
     setFormData({

@@ -110,7 +110,7 @@ export function Sidebar({ isOpen, setIsOpen, isCollapsed = false }) {
                   key={item.name}
                   to={item.href}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center justify-center ${isCollapsed ? '' : 'justify-start'} px-4 py-3 rounded-xl transition-all duration-200 group ${
+                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} px-4 py-3 rounded-xl transition-all duration-200 group ${
                     isActive
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 transform scale-105'
                       : 'text-gray-300 hover:bg-gray-800/50 hover:text-white hover:translate-x-1'
@@ -137,7 +137,7 @@ export function Sidebar({ isOpen, setIsOpen, isCollapsed = false }) {
                       key={item.name}
                       to={item.href}
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center justify-center ${isCollapsed ? '' : 'justify-start'} px-4 py-3 rounded-xl transition-all duration-200 group ${
+                      className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} px-4 py-3 rounded-xl transition-all duration-200 group ${
                         isActive
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 transform scale-105'
                           : 'text-gray-300 hover:bg-gray-800/50 hover:text-white hover:translate-x-1'
