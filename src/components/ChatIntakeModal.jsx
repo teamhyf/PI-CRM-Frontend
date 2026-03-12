@@ -776,7 +776,11 @@ export function ChatIntakeModal({
                   />
                 </div>
 
-                <VoiceInputButton onTranscript={handleVoiceTranscript} />
+                <VoiceInputButton
+                  onTranscript={handleVoiceTranscript}
+                  sessionId={sessionId}
+                  isLoading={sending || uploadingAudio || submitting || previewScoreLoading}
+                />
                 <textarea
                   className="flex-1 input-field py-2 text-sm resize-none overflow-hidden"
                   style={{ minHeight: '38px', maxHeight: '120px' }}
