@@ -105,6 +105,23 @@ export function ChatIntakeModal({
     }
   }, [propsSessionId, initialDraft, initialMessages, initialStatus]);
 
+  // Reset state when modal opens fresh (no active session from parent)
+  useEffect(() => {
+    if (!isOpen) return;
+    if (propsSessionId == null) {
+      // Fresh start: reset all local state
+      setSessionId(null);
+      setDraft(emptyDraft());
+      setMessages([]);
+      setStatus('collecting');
+      setLastAskedField(null);
+      setContactForm({ fullName: '', phone: '', email: '' });
+      setInput('');
+      setAudioError('');
+      setPreviewScore(null);
+    }
+  }, [isOpen, propsSessionId]);
+
   useEffect(() => {
     if (!isOpen) return;
     const t = setTimeout(() => {
