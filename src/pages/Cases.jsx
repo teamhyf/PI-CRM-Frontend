@@ -9,6 +9,27 @@ import { useIntake } from '../context/IntakeContext';
 import { CaseSummaryModal } from '../components/CaseSummaryModal';
 import { AISparklesIcon, AIBadge } from '../components/AIIcon';
 
+// Format ISO date string (YYYY-MM-DD) to MM/DD/YYYY without timezone conversion
+const formatISODate = (isoDateStr) => {
+  if (!isoDateStr || typeof isoDateStr !== 'string') return 'N/A';
+  const match = isoDateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return 'N/A';
+  const [, year, month, day] = match;
+  return `${month}/${day}/${year}`;
+};
+
+// Parse ISO date string safely for comparison (no timezone shift)
+const parseSafeDate = (dateStr) => {
+  if (!dateStr || typeof dateStr !== 'string') return new Date(0);
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [, year, month, day] = match;
+    // Use UTC to avoid timezone offset
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+  return new Date(dateStr); // fallback to regular parsing for ISO strings with time
+};
+
 export function Cases() {
   const { cases, deleteCase, loadCaseForEdit } = useIntake();
   const navigate = useNavigate();
@@ -46,8 +67,8 @@ export function Cases() {
       
       switch (sortBy) {
         case 'date':
-          const dateA = new Date(a.accident?.dateOfLoss || a.createdAt || 0);
-          const dateB = new Date(b.accident?.dateOfLoss || b.createdAt || 0);
+          const dateA = a.accident?.dateOfLoss ? parseSafeDate(a.accident.dateOfLoss) : new Date(a.createdAt || 0);
+          const dateB = b.accident?.dateOfLoss ? parseSafeDate(b.accident.dateOfLoss) : new Date(b.createdAt || 0);
           comparison = dateA - dateB;
           break;
         case 'score':
@@ -334,9 +355,7 @@ export function Cases() {
                       {caseData.accident?.accidentType || 'N/A'}
                     </td>
                     <td className="px-4 py-4 text-sm text-gray-500 truncate">
-                      {caseData.accident?.dateOfLoss
-                        ? new Date(caseData.accident.dateOfLoss).toLocaleDateString()
-                        : 'N/A'}
+                      {formatISODate(caseData.accident?.dateOfLoss)}
                     </td>
                     <td className="px-4 py-4">
                       <span
