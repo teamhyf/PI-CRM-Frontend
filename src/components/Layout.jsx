@@ -10,17 +10,17 @@ export function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+    <div className="h-screen bg-gray-50">
+      {/* Sidebar (fixed, overlays on mobile, visible on desktop) */}
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content (offset on desktop to account for fixed sidebar) */}
+      <div className="flex flex-col h-full lg:ml-64">
         {/* Top Bar */}
         <div className="h-16 bg-white border-b border-gray-200 flex items-center px-6 shadow-sm">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden text-gray-600 hover:text-gray-900 p-2"
+            className="lg:hidden text-gray-600 hover:text-gray-900 p-2 -ml-2"
             title="Toggle Sidebar"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
