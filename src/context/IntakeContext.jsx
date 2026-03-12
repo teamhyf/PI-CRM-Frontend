@@ -136,42 +136,45 @@ export function IntakeProvider({ children }) {
   }, [token]);
 
   const updateCase = useCallback(async (caseId, updatedData) => {
-    // Update via API endpoint if the case came from the backend (has numeric ID)
-    // Otherwise update locally for form-submitted cases
     const numericId = caseId.replace(/\D/g, '');
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
     if (numericId) {
       try {
-        // Call backend PATCH endpoint to update status
-        const status = updatedData.status ? updatedData.status.toLowerCase().replace(/\s+/g, '_') : 'new';
-        await fetch(`/api/cases/${caseId}/status`, {
+        // Find original case to preserve AI score + extra fields not in form
+        const original = cases.find((c) => c.caseId === caseId);
+
+        // Merge: original accident fields first, then form changes on top
+        // This preserves AI-extracted fields (driverStayed, hadPassengers, etc.) not shown in form
+        const mergedData = {
+          ...updatedData,
+          accident: {
+            ...(original?.accident || {}),
+            ...updatedData.accident,
+          },
+        };
+
+        // Full data update to backend (preserves ai_viability_score in DB)
+        const res = await fetch(`${baseUrl}/api/cases/${caseId}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(mergedData),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to update case');
+        }
+
+        // Refetch from API to get fresh data including preserved AI score from DB
+        await refreshCasesFromApi();
       } catch (error) {
         console.error('Error updating case via API:', error);
+        throw error;
       }
     }
-
-    // Update local state
-    const aiEvaluation = evaluateCase(updatedData);
-    const aiSummary = generateCaseSummary(updatedData);
-
-    setCases((prev) =>
-      prev.map((c) => {
-        if (c.caseId === caseId) {
-          return {
-            ...c,
-            ...updatedData,
-            aiEvaluation,
-            aiSummary,
-            updatedAt: new Date().toISOString(),
-          };
-        }
-        return c;
-      })
-    );
 
     // Reset form
     setFormData({
@@ -184,9 +187,7 @@ export function IntakeProvider({ children }) {
     });
     setCurrentStep(1);
     setEditingCaseId(null);
-
-    return { caseId, ...updatedData, aiEvaluation, aiSummary };
-  }, []);
+  }, [cases, token, refreshCasesFromApi]);
 
   const deleteCase = useCallback(async (caseId) => {
     // Delete via API endpoint if the case has a numeric ID (backend case)

@@ -64,24 +64,35 @@ export function StepInjuryTreatment() {
                 </label>
                 <select id="treatmentLocation" {...register('treatmentLocation')} className="input-field">
                   <option value="">Select treatment location</option>
-                  <option value="ER">Emergency Room</option>
+                  <option value="Emergency room">Emergency Room</option>
+                  <option value="Hospital">Hospital</option>
                   <option value="Urgent Care">Urgent Care</option>
-                  <option value="Primary">Primary Care Physician</option>
+                  <option value="Doctor">Doctor / Primary Care</option>
+                  <option value="Chiropractor">Chiropractor</option>
+                  <option value="Physical therapy">Physical Therapy</option>
                   <option value="None yet">None yet</option>
                 </select>
                 <AIHelperText step="injury" field="noTreatment" />
                 <AIHelperText step="injury" field="treatmentNotStarted" />
               </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="treatmentDates" className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Treatment Dates
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Treatment Start Date</label>
                 <input
-                  id="treatmentDates"
-                  type="text"
-                  {...register('treatmentDates')}
+                  type="date"
+                  {...register('treatmentDates.start')}
                   className="input-field"
-                  placeholder="e.g., Jan 15, 2026 to Jan 20, 2026"
+                  max={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Treatment End Date</label>
+                <input
+                  type="date"
+                  {...register('treatmentDates.end')}
+                  className="input-field"
+                  max={new Date().toISOString().split('T')[0]}
                 />
               </div>
             </div>

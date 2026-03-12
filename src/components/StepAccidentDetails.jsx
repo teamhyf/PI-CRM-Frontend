@@ -17,6 +17,11 @@ const accidentSchema = z.object({
   atFaultIdentified: z.string().optional(),
   policeReport: z.string().optional(),
   accidentTypeDescription: z.string().optional(),
+  fallLocationType: z.string().optional(),
+  hazardType: z.string().optional(),
+  warningSignPresent: z.string().optional(),
+  incidentReported: z.string().optional(),
+  incidentLocationFreeText: z.string().optional(),
 }).refine((data) => {
   // If accident type is "Other", description is required
   if (data.accidentType === 'Other') {
@@ -58,6 +63,7 @@ export function StepAccidentDetails() {
 
   const currentAccidentType = watch('accidentType');
   const isMotorVehicle = currentAccidentType === 'Motor vehicle accident';
+  const isSlipAndFall = currentAccidentType === 'Slip and fall';
 
   const onSubmit = (data) => {
     // Clean up empty strings and undefined values
@@ -68,6 +74,11 @@ export function StepAccidentDetails() {
       ...(data.atFaultIdentified && { atFaultIdentified: data.atFaultIdentified }),
       ...(data.policeReport && { policeReport: data.policeReport }),
       ...(data.accidentTypeDescription && data.accidentTypeDescription.trim() && { accidentTypeDescription: data.accidentTypeDescription }),
+      ...(data.fallLocationType && { fallLocationType: data.fallLocationType }),
+      ...(data.hazardType && { hazardType: data.hazardType }),
+      ...(data.warningSignPresent && { warningSignPresent: data.warningSignPresent }),
+      ...(data.incidentReported && { incidentReported: data.incidentReported }),
+      ...(data.incidentLocationFreeText && data.incidentLocationFreeText.trim() && { incidentLocationFreeText: data.incidentLocationFreeText }),
     };
     updateFormData('accident', cleanedData);
     nextStep();
@@ -196,6 +207,76 @@ export function StepAccidentDetails() {
                 </div>
                 <AIHelperText step="accident" field="noPoliceReport" />
               </div>
+            </div>
+          </div>
+        )}
+
+        {isSlipAndFall && (
+          <div className="space-y-3 p-3 bg-gray-50 rounded-lg animate-fade-in">
+            <h3 className="font-semibold text-gray-900 text-sm">Slip & Fall Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="fallLocationType" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Where did it happen?
+                </label>
+                <select id="fallLocationType" {...register('fallLocationType')} className="input-field">
+                  <option value="">Select location type</option>
+                  <option value="Store / retail">Store / Retail</option>
+                  <option value="Sidewalk / public">Sidewalk / Public</option>
+                  <option value="Parking lot">Parking Lot</option>
+                  <option value="Private property">Private Property</option>
+                  <option value="Stairs">Stairs</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="hazardType" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Type of hazard
+                </label>
+                <select id="hazardType" {...register('hazardType')} className="input-field">
+                  <option value="">Select hazard type</option>
+                  <option value="Wet floor">Wet Floor</option>
+                  <option value="Uneven surface">Uneven Surface</option>
+                  <option value="Ice / snow">Ice / Snow</option>
+                  <option value="Poor lighting">Poor Lighting</option>
+                  <option value="Debris / obstruction">Debris / Obstruction</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Warning sign present?</label>
+                <div className="flex gap-3 pt-1">
+                  {['Yes', 'No', 'Unknown'].map((v) => (
+                    <label key={v} className="flex items-center text-sm">
+                      <input type="radio" value={v} {...register('warningSignPresent')} className="mr-1.5" />
+                      {v}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Incident reported to owner?</label>
+                <div className="flex gap-3 pt-1">
+                  {['Yes', 'No', 'Unknown'].map((v) => (
+                    <label key={v} className="flex items-center text-sm">
+                      <input type="radio" value={v} {...register('incidentReported')} className="mr-1.5" />
+                      {v}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="incidentLocationFreeText" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Location details (optional)
+              </label>
+              <input
+                id="incidentLocationFreeText"
+                type="text"
+                {...register('incidentLocationFreeText')}
+                className="input-field"
+                placeholder="e.g., Walmart on Main St, aisle 5"
+              />
             </div>
           </div>
         )}
