@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useIntake } from '../context/IntakeContext';
+import { useAuth } from '../context/AuthContext';
 import { AISparklesIcon, AIBadge } from './AIIcon';
 import { VoiceInputButton } from './VoiceInputButton';
 import { evaluateCase } from '../utils/caseQualificationEngine';
@@ -59,6 +60,7 @@ export function ChatIntakeModal({
   onStartOver: onStartOverCallback,
 }) {
   const { submitDraftCase, refreshCasesFromApi } = useIntake();
+  const { token } = useAuth();
 
   const [sessionId, setSessionId] = useState(null);
   const [draft, setDraft] = useState(emptyDraft);
@@ -88,11 +90,11 @@ export function ChatIntakeModal({
       return;
     }
     setPreviewScoreLoading(true);
-    getPreviewScore(sessionId)
+    getPreviewScore(sessionId, token)
       .then((data) => setPreviewScore(data))
       .catch(() => setPreviewScore({ summary: '', score: 50, viabilityLabel: 'Medium', keyFactors: ['Score unavailable.'] }))
       .finally(() => setPreviewScoreLoading(false));
-  }, [status, sessionId]);
+  }, [status, sessionId, token]);
 
   // Sync from parent when backend session is ready
   useEffect(() => {
@@ -120,7 +122,7 @@ export function ChatIntakeModal({
     setSending(true);
     setAudioError('');
     try {
-      const result = await sendMessage(sessionId, text.trim());
+      const result = await sendMessage(sessionId, text.trim(), token);
       setDraft(result.draft ?? draft);
       setMessages(mapBackendMessages(result.messages ?? []));
       setStatus(result.status ?? status);
@@ -150,7 +152,7 @@ export function ChatIntakeModal({
     setAudioError('');
     setUploadingAudio(true);
     try {
-      const text = await uploadAudio(sessionId, file);
+      const text = await uploadAudio(sessionId, file, token);
       await handleUserMessage(text);
     } catch (err) {
       setAudioError(err.message || 'Unable to transcribe that audio. Try typing your message.');
@@ -163,7 +165,7 @@ export function ChatIntakeModal({
     if (!sessionId) return;
     setSubmitting(true);
     try {
-      await submitCase(sessionId);
+      await submitCase(sessionId, token);
       try {
         await refreshCasesFromApi();
       } catch (_e) {

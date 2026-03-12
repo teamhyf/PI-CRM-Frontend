@@ -35,7 +35,7 @@ export function IntakeProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
-    getCases()
+    getCases(token)
       .then((apiCases) => {
         if (!cancelled) {
           setCases(Array.isArray(apiCases) ? apiCases : []);
@@ -53,7 +53,7 @@ export function IntakeProvider({ children }) {
         }
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [token]);
 
   const updateFormData = useCallback((step, data) => {
     setFormData((prev) => ({
@@ -128,12 +128,12 @@ export function IntakeProvider({ children }) {
   /** Refetch cases from backend (e.g. after chat submit) so the list stays in sync with MySQL. */
   const refreshCasesFromApi = useCallback(async () => {
     try {
-      const apiCases = await getCases();
+      const apiCases = await getCases(token);
       if (Array.isArray(apiCases)) setCases(apiCases);
     } catch (_e) {
       // Keep current cases if refetch fails
     }
-  }, []);
+  }, [token]);
 
   const updateCase = useCallback(async (caseId, updatedData) => {
     // Update via API endpoint if the case came from the backend (has numeric ID)

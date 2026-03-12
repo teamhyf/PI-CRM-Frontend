@@ -9,27 +9,40 @@ const getBaseUrl = () => {
   return '';
 };
 
+const getAuthHeaders = (token) => {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 /**
  * Fetch all cases from the backend (dynamic list from MySQL).
  */
-export async function getCases() {
+export async function getCases(token) {
   const base = getBaseUrl();
-  const res = await fetch(`${base}/api/cases`);
-  if (!res.ok) throw new Error('Failed to load cases');
+  const res = await fetch(`${base}/api/cases`, {
+    headers: getAuthHeaders(token),
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Unauthorized. Please login.');
+    throw new Error('Failed to load cases');
+  }
   return res.json();
 }
 
 /**
  * Start a chat session. Optionally pass initial contact (name, phone, email) to skip those questions.
  */
-export async function startSession(initialContact = null) {
+export async function startSession(initialContact = null, token = null) {
   const base = getBaseUrl();
   const body = initialContact && typeof initialContact === 'object'
     ? { contact: { fullName: initialContact.fullName || '', phone: initialContact.phone || '', email: initialContact.email || '' } }
     : {};
   const res = await fetch(`${base}/api/chat/session`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(token),
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -46,11 +59,11 @@ export async function startSession(initialContact = null) {
   return res.json();
 }
 
-export async function sendMessage(sessionId, messageText) {
+export async function sendMessage(sessionId, messageText, token = null) {
   const base = getBaseUrl();
   const res = await fetch(`${base}/api/chat/message`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(token),
     body: JSON.stringify({ sessionId: Number(sessionId), messageText }),
   });
   if (!res.ok) {
@@ -64,11 +77,11 @@ export async function sendMessage(sessionId, messageText) {
  * Get AI viability score and summary for the current draft (preview before submit).
  * Returns { summary, score, viabilityLabel, keyFactors }.
  */
-export async function getPreviewScore(sessionId) {
+export async function getPreviewScore(sessionId, token = null) {
   const base = getBaseUrl();
   const res = await fetch(`${base}/api/chat/preview-score`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(token),
     body: JSON.stringify({ sessionId: Number(sessionId) }),
   });
   if (!res.ok) {
@@ -78,11 +91,11 @@ export async function getPreviewScore(sessionId) {
   return res.json();
 }
 
-export async function submitCase(sessionId) {
+export async function submitCase(sessionId, token = null) {
   const base = getBaseUrl();
   const res = await fetch(`${base}/api/chat/submit`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(token),
     body: JSON.stringify({ sessionId: Number(sessionId) }),
   });
   if (!res.ok) {
@@ -92,13 +105,20 @@ export async function submitCase(sessionId) {
   return res.json();
 }
 
-export async function uploadAudio(sessionId, file) {
+export async function uploadAudio(sessionId, file, token = null) {
   const base = getBaseUrl();
   const formData = new FormData();
   formData.append('audio', file);
   formData.append('sessionId', sessionId);
+
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${base}/api/chat/transcribe`, {
     method: 'POST',
+    headers,
     body: formData,
   });
   const data = await res.json().catch(() => ({}));
