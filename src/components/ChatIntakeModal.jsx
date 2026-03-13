@@ -800,7 +800,7 @@ export function ChatIntakeModal({
                 />
                 <textarea
                   className="flex-1 input-field py-2 text-sm resize-none overflow-hidden"
-                  style={{ minHeight: '38px', maxHeight: '120px' }}
+                  style={{ minHeight: '38px', maxHeight: '200px' }}
                   rows={1}
                   placeholder="Type your message… or paste your full incident story here"
                   value={input}
@@ -808,7 +808,7 @@ export function ChatIntakeModal({
                     setInput(e.target.value);
                     // Auto-resize: reset height then expand to fit content
                     e.target.style.height = 'auto';
-                    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
