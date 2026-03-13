@@ -11,6 +11,7 @@ import { useIntake } from '../context/IntakeContext';
 import { IntakeModal } from '../components/IntakeModal';
 import { ChatIntakeModal } from '../components/ChatIntakeModal';
 import { AISparklesIcon, AIBadge } from '../components/AIIcon';
+import { AICaseIntakeModal } from '../components/AICaseIntakeModal';
 import { startSession } from '../services/chatApi';
 
 export function Landing() {
@@ -21,6 +22,7 @@ export function Landing() {
   const [chatSession, setChatSession] = useState(null);
   const [chatSessionError, setChatSessionError] = useState('');
   const [caseSubmitted, setCaseSubmitted] = useState(false);
+  const [intakeOpen, setIntakeOpen] = useState(false);
 
   const openAssistant = () => {
     setCaseSubmitted(false);
@@ -64,6 +66,16 @@ export function Landing() {
     setCaseSubmitted(true);
     setChatOpen(false);
     setChatSession(null);
+  };
+
+  const openAIIntake = () => {
+    setCaseSubmitted(false);
+    setIntakeOpen(true);
+  };
+  const closeAIIntake = () => setIntakeOpen(false);
+  const handleIntakeSuccess = () => {
+    setCaseSubmitted(true);
+    setIntakeOpen(false);
   };
 
   return (
@@ -132,6 +144,14 @@ export function Landing() {
             >
               <AISparklesIcon className="w-5 h-5 text-blue-600" />
               Chat with AI Assistant
+            </button>
+            <button
+              type="button"
+              onClick={openAIIntake}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-violet-700 font-semibold text-sm border border-violet-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <AISparklesIcon className="w-5 h-5 text-violet-600" />
+              AI Case Intake
             </button>
           </div>
 
@@ -204,6 +224,11 @@ export function Landing() {
           setChatSession(null);
           setChatSessionError('');
         }}
+      />
+      <AICaseIntakeModal
+        isOpen={intakeOpen}
+        onClose={closeAIIntake}
+        onSuccess={handleIntakeSuccess}
       />
     </div>
   );
