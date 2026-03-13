@@ -80,6 +80,15 @@ export function ChatIntakeModal({
   const [previewScoreLoading, setPreviewScoreLoading] = useState(false);
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  // Auto-resize textarea when input changes (e.g., from voice or audio paste)
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+    }
+  }, [input]);
 
   // When we enter preview, fetch AI viability score (single LLM call)
   useEffect(() => {
@@ -799,6 +808,7 @@ export function ChatIntakeModal({
                   isLoading={sending || uploadingAudio || submitting || previewScoreLoading}
                 />
                 <textarea
+                  ref={textareaRef}
                   className="flex-1 input-field py-2 text-sm resize-none overflow-hidden"
                   style={{ minHeight: '38px', maxHeight: '200px' }}
                   rows={1}
