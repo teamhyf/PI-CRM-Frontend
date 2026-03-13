@@ -145,14 +145,14 @@ export function Landing() {
               <AISparklesIcon className="w-5 h-5 text-blue-600" />
               Chat with AI Assistant
             </button>
-            <button
+            { /*<button
               type="button"
               onClick={openAIIntake}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-violet-700 font-semibold text-sm border border-violet-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <AISparklesIcon className="w-5 h-5 text-violet-600" />
               AI Case Intake
-            </button>
+            </button> */}
           </div>
 
           {/* Success message (after submit from modal) */}
