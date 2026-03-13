@@ -157,7 +157,7 @@ export function ChatIntakeModal({
   };
 
   const handleVoiceTranscript = (t) => {
-    if (t.trim()) handleUserMessage(t.trim());
+    if (t.trim()) setInput(t);
   };
 
   const handleAudioFileChange = async (event) => {
@@ -168,7 +168,7 @@ export function ChatIntakeModal({
     setUploadingAudio(true);
     try {
       const text = await uploadAudio(sessionId, file);
-      await handleUserMessage(text);
+      setInput(text);
     } catch (err) {
       setAudioError(err.message || 'Unable to transcribe that audio. Try typing your message.');
     } finally {
