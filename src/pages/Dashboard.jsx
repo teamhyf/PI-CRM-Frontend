@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useIntake } from '../context/IntakeContext';
 import { CaseSummaryModal } from '../components/CaseSummaryModal';
 import { AISparklesIcon, AIBadge } from '../components/AIIcon';
+import { AICaseIntakeModal } from '../components/AICaseIntakeModal';
 
 export function Dashboard() {
   const { cases, deleteCase, loadCaseForEdit } = useIntake();
@@ -19,6 +20,7 @@ export function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterViability, setFilterViability] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [aiIntakeOpen, setAiIntakeOpen] = useState(false);
 
   useEffect(() => {
     // Cases from context already include sample cases and submitted cases
@@ -128,12 +130,16 @@ export function Dashboard() {
               Manage and review all personal injury cases with AI insights
             </p>
           </div>
-          <Link to="/intake" className="btn-primary">
+          <button
+            type="button"
+            onClick={() => setAiIntakeOpen(true)}
+            className="btn-primary"
+          >
             <svg className="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            New Case Intake
-          </Link>
+            AI Case Intake
+          </button>
         </div>
       </div>
 
@@ -412,6 +418,13 @@ export function Dashboard() {
         caseData={selectedCase}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+
+      {/* AI Case Intake Modal (same as public landing page) */}
+      <AICaseIntakeModal
+        isOpen={aiIntakeOpen}
+        onClose={() => setAiIntakeOpen(false)}
+        onSuccess={() => setAiIntakeOpen(false)}
       />
     </div>
   );
