@@ -45,3 +45,25 @@ export async function convertLead(token, leadId) {
   return data;
 }
 
+export async function activatePortal(token, leadId) {
+  const base = getBaseUrl();
+  const res = await fetch(`${base}/api/leads/${leadId}/activate-portal`, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Failed to activate portal');
+  return data;
+}
+
+export async function deleteLead(token, leadId) {
+  const base = getBaseUrl();
+  const res = await fetch(`${base}/api/leads/${leadId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(token),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Failed to delete lead');
+  return data;
+}
+

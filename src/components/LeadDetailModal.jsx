@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { convertLead, updateLeadStatus } from '../services/leadsApi';
+import { activatePortal, convertLead, deleteLead, updateLeadStatus } from '../services/leadsApi';
 import { useAuth } from '../context/AuthContext';
 
 function formatDate(iso) {
@@ -14,6 +14,7 @@ export function LeadDetailModal({ lead, onClose, onChanged }) {
   const { token } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [portalCreds, setPortalCreds] = useState(null);
 
   const canConvert = lead?.lead_status === 'new' || lead?.lead_status === 'under_review';
 
@@ -37,9 +38,40 @@ export function LeadDetailModal({ lead, onClose, onChanged }) {
     setError('');
     try {
       await convertLead(token, lead.id);
+      setPortalCreds(null);
       onChanged?.();
     } catch (e) {
       setError(e.message || 'Failed to convert lead');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleActivatePortal = async () => {
+    if (!lead?.id) return;
+    setBusy(true);
+    setError('');
+    setPortalCreds(null);
+    try {
+      const res = await activatePortal(token, lead.id);
+      setPortalCreds(res);
+    } catch (e) {
+      setError(e.message || 'Failed to activate portal');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!lead?.id) return;
+    if (!window.confirm(`Delete lead #${lead.id}? This cannot be undone.`)) return;
+    setBusy(true);
+    setError('');
+    try {
+      await deleteLead(token, lead.id);
+      onChanged?.();
+    } catch (e) {
+      setError(e.message || 'Failed to delete lead');
     } finally {
       setBusy(false);
     }
@@ -97,6 +129,38 @@ export function LeadDetailModal({ lead, onClose, onChanged }) {
             </div>
           </section>
 
+          {portalCreds ? (
+            <section>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Portal credentials</p>
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                <p className="text-sm text-gray-900">
+                  Email: <span className="font-semibold">{portalCreds.claimantEmail}</span>
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <p className="text-sm text-gray-900">
+                    Temp password: <span className="font-mono font-semibold">{portalCreds.tempPassword}</span>
+                  </p>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(portalCreds.tempPassword);
+                      } catch (_e) {
+                        // ignore
+                      }
+                    }}
+                  >
+                    Copy
+                  </button>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">
+                  Share this temp password with the claimant. They can set a new password at <span className="font-mono">/portal/login</span>.
+                </p>
+              </div>
+            </section>
+          ) : null}
+
           <section>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">AI evaluation</p>
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
@@ -138,6 +202,15 @@ export function LeadDetailModal({ lead, onClose, onChanged }) {
             Close
           </button>
 
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="px-4 py-2 rounded-xl border border-red-200 bg-white text-red-700 hover:bg-red-50 text-sm font-semibold disabled:opacity-60"
+            disabled={busy}
+          >
+            Delete lead
+          </button>
+
           {lead.lead_status === 'new' ? (
             <button
               type="button"
@@ -168,6 +241,17 @@ export function LeadDetailModal({ lead, onClose, onChanged }) {
               disabled={busy}
             >
               Convert to case
+            </button>
+          ) : null}
+
+          {lead.lead_status === 'converted' ? (
+            <button
+              type="button"
+              onClick={handleActivatePortal}
+              className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 text-sm font-semibold disabled:opacity-60"
+              disabled={busy}
+            >
+              Activate portal (temp password)
             </button>
           ) : null}
         </div>

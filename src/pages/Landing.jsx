@@ -80,6 +80,12 @@ export function Landing() {
             >
               AI Case Intake
             </button>
+            <Link
+              to="/portal/login"
+              className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              Portal login
+            </Link>
             {isAuthenticated ? (
               <Link to="/dashboard" className="btn-primary text-sm py-2 px-4">
                 Dashboard
