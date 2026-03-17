@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Cases } from './pages/Cases';
 import { Leads } from './pages/Leads';
 import { IntakeForm } from './pages/IntakeForm';
+import { AIIntakePage } from './pages/AIIntakePage';
 import { UserManagement } from './pages/UserManagement';
 import { Login } from './components/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -74,6 +75,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <IntakeForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-intake"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AIIntakePage />
             </Layout>
           </ProtectedRoute>
         }
