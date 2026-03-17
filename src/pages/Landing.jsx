@@ -8,7 +8,6 @@ import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useIntake } from '../context/IntakeContext';
-import { IntakeModal } from '../components/IntakeModal';
 import { ChatIntakeModal } from '../components/ChatIntakeModal';
 import { AISparklesIcon, AIBadge } from '../components/AIIcon';
 import { AICaseIntakeModal } from '../components/AICaseIntakeModal';
@@ -17,27 +16,11 @@ import { startSession } from '../services/chatApi';
 export function Landing() {
   const { isAuthenticated } = useAuth();
   const { resetForNewCase } = useIntake();
-  const [modalOpen, setModalOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatSession, setChatSession] = useState(null);
   const [chatSessionError, setChatSessionError] = useState('');
   const [caseSubmitted, setCaseSubmitted] = useState(false);
   const [intakeOpen, setIntakeOpen] = useState(false);
-
-  const openAssistant = () => {
-    setCaseSubmitted(false);
-    resetForNewCase();
-    setModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-  };
-
-  const handleSubmitSuccess = () => {
-    setCaseSubmitted(true);
-    setModalOpen(false);
-  };
 
   const openChatAssistant = useCallback(() => {
     setCaseSubmitted(false);
@@ -92,10 +75,10 @@ export function Landing() {
           <nav className="flex items-center gap-4">
             <button
               type="button"
-              onClick={openAssistant}
+              onClick={openAIIntake}
               className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
             >
-              Submit a case
+              AI Case Intake
             </button>
             {isAuthenticated ? (
               <Link to="/dashboard" className="btn-primary text-sm py-2 px-4">
@@ -177,12 +160,6 @@ export function Landing() {
           </div>
         </div>
       </main>
-
-      <IntakeModal
-        isOpen={modalOpen}
-        onClose={closeModal}
-        onSuccess={handleSubmitSuccess}
-      />
 
       <ChatIntakeModal
         isOpen={chatOpen}
