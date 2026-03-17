@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getLeads } from '../services/leadsApi';
+import { getLeads, deleteLead } from '../services/leadsApi';
 import { LeadDetailModal } from '../components/LeadDetailModal';
 
 function formatISO(iso) {
@@ -57,6 +57,21 @@ export function Leads() {
       return name.includes(q) || email.includes(q) || type.includes(q) || String(l.id).includes(q);
     });
   }, [leads, query]);
+
+  const handleDeleteFromList = async (lead) => {
+    if (!lead?.id) return;
+    if (!window.confirm(`Delete lead #${lead.id}? This cannot be undone.`)) return;
+    setLoading(true);
+    setError('');
+    try {
+      await deleteLead(token, lead.id);
+      await fetchLeads();
+    } catch (e) {
+      setError(e.message || 'Failed to delete lead');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="w-full px-6">
@@ -128,7 +143,7 @@ export function Leads() {
                 <th className="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of loss</th>
                 <th className="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI score</th>
                 <th className="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="w-28 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                <th className="w-36 px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -175,16 +190,28 @@ export function Leads() {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <button
-                        type="button"
-                        className="text-blue-600 hover:underline text-sm font-semibold"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelected(lead);
-                        }}
-                      >
-                        View
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          className="text-blue-600 hover:underline text-sm font-semibold"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelected(lead);
+                          }}
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          className="text-red-600 hover:underline text-xs font-semibold"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteFromList(lead);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
