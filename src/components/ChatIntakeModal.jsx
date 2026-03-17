@@ -58,7 +58,7 @@ export function ChatIntakeModal({
   onRetrySession,
   onStartOver: onStartOverCallback,
 }) {
-  const { submitDraftCase, refreshCasesFromApi } = useIntake();
+  const { refreshCasesFromApi } = useIntake();
 
   const [sessionId, setSessionId] = useState(null);
   const [draft, setDraft] = useState(emptyDraft);
@@ -190,11 +190,9 @@ export function ChatIntakeModal({
     setSubmitting(true);
     try {
       await submitCase(sessionId);
-      try {
-        await refreshCasesFromApi();
-      } catch (_e) {
-        await submitDraftCase(draft);
-      }
+      // Phase 0: chat submissions create a lead (not a case).
+      // Keep cases list in sync anyway in case staff converted something concurrently.
+      await refreshCasesFromApi();
       if (onSuccess) onSuccess();
     } catch (err) {
       setAudioError(err.message || 'Failed to submit case.');

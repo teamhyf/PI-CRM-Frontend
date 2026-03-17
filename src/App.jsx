@@ -4,6 +4,7 @@ import { IntakeProvider } from './context/IntakeContext';
 import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
 import { Cases } from './pages/Cases';
+import { Leads } from './pages/Leads';
 import { IntakeForm } from './pages/IntakeForm';
 import { UserManagement } from './pages/UserManagement';
 import { Login } from './components/Login';
@@ -22,6 +23,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <Dashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leads"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Leads />
             </Layout>
           </ProtectedRoute>
         }

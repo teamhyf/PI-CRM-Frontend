@@ -16,6 +16,13 @@ const baseNavigation = [
     ),
   },
   {
+    name: 'Case Leads',
+    href: '/leads',
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-18 8V8a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+    ),
+  },
+  {
     name: 'Case Intake',
     href: '/intake',
     icon: (
