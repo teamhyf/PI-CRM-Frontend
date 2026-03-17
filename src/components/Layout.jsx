@@ -101,6 +101,9 @@ export function Layout({ children }) {
           <div className="py-6">
             {children}
           </div>
+          <footer className="mt-auto py-3 px-6 text-xs text-gray-400 border-t border-gray-100">
+            Internal staff tool only. Not for client distribution. All data is confidential.
+          </footer>
         </div>
       </div>
     </div>
