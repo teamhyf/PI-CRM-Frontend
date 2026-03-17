@@ -128,30 +128,13 @@ export function Landing() {
           <div className="flex justify-center gap-4 flex-wrap">
             <button
               type="button"
-              onClick={openAssistant}
-              className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-lg shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all duration-200"
-            >
-              <span className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/20">
-                <AISparklesIcon className="w-7 h-7" />
-              </span>
-              Start with AI Assistant (Form)
-            </button>
-
-            <button
-              type="button"
-              onClick={openChatAssistant}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-blue-700 font-semibold text-sm border border-blue-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-            >
-              <AISparklesIcon className="w-5 h-5 text-blue-600" />
-              Chat with AI Assistant
-            </button>
-            <button
-              type="button"
               onClick={openAIIntake}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-violet-700 font-semibold text-sm border border-violet-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-xl shadow-xl shadow-violet-500/25 hover:shadow-2xl hover:shadow-violet-500/35 hover:-translate-y-0.5 transition-all duration-200"
             >
-              <AISparklesIcon className="w-5 h-5 text-violet-600" />
-              AI Case Intake
+              <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20">
+                <AISparklesIcon className="w-8 h-8" />
+              </span>
+              Start AI Case Intake
             </button>
           </div>
 
