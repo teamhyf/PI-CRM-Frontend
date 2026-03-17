@@ -173,7 +173,21 @@ export function AICaseIntakeModal({ isOpen, onClose, onSuccess }) {
     setIsSaving(true);
     setSaveError('');
     try {
-      await submitIntakeCase(caseData);
+      // Persist the user's original narrative so staff can review it in Leads.
+      // The AI analyzer may not always populate accidentTypeDescription for non-"Other" accident types.
+      const narrative = description.trim();
+      const nextCaseData =
+        narrative && !caseData.accident.accidentTypeDescription
+          ? {
+              ...caseData,
+              accident: {
+                ...caseData.accident,
+                accidentTypeDescription: narrative,
+              },
+            }
+          : caseData;
+
+      await submitIntakeCase(nextCaseData);
       setSaveSuccess(true);
       if (onSuccess) onSuccess();
     } catch (err) {
