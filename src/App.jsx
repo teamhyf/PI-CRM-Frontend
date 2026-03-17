@@ -10,6 +10,29 @@ import { UserManagement } from './pages/UserManagement';
 import { Login } from './components/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
+import { ClaimantAuthProvider } from './context/ClaimantAuthContext';
+import { PortalLayout } from './components/PortalLayout';
+import { PortalLogin } from './pages/portal/PortalLogin';
+import { PortalDashboard } from './pages/portal/PortalDashboard';
+import { ProtectedClaimantRoute } from './components/ProtectedClaimantRoute';
+
+function PortalRoutes() {
+  return (
+    <Routes>
+      <Route path="login" element={<PortalLogin />} />
+      <Route
+        element={
+          <ProtectedClaimantRoute>
+            <PortalLayout />
+          </ProtectedClaimantRoute>
+        }
+      >
+        <Route path="dashboard" element={<PortalDashboard />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/portal/login" replace />} />
+    </Routes>
+  );
+}
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -17,6 +40,14 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route
+        path="/portal/*"
+        element={
+          <ClaimantAuthProvider>
+            <PortalRoutes />
+          </ClaimantAuthProvider>
+        }
+      />
       <Route
         path="/dashboard"
         element={
