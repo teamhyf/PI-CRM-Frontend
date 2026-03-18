@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -11,12 +13,14 @@ const getBaseUrl = () => {
 export function Cases() {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const { success, error: toastError } = useToast();
   const [cases, setCases] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, label }
 
   useEffect(() => {
     fetchCases();
@@ -26,7 +30,7 @@ export function Cases() {
   const fetchCases = async () => {
     try {
       setLoading(true);
-      setError('');
+      setLoadError('');
       const base = getBaseUrl();
       const params = new URLSearchParams();
       if (filterStatus !== 'all') params.set('status', filterStatus);
@@ -35,19 +39,15 @@ export function Cases() {
       const qs = params.toString() ? `?${params.toString()}` : '';
 
       const res = await fetch(`${base}/api/cases${qs}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json().catch(() => ([]));
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to load cases');
-      }
+      if (!res.ok) throw new Error(data.error || 'Failed to load cases');
       setCases(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error loading cases:', err);
-      setError(err.message || 'Failed to load cases');
+      setLoadError(err.message || 'Failed to load cases');
     } finally {
       setLoading(false);
     }
@@ -58,11 +58,16 @@ export function Cases() {
     c.accident_type?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDelete = async (caseId) => {
-    if (!window.confirm(`Delete case #${caseId}?\n\nThis permanently removes the case, all documents, participants, injuries, and uploaded files. The original lead will be restored to "new" status.\n\nThis cannot be undone.`)) return;
+  const openDeleteConfirm = (caseId, accidentType) => {
+    setConfirmDelete({ id: caseId, label: accidentType || `#${caseId}` });
+  };
+
+  const executeDelete = async () => {
+    const caseId = confirmDelete?.id;
+    setConfirmDelete(null);
+    if (!caseId) return;
 
     try {
-      setError('');
       const base = getBaseUrl();
       const res = await fetch(`${base}/api/cases/${caseId}`, {
         method: 'DELETE',
@@ -71,9 +76,10 @@ export function Cases() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to delete case');
       setCases((prev) => prev.filter((c) => c.id !== caseId));
+      success(`Case #${caseId} has been permanently deleted.`, 'Case Deleted');
     } catch (err) {
       console.error('Error deleting case:', err);
-      setError(err.message || 'Failed to delete case');
+      toastError(err.message || 'Failed to delete case', 'Delete Failed');
     }
   };
 
@@ -117,11 +123,22 @@ export function Cases() {
         </select>
       </div>
 
-      {error && (
+      {loadError && (
         <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">
-          {error}
+          {loadError}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title={`Delete case "${confirmDelete?.label}"?`}
+        message={`This permanently removes the case, all documents, participants, injuries, and uploaded files.\nThe original lead will be restored to "new" status.\n\nThis cannot be undone.`}
+        confirmLabel="Yes, Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={executeDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
@@ -205,7 +222,7 @@ export function Cases() {
                       View
                     </button>
                     <button
-                      onClick={() => handleDelete(c.id)}
+                      onClick={() => openDeleteConfirm(c.id, c.accident_type)}
                       className="text-red-600 hover:underline font-medium"
                     >
                       Delete
