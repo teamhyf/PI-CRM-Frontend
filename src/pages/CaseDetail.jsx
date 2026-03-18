@@ -182,7 +182,6 @@ export default function CaseDetail() {
         {activeTab === 'documents' && (
           <CaseDocumentsTab
             caseId={caseData.id}
-            documents={caseData.documents || []}
           />
         )}
         {activeTab === 'red-flags' && (
