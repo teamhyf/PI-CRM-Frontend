@@ -115,6 +115,7 @@ export function Cases() {
           className="px-4 py-2 border border-gray-300 rounded-lg"
         >
           <option value="all">All Statuses</option>
+          <option value="qualified">Qualified</option>
           <option value="accepted">Accepted</option>
           <option value="docs_pending">Docs Pending</option>
           <option value="in_treatment">In Treatment</option>
@@ -145,6 +146,7 @@ export function Cases() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-semibold">Case ID</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">Client</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Accident Type</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Date</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Severity</th>
@@ -156,13 +158,13 @@ export function Cases() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="7" className="px-6 py-6 text-center text-gray-500">
+                <td colSpan="8" className="px-6 py-6 text-center text-gray-500">
                   Loading cases...
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan="7" className="px-6 py-6 text-center text-gray-500">
+                <td colSpan="8" className="px-6 py-6 text-center text-gray-500">
                   No cases found.
                 </td>
               </tr>
@@ -170,6 +172,14 @@ export function Cases() {
               filtered.map((c) => (
                 <tr key={c.id} className="border-b hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium">#{c.id}</td>
+                  <td className="px-6 py-4 text-sm">
+                    {c.claimant_first_name || c.claimant_last_name
+                      ? `${c.claimant_first_name || ''} ${c.claimant_last_name || ''}`.trim()
+                      : <span className="text-gray-400">—</span>}
+                    {c.claimant_phone && (
+                      <p className="text-xs text-gray-400 mt-0.5">{c.claimant_phone}</p>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-sm">{c.accident_type}</td>
                   <td className="px-6 py-4 text-sm">
                     {c.date_of_loss ? new Date(c.date_of_loss).toLocaleDateString() : '—'}
@@ -200,12 +210,16 @@ export function Cases() {
                   <td className="px-6 py-4 text-sm">
                     <span
                       className={`px-2 py-1 rounded text-xs font-semibold ${
-                        c.status === 'accepted'
+                        c.status === 'qualified'
+                          ? 'bg-indigo-100 text-indigo-800'
+                          : c.status === 'accepted'
                           ? 'bg-green-100 text-green-800'
                           : c.status === 'docs_pending'
                           ? 'bg-yellow-100 text-yellow-800'
                           : c.status === 'in_treatment'
                           ? 'bg-blue-100 text-blue-800'
+                          : c.status === 'demand_ready'
+                          ? 'bg-orange-100 text-orange-800'
                           : c.status === 'settled'
                           ? 'bg-purple-100 text-purple-800'
                           : 'bg-gray-100 text-gray-800'

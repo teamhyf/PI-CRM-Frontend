@@ -19,6 +19,7 @@ export function PortalLogin() {
   const [tempPassword, setTempPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [setupError, setSetupError] = useState('');
+  const [setupSuccess, setSetupSuccess] = useState('');
   const [setupBusy, setSetupBusy] = useState(false);
 
   const handleLogin = async (e) => {
@@ -35,6 +36,7 @@ export function PortalLogin() {
   const handleSetPassword = async (e) => {
     e.preventDefault();
     setSetupError('');
+    setSetupSuccess('');
     setSetupBusy(true);
     try {
       const base = getBaseUrl();
@@ -43,16 +45,15 @@ export function PortalLogin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim(),
-          tempPassword,
+          tempPassword: tempPassword.trim(),
           newPassword,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to set password');
-      setSetupOpen(false);
       setTempPassword('');
       setNewPassword('');
-      // User can now log in with new password.
+      setSetupSuccess('Password set! You can now sign in with your new password.');
     } catch (err) {
       setSetupError(err.message || 'Failed to set password');
     } finally {
@@ -115,6 +116,11 @@ export function PortalLogin() {
                 {setupError ? (
                   <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">
                     {setupError}
+                  </div>
+                ) : null}
+                {setupSuccess ? (
+                  <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl p-3">
+                    {setupSuccess}
                   </div>
                 ) : null}
 
