@@ -58,6 +58,25 @@ export function Cases() {
     c.accident_type?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleDelete = async (caseId) => {
+    if (!window.confirm(`Delete case #${caseId}?\n\nThis permanently removes the case, all documents, participants, injuries, and uploaded files. The original lead will be restored to "new" status.\n\nThis cannot be undone.`)) return;
+
+    try {
+      setError('');
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/cases/${caseId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to delete case');
+      setCases((prev) => prev.filter((c) => c.id !== caseId));
+    } catch (err) {
+      console.error('Error deleting case:', err);
+      setError(err.message || 'Failed to delete case');
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -178,12 +197,18 @@ export function Cases() {
                       {c.status.replace(/_/g, ' ').toUpperCase()}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right space-x-4">
                     <button
                       onClick={() => navigate(`/cases/${c.id}`)}
                       className="text-blue-600 hover:underline font-medium"
                     >
                       View
+                    </button>
+                    <button
+                      onClick={() => handleDelete(c.id)}
+                      className="text-red-600 hover:underline font-medium"
+                    >
+                      Delete
                     </button>
                   </td>
                 </tr>
