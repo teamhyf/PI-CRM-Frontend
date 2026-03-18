@@ -161,22 +161,24 @@ export default function CaseDetail() {
 
           <span
             className={`flex-shrink-0 px-3 py-1 rounded-full font-semibold text-sm ${
-              caseData.status === 'qualified'
+              (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'qualified'
                 ? 'bg-indigo-100 text-indigo-800'
-                : caseData.status === 'accepted'
+                : (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'accepted'
                 ? 'bg-green-100 text-green-800'
-                : caseData.status === 'docs_pending'
+                : (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'docs_pending'
                 ? 'bg-yellow-100 text-yellow-800'
-                : caseData.status === 'in_treatment'
+                : (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'in_treatment'
                 ? 'bg-blue-100 text-blue-800'
-                : caseData.status === 'demand_ready'
+                : (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'demand_ready'
                 ? 'bg-orange-100 text-orange-800'
-                : caseData.status === 'settled'
+                : (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'settled'
                 ? 'bg-purple-100 text-purple-800'
                 : 'bg-gray-100 text-gray-800'
             }`}
           >
-            {caseData.status.replace(/_/g, ' ').toUpperCase()}
+            {String(
+              typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new'
+            ).replace(/_/g, ' ').toUpperCase()}
           </span>
         </div>
       </div>

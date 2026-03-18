@@ -185,12 +185,28 @@ export function Cases() {
                     {c.date_of_loss ? new Date(c.date_of_loss).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-6 py-4 text-sm">
-                    <div className="w-24 h-2 bg-gray-200 rounded-full">
-                      <div
-                        className="h-2 bg-blue-600 rounded-full"
-                        style={{ width: `${c.estimated_severity_score || 0}%` }}
-                      ></div>
-                    </div>
+                    {(() => {
+                      const rawEstimated = Number(c.estimated_severity_score);
+                      const rawRisk = Number(c.risk_score);
+
+                      // If estimated severity is missing/0, fall back to risk_score for a non-empty bar.
+                      const sevPct =
+                        Number.isFinite(rawEstimated) && rawEstimated > 0
+                          ? Math.max(0, Math.min(100, rawEstimated))
+                          : Math.max(0, Math.min(100, Number.isFinite(rawRisk) ? rawRisk : 0));
+
+                      return (
+                        <div className="space-y-1">
+                          <div className="w-24 h-2 bg-gray-200 rounded-full">
+                            <div
+                              className="h-2 bg-blue-600 rounded-full"
+                              style={{ width: `${sevPct}%` }}
+                            ></div>
+                          </div>
+                          <div className="text-xs text-gray-500">{sevPct}%</div>
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 text-sm">
                     <span
@@ -208,25 +224,32 @@ export function Cases() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm">
+                    {(() => {
+                      const normalizedStatus =
+                        typeof c.status === 'string' && c.status.trim() ? c.status : 'new';
+
+                      return (
                     <span
                       className={`px-2 py-1 rounded text-xs font-semibold ${
-                        c.status === 'qualified'
+                        normalizedStatus === 'qualified'
                           ? 'bg-indigo-100 text-indigo-800'
-                          : c.status === 'accepted'
+                          : normalizedStatus === 'accepted'
                           ? 'bg-green-100 text-green-800'
-                          : c.status === 'docs_pending'
+                          : normalizedStatus === 'docs_pending'
                           ? 'bg-yellow-100 text-yellow-800'
-                          : c.status === 'in_treatment'
+                          : normalizedStatus === 'in_treatment'
                           ? 'bg-blue-100 text-blue-800'
-                          : c.status === 'demand_ready'
+                          : normalizedStatus === 'demand_ready'
                           ? 'bg-orange-100 text-orange-800'
-                          : c.status === 'settled'
+                          : normalizedStatus === 'settled'
                           ? 'bg-purple-100 text-purple-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {c.status.replace(/_/g, ' ').toUpperCase()}
+                      {String(normalizedStatus).replace(/_/g, ' ').toUpperCase()}
                     </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">

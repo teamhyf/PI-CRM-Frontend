@@ -62,9 +62,25 @@ export function Providers() {
       const res = await fetch(`${base}/api/providers${qs}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Failed to load providers');
-      setProviders(Array.isArray(data.providers) ? data.providers : []);
+
+      // Read body as text first so we can surface non-JSON (DB errors, HTML, etc).
+      const rawText = await res.text().catch(() => '');
+      let data = null;
+      try {
+        data = rawText ? JSON.parse(rawText) : null;
+      } catch {
+        data = null;
+      }
+
+      if (!res.ok) {
+        throw new Error(
+          data?.error ||
+            data?.message ||
+            rawText ||
+            `Failed to load providers (HTTP ${res.status})`
+        );
+      }
+      setProviders(Array.isArray(data?.providers) ? data.providers : []);
     } catch (err) {
       setLoadError(err.message || 'Failed to load providers');
     } finally {
