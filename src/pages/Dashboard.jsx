@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { CaseSummaryModal } from '../components/CaseSummaryModal';
 import { AISparklesIcon, AIBadge } from '../components/AIIcon';
 import { AICaseIntakeModal } from '../components/AICaseIntakeModal';
+import ClaimantsManagementCard from '../components/ClaimantsManagementCard';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -296,6 +297,9 @@ export function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Claimants Management */}
+      <ClaimantsManagementCard />
 
       {/* Filters and Search */}
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
