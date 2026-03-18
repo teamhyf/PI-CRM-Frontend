@@ -32,7 +32,7 @@ export default function ClaimantsManagementCard() {
   const [tempPassword, setTempPassword] = useState(null); // string or null
   const [showPassword, setShowPassword] = useState(false);
 
-  const canRender = useMemo(() => user?.role === 'admin' || user?.role === 'attorney', [user]);
+  const canRender = useMemo(() => user?.role === 'admin', [user]);
 
   const fetchClaimants = async () => {
     const base = getBaseUrl();

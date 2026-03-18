@@ -11,6 +11,7 @@ import { IntakeForm } from './pages/IntakeForm';
 import { AIIntakePage } from './pages/AIIntakePage';
 import { UserManagement } from './pages/UserManagement';
 import { Providers } from './pages/Providers';
+import { Claimants } from './pages/Claimants';
 import { Login } from './components/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
@@ -128,6 +129,16 @@ function AppRoutes() {
           <ProtectedRoute requiredRole="admin">
             <Layout>
               <Providers />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/claimants"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <Layout>
+              <Claimants />
             </Layout>
           </ProtectedRoute>
         }
