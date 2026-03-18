@@ -40,6 +40,18 @@ const baseNavigation = [
 
 const adminNavigation = [
   {
+    name: 'Providers',
+    href: '/providers',
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 6.5V12m0 0l3 3m-3-3l-3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    ),
+  },
+  {
     name: 'Users',
     href: '/users',
     icon: (

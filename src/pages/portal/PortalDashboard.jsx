@@ -15,11 +15,21 @@ function formatISODate(iso) {
   return `${m[2]}/${m[3]}/${m[1]}`;
 }
 
+const providerTypeLabel = (t) =>
+  String(t || '')
+    .split('_')
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ');
+
 export function PortalDashboard() {
   const { token, claimant } = useClaimantAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [caseData, setCaseData] = useState(null);
+
+  const [pathwayLoading, setPathwayLoading] = useState(false);
+  const [pathwayError, setPathwayError] = useState('');
+  const [pathway, setPathway] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,6 +55,37 @@ export function PortalDashboard() {
       cancelled = true;
     };
   }, [token]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!token || !caseData?.caseId) return;
+
+      const caseIdNum = String(caseData.caseId).replace(/^CASE-/, '');
+      if (!caseIdNum) return;
+
+      setPathwayLoading(true);
+      setPathwayError('');
+      try {
+        const base = getBaseUrl();
+        const res = await fetch(`${base}/api/cases/${caseIdNum}/treatment-pathway`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to load treatment pathway');
+        if (!cancelled) setPathway(data);
+      } catch (e) {
+        if (!cancelled) setPathwayError(e.message || 'Failed to load treatment pathway');
+      } finally {
+        if (!cancelled) setPathwayLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, caseData]);
 
   return (
     <div className="space-y-6">
@@ -85,6 +126,61 @@ export function PortalDashboard() {
           </div>
         ) : (
           <p className="text-sm text-gray-600">No case found.</p>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Treatment Pathway</h2>
+            <p className="text-sm text-gray-600">Based on your documented injuries.</p>
+          </div>
+          {pathway?.urgencyLevel && pathway.urgencyLevel !== 'routine' && (
+            <span
+              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+                pathway.urgencyLevel === 'urgent'
+                  ? 'bg-red-100 text-red-800 border-red-200'
+                  : 'bg-amber-100 text-amber-800 border-amber-200'
+              }`}
+            >
+              {String(pathway.urgencyLevel).toUpperCase()}
+            </span>
+          )}
+        </div>
+
+        {pathwayLoading && <p className="text-sm text-gray-600 mt-3">Loading treatment pathway…</p>}
+        {pathwayError && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 mt-3">{pathwayError}</p>}
+
+        {!pathwayLoading && !pathwayError && pathway && (
+          <div className="mt-4 space-y-4">
+            {pathway.introText ? (
+              <>
+                <div className="text-sm text-gray-900 whitespace-pre-wrap">{pathway.introText}</div>
+                <div className="space-y-3">
+                  {(pathway.suggestedProviderTypeList || []).map((t) => (
+                    <div key={t} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                      <div className="text-sm font-semibold text-gray-900">{providerTypeLabel(t)}</div>
+                      <div className="text-sm text-gray-700 mt-1">
+                        {pathway.providerDescriptions?.[t] || '—'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {pathway.closingNote && (
+                  <div className="text-sm text-gray-900 whitespace-pre-wrap font-medium">
+                    {pathway.closingNote}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-sm text-gray-900">
+                Suggested providers:{' '}
+                <span className="font-semibold">
+                  {(pathway.suggestedProviderTypeList || []).map(providerTypeLabel).join(', ') || '—'}
+                </span>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

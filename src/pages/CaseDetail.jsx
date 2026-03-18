@@ -7,6 +7,7 @@ import CaseInsuranceTab from '../components/CaseInsuranceTab';
 import CaseDocumentsTab from '../components/CaseDocumentsTab';
 import CaseRedFlagsTab from '../components/CaseRedFlagsTab';
 import CaseTimelineTab from '../components/CaseTimelineTab';
+import ReferralPanel from '../components/ReferralPanel';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -113,6 +114,7 @@ export default function CaseDetail() {
     { id: 'documents', label: 'Documents' },
     { id: 'red-flags', label: 'Red Flags' },
     { id: 'timeline', label: 'Timeline' },
+    { id: 'treatment-routing', label: 'Treatment Routing' },
   ];
 
   return (
@@ -233,6 +235,9 @@ export default function CaseDetail() {
         )}
         {activeTab === 'timeline' && (
           <CaseTimelineTab caseId={caseData.id} />
+        )}
+        {activeTab === 'treatment-routing' && (
+          <ReferralPanel caseId={caseData.id} injuries={caseData.injuries || []} />
         )}
       </div>
     </div>
