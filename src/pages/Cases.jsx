@@ -112,6 +112,7 @@ export function Cases() {
               <th className="px-6 py-3 text-left text-sm font-semibold">Accident Type</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Date</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Severity</th>
+              <th className="px-6 py-3 text-left text-sm font-semibold">Risk</th>
               <th className="px-6 py-3 text-left text-sm font-semibold">Status</th>
               <th className="px-6 py-3 text-right text-sm font-semibold">Actions</th>
             </tr>
@@ -119,13 +120,13 @@ export function Cases() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="6" className="px-6 py-6 text-center text-gray-500">
+                <td colSpan="7" className="px-6 py-6 text-center text-gray-500">
                   Loading cases...
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-6 text-center text-gray-500">
+                <td colSpan="7" className="px-6 py-6 text-center text-gray-500">
                   No cases found.
                 </td>
               </tr>
@@ -144,6 +145,21 @@ export function Cases() {
                         style={{ width: `${c.estimated_severity_score || 0}%` }}
                       ></div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        (c.risk_score || 0) > 150
+                          ? 'bg-red-100 text-red-800'
+                          : (c.risk_score || 0) > 100
+                            ? 'bg-orange-100 text-orange-800'
+                            : (c.risk_score || 0) >= 50
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-green-100 text-green-800'
+                      }`}
+                    >
+                      {c.risk_score || 0}
+                    </span>
                   </td>
                   <td className="px-6 py-4 text-sm">
                     <span

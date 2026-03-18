@@ -6,12 +6,20 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useIntake } from '../context/IntakeContext';
+import { useAuth } from '../context/AuthContext';
 import { CaseSummaryModal } from '../components/CaseSummaryModal';
 import { AISparklesIcon, AIBadge } from '../components/AIIcon';
 import { AICaseIntakeModal } from '../components/AICaseIntakeModal';
 
+const getBaseUrl = () => {
+  const url = import.meta.env.VITE_API_BASE_URL;
+  if (url) return url.replace(/\/$/, '');
+  return '';
+};
+
 export function Dashboard() {
   const { cases, deleteCase, loadCaseForEdit } = useIntake();
+  const { token } = useAuth();
   const navigate = useNavigate();
   const [allCases, setAllCases] = useState([]);
   const [selectedCase, setSelectedCase] = useState(null);
@@ -21,11 +29,32 @@ export function Dashboard() {
   const [filterViability, setFilterViability] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [aiIntakeOpen, setAiIntakeOpen] = useState(false);
+  const [highRiskCases, setHighRiskCases] = useState([]);
 
   useEffect(() => {
     // Cases from context already include sample cases and submitted cases
     setAllCases(cases);
   }, [cases]);
+
+  useEffect(() => {
+    const fetchHighRiskCases = async () => {
+      if (!token) return;
+      try {
+        const base = getBaseUrl();
+        const res = await fetch(`${base}/api/cases?sort=risk_score%20DESC&limit=5&offset=0`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json().catch(() => ([]));
+        if (!res.ok) throw new Error(data.error || 'Failed to load high risk cases');
+        setHighRiskCases(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Error loading high risk cases:', err);
+        setHighRiskCases([]);
+      }
+    };
+
+    fetchHighRiskCases();
+  }, [token]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -204,6 +233,68 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* High Risk Cases */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">High Risk Cases</h2>
+            <p className="text-sm text-gray-600 mt-1">Top 5 cases by risk score.</p>
+          </div>
+          <Link to="/cases" className="text-sm font-semibold text-blue-600 hover:underline">
+            View all
+          </Link>
+        </div>
+
+        {highRiskCases.length === 0 ? (
+          <div className="text-sm text-gray-600">No high risk cases to show.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left font-semibold text-gray-700">Case</th>
+                  <th className="px-4 py-2 text-left font-semibold text-gray-700">Accident Type</th>
+                  <th className="px-4 py-2 text-left font-semibold text-gray-700">Risk Score</th>
+                  <th className="px-4 py-2 text-right font-semibold text-gray-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {highRiskCases.map((c) => (
+                  <tr key={c.id} className="border-t">
+                    <td className="px-4 py-3 font-semibold text-gray-900">#{c.id}</td>
+                    <td className="px-4 py-3 text-gray-700">{c.accident_type || '—'}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          (c.risk_score || 0) > 150
+                            ? 'bg-red-100 text-red-800'
+                            : (c.risk_score || 0) > 100
+                              ? 'bg-orange-100 text-orange-800'
+                              : (c.risk_score || 0) >= 50
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-green-100 text-green-800'
+                        }`}
+                      >
+                        {c.risk_score || 0}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/cases/${c.id}`)}
+                        className="text-blue-600 hover:underline font-semibold"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Filters and Search */}
