@@ -31,6 +31,11 @@ export function PortalDashboard() {
   const [pathwayError, setPathwayError] = useState('');
   const [pathway, setPathway] = useState(null);
 
+  const normalizedCaseStatus =
+    typeof caseData?.status === 'string' && caseData.status.trim()
+      ? caseData.status
+      : 'new';
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -113,7 +118,9 @@ export function PortalDashboard() {
             </div>
             <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200">
               <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Status</p>
-              <p className="text-lg font-bold text-indigo-900 mt-1">{caseData.status}</p>
+              <p className="text-lg font-bold text-indigo-900 mt-1">
+                {String(normalizedCaseStatus).replace(/_/g, ' ').toUpperCase()}
+              </p>
             </div>
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Accident type</p>
