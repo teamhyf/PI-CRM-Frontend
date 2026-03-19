@@ -120,6 +120,19 @@ export default function CaseDocumentsTab({ caseId }) {
             })
           );
         }
+
+        if (
+          data.suggestedValues &&
+          (selectedDocType === 'treatment_note' || selectedDocType === 'hospital_records') &&
+          (data.suggestedValues.visitDate != null || data.suggestedValues.visitType != null)
+        ) {
+          // Let VisitsTimeline pre-fill its "Add Medical Visit" form.
+          window.dispatchEvent(
+            new CustomEvent('medicalVisitSuggestedValues', {
+              detail: { caseId, suggestedValues: data.suggestedValues },
+            })
+          );
+        }
       }
       await fetchDocuments();
     } catch (err) {
@@ -225,6 +238,17 @@ export default function CaseDocumentsTab({ caseId }) {
             {suggestedValues.diagnoses?.length > 0 && (
               <div className="col-span-2">
                 <span className="font-medium">Diagnoses:</span> {suggestedValues.diagnoses.join(', ')}
+              </div>
+            )}
+            {suggestedValues.visitDate && (
+              <div><span className="font-medium">Visit date:</span> {suggestedValues.visitDate}</div>
+            )}
+            {suggestedValues.visitType && (
+              <div><span className="font-medium">Visit type:</span> {suggestedValues.visitType}</div>
+            )}
+            {suggestedValues.diagnosisSummary && (
+              <div className="col-span-2">
+                <span className="font-medium">Diagnosis summary:</span> {suggestedValues.diagnosisSummary}
               </div>
             )}
           </div>

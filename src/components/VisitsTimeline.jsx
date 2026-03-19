@@ -1,0 +1,680 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+
+const getBaseUrl = () => {
+  const url = import.meta.env.VITE_API_BASE_URL;
+  if (url) return url.replace(/\/$/, '');
+  return '';
+};
+
+const VISIT_TYPE_OPTIONS = [
+  { value: 'chiropractic', label: 'Chiropractic' },
+  { value: 'physical_therapy', label: 'Physical Therapy' },
+  { value: 'orthopedic', label: 'Orthopedic' },
+  { value: 'neurology', label: 'Neurology' },
+  { value: 'imaging', label: 'Imaging' },
+  { value: 'emergency', label: 'Emergency' },
+  { value: 'pain_management', label: 'Pain Management' },
+  { value: 'follow_up', label: 'Follow-up' },
+  { value: 'other', label: 'Other' },
+];
+
+function formatISODate(iso) {
+  if (!iso) return '—';
+  const s = String(iso);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[2]}/${m[3]}/${m[1]}`;
+  return s;
+}
+
+function truncate(str, max = 120) {
+  const s = String(str || '').trim();
+  if (!s) return '—';
+  return s.length > max ? `${s.slice(0, max)}…` : s;
+}
+
+function badgeForVisitType(type) {
+  const t = String(type || '');
+  if (!t) return 'bg-gray-100 text-gray-700 border-gray-200';
+  if (t === 'imaging') return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+  if (t === 'emergency') return 'bg-red-100 text-red-800 border-red-200';
+  if (t === 'pain_management') return 'bg-amber-100 text-amber-800 border-amber-200';
+  return 'bg-gray-100 text-gray-700 border-gray-200';
+}
+
+export default function VisitsTimeline({ caseId, redFlags }) {
+  const { token } = useAuth();
+  const base = getBaseUrl();
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const [visits, setVisits] = useState([]);
+  const [totals, setTotals] = useState({ totalBilled: 0, totalReceived: 0 });
+
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineError, setTimelineError] = useState('');
+  const [timeline, setTimeline] = useState(null);
+
+  const [providers, setProviders] = useState([]);
+  const [providersLoading, setProvidersLoading] = useState(false);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create'); // create | edit
+  const [editingVisitId, setEditingVisitId] = useState(null);
+  const [autoDetectedBanner, setAutoDetectedBanner] = useState('');
+
+  const [form, setForm] = useState({
+    visit_date: '',
+    visit_type: 'follow_up',
+    provider_id: '',
+    provider_name_override: '',
+    diagnosis_summary: '',
+    billed_amount: '',
+    notes: '',
+    record_received: false,
+    bill_received: false,
+  });
+
+  const fileInputRef = useRef(null);
+
+  const fetchProviders = useCallback(async () => {
+    if (!token) return;
+    setProvidersLoading(true);
+    try {
+      const res = await fetch(`${base}/api/providers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to load providers');
+      setProviders(Array.isArray(data.providers) ? data.providers : []);
+    } catch (e) {
+      // Provider dropdown is optional; allow free-text override if this fails.
+      setProviders([]);
+    } finally {
+      setProvidersLoading(false);
+    }
+  }, [token, base]);
+
+  const fetchVisits = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${base}/api/cases/${caseId}/medical-visits?status=all&sort=date`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to load medical visits');
+      setVisits(Array.isArray(data.visits) ? data.visits : []);
+      setTotals({
+        totalBilled: Number(data.totalBilled || 0),
+        totalReceived: Number(data.totalReceived || 0),
+      });
+    } catch (e) {
+      setError(e.message || 'Failed to load medical visits');
+    } finally {
+      setLoading(false);
+    }
+  }, [token, caseId, base]);
+
+  const fetchTimeline = useCallback(async () => {
+    if (!token) return;
+    setTimelineLoading(true);
+    setTimelineError('');
+    try {
+      const res = await fetch(`${base}/api/cases/${caseId}/treatment-timeline`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to load treatment timeline');
+      setTimeline(data || null);
+    } catch (e) {
+      setTimelineError(e.message || 'Failed to load treatment timeline');
+      setTimeline(null);
+    } finally {
+      setTimelineLoading(false);
+    }
+  }, [token, caseId, base]);
+
+  useEffect(() => {
+    fetchVisits();
+    fetchTimeline();
+  }, [fetchVisits, fetchTimeline]);
+
+  const openCreateModal = () => {
+    setModalMode('create');
+    setEditingVisitId(null);
+    setAutoDetectedBanner('');
+    setForm({
+      visit_date: '',
+      visit_type: 'follow_up',
+      provider_id: '',
+      provider_name_override: '',
+      diagnosis_summary: '',
+      billed_amount: '',
+      notes: '',
+      record_received: false,
+      bill_received: false,
+    });
+    setModalOpen(true);
+    fetchProviders();
+  };
+
+  const openEditModal = (v) => {
+    setModalMode('edit');
+    setEditingVisitId(v.id);
+    setAutoDetectedBanner('');
+    setForm({
+      visit_date: v.visit_date ? String(v.visit_date).slice(0, 10) : '',
+      visit_type: v.visit_type || 'follow_up',
+      provider_id: v.provider_id != null ? String(v.provider_id) : '',
+      provider_name_override: v.provider_name_override || '',
+      diagnosis_summary: v.diagnosis_summary || '',
+      billed_amount: v.billed_amount != null ? String(v.billed_amount) : '',
+      notes: v.notes || '',
+      record_received: !!v.record_received,
+      bill_received: !!v.bill_received,
+    });
+    setModalOpen(true);
+    fetchProviders();
+  };
+
+  const openFromSuggestedValues = (suggestedValues) => {
+    if (!suggestedValues) return;
+    const visitType = suggestedValues.visitType || 'follow_up';
+    setModalMode('create');
+    setEditingVisitId(null);
+    setAutoDetectedBanner(
+      suggestedValues.confidence != null
+        ? `Auto-detected from document (confidence ${suggestedValues.confidence}%). Review and adjust before saving.`
+        : 'Auto-detected from document. Review and adjust before saving.'
+    );
+    setForm({
+      visit_date: suggestedValues.visitDate ? String(suggestedValues.visitDate).slice(0, 10) : '',
+      visit_type: visitType,
+      provider_id: '',
+      provider_name_override: '',
+      diagnosis_summary: suggestedValues.diagnosisSummary || '',
+      billed_amount:
+        suggestedValues.billedAmount != null ? String(suggestedValues.billedAmount) : '',
+      notes: suggestedValues.treatmentRendered || '',
+      record_received: false,
+      bill_received: false,
+    });
+    setModalOpen(true);
+    fetchProviders();
+  };
+
+  useEffect(() => {
+    const handler = (e) => {
+      const detail = e?.detail;
+      if (!detail || String(detail.caseId) !== String(caseId)) return;
+      if (!detail.suggestedValues) return;
+      const sv = detail.suggestedValues;
+      const looksLikeVisit =
+        sv.visitDate != null || sv.visitType != null || sv.diagnosisSummary != null;
+      if (!looksLikeVisit) return;
+      openFromSuggestedValues(sv);
+    };
+    window.addEventListener('medicalVisitSuggestedValues', handler);
+    return () => window.removeEventListener('medicalVisitSuggestedValues', handler);
+  }, [caseId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const updateRecordReceived = async (visitId, nextValue) => {
+    const res = await fetch(`${base}/api/medical-visits/${visitId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ record_received: nextValue }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to update record received');
+    await fetchVisits();
+    await fetchTimeline();
+  };
+
+  const updateBillReceived = async (visitId, nextValue) => {
+    const res = await fetch(`${base}/api/medical-visits/${visitId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ bill_received: nextValue }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to update bill received');
+    await fetchVisits();
+    await fetchTimeline();
+  };
+
+  const handleDeleteVisit = async (visitId) => {
+    if (!window.confirm('Delete this medical visit?')) return;
+    const res = await fetch(`${base}/api/medical-visits/${visitId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || 'Failed to delete visit');
+      return;
+    }
+    await fetchVisits();
+    await fetchTimeline();
+  };
+
+  const handleSaveModal = async (e) => {
+    e.preventDefault();
+    try {
+      if (!form.visit_date) throw new Error('visit_date is required');
+
+      const payload = {
+        visit_date: form.visit_date,
+        visit_type: form.visit_type,
+        provider_id: form.provider_id ? Number(form.provider_id) : null,
+        provider_name_override: form.provider_name_override || null,
+        diagnosis_summary: form.diagnosis_summary || null,
+        billed_amount: form.billed_amount !== '' ? Number(form.billed_amount) : null,
+        notes: form.notes || null,
+        record_received: !!form.record_received,
+        bill_received: !!form.bill_received,
+      };
+
+      if (modalMode === 'edit' && editingVisitId) {
+        const res = await fetch(`${base}/api/medical-visits/${editingVisitId}`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to update visit');
+      } else {
+        const res = await fetch(`${base}/api/cases/${caseId}/medical-visits`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to create visit');
+      }
+
+      setModalOpen(false);
+      await fetchVisits();
+      await fetchTimeline();
+    } catch (e2) {
+      alert(e2.message || 'Failed to save visit');
+    }
+  };
+
+  const gapEntry = useMemo(() => {
+    if (!timeline?.timelineEntries) return null;
+    const gaps = timeline.timelineEntries.filter((x) => x?.eventType === 'gap' || x?.isGap);
+    return gaps[0] || null;
+  }, [timeline]);
+
+  const timelineEntriesSorted = useMemo(() => {
+    if (!timeline?.timelineEntries) return [];
+    return [...timeline.timelineEntries].sort((a, b) => {
+      const ad = new Date(a.date).getTime();
+      const bd = new Date(b.date).getTime();
+      if (Number.isNaN(ad) || Number.isNaN(bd)) return 0;
+      return ad - bd;
+    });
+  }, [timeline]);
+
+  const providerTypesInvolved = timeline?.providerTypesInvolved || [];
+  const openGaps = timeline?.openGaps || 0;
+
+  return (
+    <div className="p-6 space-y-6">
+      {(timelineLoading || loading) && <p className="text-sm text-gray-600">Loading…</p>}
+      {(error || timelineError) && (
+        <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error || timelineError}
+        </div>
+      )}
+
+      {/* Treatment summary */}
+      {timeline?.treatmentSummary && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-sm font-semibold text-gray-900">Treatment Timeline Summary</div>
+            {openGaps > 0 && (
+              <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-800">
+                {openGaps} open gap{openGaps === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          <div className="text-sm text-gray-800 whitespace-pre-wrap">{timeline.treatmentSummary}</div>
+          <div className="text-xs text-gray-500">
+            Providers involved: {providerTypesInvolved.length ? providerTypesInvolved.join(', ') : '—'}
+          </div>
+        </div>
+      )}
+
+      {/* Gap alert */}
+      {gapEntry?.description && openGaps > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="text-sm font-semibold text-blue-900">Treatment Gap Alert</div>
+          <div className="text-sm text-blue-800 mt-1">{gapEntry.description}</div>
+        </div>
+      )}
+
+      {/* Timeline entries */}
+      {timelineEntriesSorted.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-4">
+            <div>
+              <div className="text-sm font-semibold text-gray-900">Timeline</div>
+              <div className="text-xs text-gray-500 mt-1">
+                Total billed: ${Number(totals.totalBilled || 0).toLocaleString()} • Total received: $
+                {Number(totals.totalReceived || 0).toLocaleString()}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+            >
+              + Add Visit
+            </button>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {timelineEntriesSorted.map((entry, idx) => (
+              <div key={`${entry.date}-${idx}`} className="px-4 py-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-xs text-gray-500">{formatISODate(entry.date)}</div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${
+                          entry.isGap || entry.eventType === 'gap'
+                            ? 'bg-red-50 border-red-200 text-red-800'
+                            : entry.eventType === 'document_received'
+                              ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
+                              : 'bg-gray-50 border-gray-200 text-gray-800'
+                        }`}
+                      >
+                        {entry.eventType}
+                      </span>
+                      {entry.providerType ? (
+                        <span className="inline-flex items-center rounded-full border bg-gray-50 border-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700">
+                          {entry.providerType}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="text-sm text-gray-800 mt-1 whitespace-pre-wrap">{entry.description}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Visits table (always shown) */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-sm font-semibold text-gray-900">Visits</div>
+            <div className="text-xs text-gray-500 mt-1">Most recent first</div>
+          </div>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+          >
+            + Add Visit
+          </button>
+        </div>
+        {visits.length === 0 ? (
+          <div className="px-4 py-6 text-sm text-gray-500">No visits recorded.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium text-gray-700">Date</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-700">Type</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-700">Provider</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-700">Diagnosis</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-700">Billed</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-700">Flags</th>
+                  <th className="px-4 py-2 text-right font-medium text-gray-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visits.map((v) => (
+                  <tr key={v.id} className="border-t">
+                    <td className="px-4 py-2">{formatISODate(v.visit_date)}</td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${badgeForVisitType(
+                          v.visit_type
+                        )}`}
+                      >
+                        {(VISIT_TYPE_OPTIONS.find((t) => t.value === v.visit_type)?.label || v.visit_type || 'other').replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">{v.provider_name || '—'}</td>
+                    <td className="px-4 py-2 text-gray-700 max-w-sm">{truncate(v.diagnosis_summary, 90)}</td>
+                    <td className="px-4 py-2">
+                      {v.billed_amount != null ? `$${Number(v.billed_amount).toLocaleString()}` : '—'}
+                    </td>
+                    <td className="px-4 py-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                            v.record_received ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-700'
+                          }`}
+                          onClick={() => updateRecordReceived(v.id, !v.record_received).catch((e) => alert(e.message))}
+                        >
+                          {v.record_received ? 'Record received' : 'Record not received'}
+                        </button>
+                        <button
+                          type="button"
+                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                            v.bill_received ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-700'
+                          }`}
+                          onClick={() => updateBillReceived(v.id, !v.bill_received).catch((e) => alert(e.message))}
+                        >
+                          {v.bill_received ? 'Bill received' : 'Bill not received'}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(v)}
+                          className="text-indigo-700 hover:underline text-sm font-semibold"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteVisit(v.id)}
+                          className="text-red-600 hover:underline text-sm font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg border border-gray-200 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {modalMode === 'edit' ? 'Edit Medical Visit' : 'Add Medical Visit'}
+                </h3>
+                {autoDetectedBanner ? (
+                  <div className="mt-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    {autoDetectedBanner}
+                  </div>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="text-gray-500 hover:text-gray-800"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveModal} className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Visit Date</label>
+                  <input
+                    type="date"
+                    value={form.visit_date}
+                    onChange={(e) => setForm((p) => ({ ...p, visit_date: e.target.value }))}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Visit Type</label>
+                  <select
+                    value={form.visit_type}
+                    onChange={(e) => setForm((p) => ({ ...p, visit_type: e.target.value }))}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  >
+                    {VISIT_TYPE_OPTIONS.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Provider (optional)
+                  </label>
+                  <select
+                    value={form.provider_id}
+                    onChange={(e) => setForm((p) => ({ ...p, provider_id: e.target.value }))}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    disabled={providersLoading}
+                  >
+                    <option value="">-- Select provider --</option>
+                    {providers.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.provider_type})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="text-xs text-gray-500 mt-1">
+                    If provider list is unavailable, use override below.
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Provider name override</label>
+                  <input
+                    value={form.provider_name_override}
+                    onChange={(e) => setForm((p) => ({ ...p, provider_name_override: e.target.value }))}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    placeholder="e.g. ABC Clinic"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Diagnosis Summary</label>
+                <textarea
+                  value={form.diagnosis_summary}
+                  onChange={(e) => setForm((p) => ({ ...p, diagnosis_summary: e.target.value }))}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Billed amount</label>
+                  <input
+                    type="number"
+                    value={form.billed_amount}
+                    onChange={(e) => setForm((p) => ({ ...p, billed_amount: e.target.value }))}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    placeholder="e.g. 150.00"
+                  />
+                </div>
+                <div className="flex items-center">
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={form.record_received}
+                      onChange={(e) => setForm((p) => ({ ...p, record_received: e.target.checked }))}
+                    />
+                    Record received
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={form.bill_received}
+                      onChange={(e) => setForm((p) => ({ ...p, bill_received: e.target.checked }))}
+                    />
+                    Bill received
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700"
+                >
+                  {modalMode === 'edit' ? 'Save Changes' : 'Save Visit'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
