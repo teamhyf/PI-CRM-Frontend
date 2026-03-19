@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useClaimantAuth } from '../../context/ClaimantAuthContext';
 
 const getBaseUrl = () => {
@@ -70,6 +71,8 @@ export function PortalDashboard() {
     typeof caseData?.status === 'string' && caseData.status.trim()
       ? caseData.status
       : 'new';
+
+  const closureAvailable = ['settled', 'referred_out', 'closed'].includes(normalizedCaseStatus);
 
   useEffect(() => {
     let cancelled = false;
@@ -395,6 +398,21 @@ export function PortalDashboard() {
           </ul>
         )}
       </div>
+
+      {closureAvailable ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Case Closure Summary</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Your final case organization record is available for review.
+          </p>
+          <Link
+            to="/portal/case-closure"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+          >
+            View Closure Summary
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }
