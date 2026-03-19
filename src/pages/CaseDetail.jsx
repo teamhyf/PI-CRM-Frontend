@@ -15,7 +15,38 @@ const getBaseUrl = () => {
   return '';
 };
 
-function CaseOverviewTab({ data }) {
+function CaseOverviewTab({ data, token }) {
+  const [insuranceSummary, setInsuranceSummary] = useState(null);
+  const [insuranceLoading, setInsuranceLoading] = useState(false);
+  const [insuranceError, setInsuranceError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!token || !data?.id) return;
+      setInsuranceLoading(true);
+      setInsuranceError('');
+      try {
+        const base = getBaseUrl();
+        const res = await fetch(`${base}/api/cases/${data.id}/insurance-summary`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || 'Failed to load insurance summary');
+        if (!cancelled) setInsuranceSummary(json || null);
+      } catch (err) {
+        if (!cancelled) setInsuranceError(err.message || 'Failed to load insurance summary');
+      } finally {
+        if (!cancelled) setInsuranceLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, data?.id]);
+
   return (
     <div className="p-6 space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -36,6 +67,24 @@ function CaseOverviewTab({ data }) {
         <div>
           <label className="block text-sm font-medium text-gray-700">Risk Score</label>
           <p className="text-gray-900 mt-1">{data.risk_score}/100</p>
+        </div>
+
+        {/* Phase 5: Insurance coverage narrative */}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Insurance Coverage Note
+          </label>
+          <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            {insuranceLoading ? (
+              <p className="text-sm text-gray-600">Loading…</p>
+            ) : insuranceError ? (
+              <p className="text-sm text-red-700">{insuranceError}</p>
+            ) : (
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                {insuranceSummary?.coverageNote || 'No insurance summary yet.'}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -202,7 +251,7 @@ export default function CaseDetail() {
       </div>
 
       <div className="bg-white rounded-lg shadow">
-        {activeTab === 'overview' && <CaseOverviewTab data={caseData} />}
+        {activeTab === 'overview' && <CaseOverviewTab data={caseData} token={token} />}
         {activeTab === 'participants' && (
           <CaseParticipantsTab
             caseId={caseData.id}

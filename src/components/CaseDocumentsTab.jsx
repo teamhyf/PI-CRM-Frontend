@@ -108,6 +108,18 @@ export default function CaseDocumentsTab({ caseId }) {
 
       if (data.suggestedValues) {
         setSuggestedValues(data.suggestedValues);
+        if (
+          data.suggestedValues &&
+          (selectedDocType === 'declaration_page' || selectedDocType === 'correspondence') &&
+          (data.suggestedValues.policyLimitPerPerson != null || data.suggestedValues.carrierName)
+        ) {
+          // Let CaseInsuranceTab pre-fill its "Add Policy" form.
+          window.dispatchEvent(
+            new CustomEvent('insuranceSuggestedValues', {
+              detail: { caseId, suggestedValues: data.suggestedValues },
+            })
+          );
+        }
       }
       await fetchDocuments();
     } catch (err) {
