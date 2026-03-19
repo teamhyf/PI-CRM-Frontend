@@ -371,6 +371,10 @@ export function PortalDashboard() {
                     {DOC_TYPES.find((t) => t.value === doc.document_type)?.label || doc.document_type}
                     {' · '}
                     {formatISODate(doc.uploaded_at)}
+                    {' · '}
+                    <span className={doc.uploaded_by === 'user' ? 'text-indigo-600 font-medium' : 'text-gray-400'}>
+                      {doc.uploaded_by === 'user' ? 'Uploaded by you' : 'Added by staff'}
+                    </span>
                   </p>
                   {doc.ai_summary && (
                     <p className="text-xs text-gray-600 mt-1 italic">{doc.ai_summary}</p>
