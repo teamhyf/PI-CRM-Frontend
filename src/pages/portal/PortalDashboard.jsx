@@ -23,11 +23,14 @@ const providerTypeLabel = (t) =>
 
 const DOC_TYPES = [
   { value: 'police_report', label: 'Police Report' },
-  { value: 'hospital_records', label: 'Hospital Records' },
   { value: 'vehicle_photos', label: 'Vehicle Photos' },
+  { value: 'hospital_records', label: 'Hospital Records' },
+  { value: 'declaration_page', label: 'Declaration Page' },
   { value: 'MRI_report', label: 'MRI Report' },
-  { value: 'bill', label: 'Medical Bill' },
+  { value: 'bill', label: 'Bill' },
   { value: 'treatment_note', label: 'Treatment Note' },
+  { value: 'demand_packet', label: 'Demand Packet' },
+  { value: 'correspondence', label: 'Correspondence' },
   { value: 'other', label: 'Other' },
 ];
 
