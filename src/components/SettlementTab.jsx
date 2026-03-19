@@ -68,6 +68,14 @@ export default function SettlementTab({ caseId, onChanged }) {
     return [];
   }, [tracker?.offer_history_json]);
 
+  const negotiation = useMemo(() => {
+    const raw = tracker?.negotiation_summary_json;
+    if (!raw) return null;
+    const parsed = parseMaybeJson(raw);
+    if (parsed && typeof parsed === 'object' && typeof parsed.negotiationSummary === 'string') return parsed;
+    return null;
+  }, [tracker?.negotiation_summary_json]);
+
   const netToClient = useMemo(() => {
     const finalN = form.final_settlement !== '' ? Number(form.final_settlement) : null;
     const negN = form.negotiated_medicals !== '' ? Number(form.negotiated_medicals) : null;
@@ -398,6 +406,25 @@ export default function SettlementTab({ caseId, onChanged }) {
               </button>
             </div>
           </div>
+
+          {negotiation?.negotiationSummary ? (
+            <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Offer Negotiation Summary</p>
+                  <p className="text-xs text-gray-500 mt-1">Staff-only narrative generated when settlement is finalized.</p>
+                </div>
+                {typeof negotiation.offerCount === 'number' ? (
+                  <span className="text-xs font-semibold text-indigo-700">
+                    {negotiation.offerCount} offer round{negotiation.offerCount === 1 ? '' : 's'}
+                  </span>
+                ) : null}
+              </div>
+              <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-100 rounded-lg bg-gray-50 p-3">
+                {negotiation.negotiationSummary}
+              </div>
+            </div>
+          ) : null}
 
           <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
             <div>
