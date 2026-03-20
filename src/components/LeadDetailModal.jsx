@@ -136,27 +136,38 @@ export function LeadDetailModal({ lead, onClose, onChanged }) {
                 <p className="text-sm text-gray-900">
                   Email: <span className="font-semibold">{portalCreds.claimantEmail}</span>
                 </p>
-                <div className="mt-2 flex items-center gap-2">
-                  <p className="text-sm text-gray-900">
-                    Temp password: <span className="font-mono font-semibold">{portalCreds.tempPassword}</span>
+                {portalCreds.syncedFromExistingPortal ? (
+                  <p className="text-sm text-gray-800 mt-2">
+                    {portalCreds.message ||
+                      'This person already has portal access for another case with the same email. They should sign in with their existing password — no new temp password was created.'}
                   </p>
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(portalCreds.tempPassword);
-                      } catch (_e) {
-                        // ignore
-                      }
-                    }}
-                  >
-                    Copy
-                  </button>
-                </div>
-                <p className="text-xs text-gray-600 mt-2">
-                  Share this temp password with the claimant. They can set a new password at <span className="font-mono">/portal/login</span>.
-                </p>
+                ) : (
+                  <>
+                    <div className="mt-2 flex items-center gap-2">
+                      <p className="text-sm text-gray-900">
+                        Temp password:{' '}
+                        <span className="font-mono font-semibold">{portalCreds.tempPassword}</span>
+                      </p>
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(portalCreds.tempPassword);
+                          } catch (_e) {
+                            // ignore
+                          }
+                        }}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">
+                      Share this temp password with the claimant. They can set a new password at{' '}
+                      <span className="font-mono">/portal/login</span>.
+                    </p>
+                  </>
+                )}
               </div>
             </section>
           ) : null}

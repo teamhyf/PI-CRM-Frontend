@@ -92,8 +92,17 @@ export default function ClaimantsManagementCard() {
         throw new Error(data?.error || raw || `Failed to activate (HTTP ${res.status})`);
       }
 
-      setTempPassword(data.tempPassword || null);
-      setShowPassword(true);
+      if (data.syncedFromExistingPortal) {
+        setTempPassword(null);
+        setShowPassword(false);
+        alert(
+          data.message ||
+            'Portal linked to existing password for this email. Claimant should use their current portal password.'
+        );
+      } else {
+        setTempPassword(data.tempPassword || null);
+        setShowPassword(true);
+      }
       await fetchClaimants();
     } catch (err) {
       alert(err.message || 'Failed to activate portal');
