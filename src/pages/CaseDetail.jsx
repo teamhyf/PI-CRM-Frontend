@@ -17,6 +17,27 @@ const getBaseUrl = () => {
   return '';
 };
 
+/** When `pi_cases.injury_summary` is empty, show a readable rollup from `case_injuries` rows. */
+function summarizeInjuriesFromRecords(injuries) {
+  if (!Array.isArray(injuries) || injuries.length === 0) return '';
+  const fmt = (s) => (s == null ? '' : String(s).replace(/_/g, ' '));
+  return injuries
+    .map((i) => {
+      const parts = [
+        fmt(i.body_part),
+        fmt(i.symptom_type),
+        i.severity_level ? `${fmt(i.severity_level)} severity` : null,
+        i.first_reported_date ? `first reported ${i.first_reported_date}` : null,
+        i.ongoing === 1 || i.ongoing === true ? 'ongoing' : null,
+      ].filter(Boolean);
+      const line = parts.join(' · ');
+      const note = i.notes ? ` — ${String(i.notes).trim().slice(0, 160)}${String(i.notes).length > 160 ? '…' : ''}` : '';
+      return line ? `• ${line}${note}` : null;
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
 function CaseOverviewTab({ data, token }) {
   const [insuranceSummary, setInsuranceSummary] = useState(null);
   const [insuranceLoading, setInsuranceLoading] = useState(false);
@@ -99,9 +120,22 @@ function CaseOverviewTab({ data, token }) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Injury Summary</label>
-        <p className="text-gray-900 mt-1 whitespace-pre-wrap">
-          {data.injury_summary || 'No summary'}
-        </p>
+        {(() => {
+          const fromRecords = summarizeInjuriesFromRecords(data.injuries);
+          const text = (data.injury_summary && String(data.injury_summary).trim()) || fromRecords;
+          return (
+            <>
+              <p className="text-gray-900 mt-1 whitespace-pre-wrap">
+                {text || 'No summary — add injuries on the Injuries tab or enter a narrative on the case record.'}
+              </p>
+              {!data.injury_summary?.trim() && fromRecords ? (
+                <p className="text-xs text-gray-500 mt-2">
+                  Compiled from structured injury records (the narrative field on the case is still empty).
+                </p>
+              ) : null}
+            </>
+          );
+        })()}
       </div>
     </div>
   );
