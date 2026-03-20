@@ -50,9 +50,19 @@ export function CaseClosure() {
               {claimant?.fullName ? `${claimant.fullName} · ` : ''}final case organization record
             </p>
           </div>
-          <Link to="/portal/dashboard" className="text-sm font-semibold text-indigo-700 hover:underline">
-            Back to Dashboard
-          </Link>
+          <div className="flex flex-col items-end gap-1">
+            {claimant?.id ? (
+              <Link
+                to={`/portal/case/${claimant.id}`}
+                className="text-sm font-semibold text-indigo-700 hover:underline"
+              >
+                Back to case
+              </Link>
+            ) : null}
+            <Link to="/portal/dashboard" className="text-sm font-semibold text-gray-600 hover:underline">
+              All my cases
+            </Link>
+          </div>
         </div>
       </div>
 

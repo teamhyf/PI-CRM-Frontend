@@ -19,6 +19,7 @@ import { ClaimantAuthProvider } from './context/ClaimantAuthContext';
 import { PortalLayout } from './components/PortalLayout';
 import { PortalLogin } from './pages/portal/PortalLogin';
 import { PortalDashboard } from './pages/portal/PortalDashboard';
+import { PortalCaseDetail } from './pages/portal/PortalCaseDetail';
 import { CaseClosure } from './pages/portal/CaseClosure';
 import { ProtectedClaimantRoute } from './components/ProtectedClaimantRoute';
 
@@ -34,6 +35,7 @@ function PortalRoutes() {
         }
       >
         <Route path="dashboard" element={<PortalDashboard />} />
+        <Route path="case/:claimantId" element={<PortalCaseDetail />} />
         <Route path="case-closure" element={<CaseClosure />} />
       </Route>
       <Route path="*" element={<Navigate to="/portal/login" replace />} />
