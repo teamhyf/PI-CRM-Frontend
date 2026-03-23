@@ -188,6 +188,7 @@ export function UserManagement() {
                   className="input-field"
                 >
                   <option value="attorney">Attorney</option>
+                  <option value="staff">Staff</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
