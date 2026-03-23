@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { LoadingInline } from './LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -325,7 +326,9 @@ export default function CaseInsuranceTab({ caseId, policies, onChanged }) {
         </div>
 
         {summaryLoading ? (
-          <div className="text-sm text-gray-600">Loading coverage note…</div>
+          <div className="pt-1">
+            <LoadingInline message="Loading coverage note…" />
+          </div>
         ) : summaryError ? (
           <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
             {summaryError}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useClaimantAuth } from '../../context/ClaimantAuthContext';
+import { LoadingBlock, LoadingInline } from '../../components/LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -269,8 +270,8 @@ export function PortalCaseDetail() {
 
   if (syncing || authLoading || !claimant || claimant.id !== targetClaimantId) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
-        <p className="text-sm text-gray-600">Loading case…</p>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <LoadingBlock message="Loading case…" />
       </div>
     );
   }
@@ -303,7 +304,7 @@ export function PortalCaseDetail() {
         <h2 className="text-xl font-bold text-gray-900 mb-3">Case Status</h2>
 
         {loading ? (
-          <p className="text-sm text-gray-600">Loading…</p>
+          <LoadingInline message="Loading case details…" />
         ) : error ? (
           <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div>
         ) : caseData ? (
@@ -351,7 +352,11 @@ export function PortalCaseDetail() {
           )}
         </div>
 
-        {pathwayLoading && <p className="text-sm text-gray-600 mt-3">Loading treatment pathway…</p>}
+        {pathwayLoading && (
+          <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
+            <LoadingInline message="Loading treatment pathway…" />
+          </div>
+        )}
         {pathwayError && (
           <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 mt-3">{pathwayError}</p>
         )}
@@ -440,7 +445,7 @@ export function PortalCaseDetail() {
         </form>
 
         {docsLoading ? (
-          <p className="text-sm text-gray-600">Loading documents…</p>
+          <LoadingInline message="Loading documents…" />
         ) : docsError ? (
           <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{docsError}</p>
         ) : docs.length === 0 ? (

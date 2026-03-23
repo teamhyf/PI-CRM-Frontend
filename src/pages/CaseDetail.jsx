@@ -10,6 +10,7 @@ import CaseTimelineTab from '../components/CaseTimelineTab';
 import ReferralPanel from '../components/ReferralPanel';
 import ClaimDocumentBuilder from '../components/ClaimDocumentBuilder';
 import SettlementTab from '../components/SettlementTab';
+import { LoadingBlock, LoadingInline } from '../components/LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -156,7 +157,7 @@ function CaseOverviewTab({ data, token }) {
           </label>
           <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
             {insuranceLoading ? (
-              <p className="text-sm text-gray-600">Loading…</p>
+              <LoadingInline message="Loading coverage note…" className="py-2" />
             ) : insuranceError ? (
               <p className="text-sm text-red-700">{insuranceError}</p>
             ) : (
@@ -269,7 +270,7 @@ export default function CaseDetail() {
   };
 
   if (loading && !caseData) {
-    return <div className="p-6">Loading...</div>;
+    return <LoadingBlock message="Loading case…" minHeight className="p-6" />;
   }
 
   if (error && !caseData) {

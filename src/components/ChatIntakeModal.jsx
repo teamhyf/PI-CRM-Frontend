@@ -5,6 +5,7 @@ import { VoiceInputButton } from './VoiceInputButton';
 import { evaluateCase } from '../utils/caseQualificationEngine';
 import { generateCaseSummary } from '../utils/generateCaseSummary';
 import { sendMessage, submitCase, uploadAudio, startSession, getPreviewScore } from '../services/chatApi';
+import { Spinner } from './LoadingSpinner';
 
 function mapBackendMessages(rows) {
   if (!Array.isArray(rows)) return [];
@@ -556,8 +557,13 @@ export function ChatIntakeModal({
             }`}
           >
             {isLoading && (
-              <div className="flex-1 flex items-center justify-center p-8 text-gray-500">
-                Starting chat…
+              <div
+                className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-gray-500"
+                role="status"
+                aria-live="polite"
+              >
+                <Spinner size="md" />
+                <p className="text-sm">Starting chat…</p>
               </div>
             )}
             {sessionError && (
@@ -995,7 +1001,10 @@ export function ChatIntakeModal({
                     AI Case Viability (before submit)
                   </p>
                   {previewScoreLoading ? (
-                    <p className="text-xs text-gray-500">Calculating score…</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <Spinner size="sm" />
+                      <span>Calculating score…</span>
+                    </div>
                   ) : (
                     <>
                       {displaySummary && (

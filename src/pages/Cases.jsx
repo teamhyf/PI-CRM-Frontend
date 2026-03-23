@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { TableLoadingRow } from '../components/LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -157,11 +158,7 @@ export function Cases() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan="8" className="px-6 py-6 text-center text-gray-500">
-                  Loading cases...
-                </td>
-              </tr>
+              <TableLoadingRow colSpan={8} message="Loading cases…" />
             ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan="8" className="px-6 py-6 text-center text-gray-500">

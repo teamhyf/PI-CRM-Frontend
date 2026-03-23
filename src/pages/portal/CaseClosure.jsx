@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useClaimantAuth } from '../../context/ClaimantAuthContext';
+import { LoadingInline } from '../../components/LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -66,7 +67,11 @@ export function CaseClosure() {
         </div>
       </div>
 
-      {loading ? <p className="text-sm text-gray-600">Loading closure summary…</p> : null}
+      {loading ? (
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <LoadingInline message="Loading closure summary…" />
+        </div>
+      ) : null}
       {error ? <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div> : null}
 
       {!loading && !error && closure ? (

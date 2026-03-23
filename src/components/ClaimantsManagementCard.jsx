@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { LoadingInline } from './LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -154,7 +155,9 @@ export default function ClaimantsManagementCard() {
       {error && <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 mb-4">{error}</div>}
 
       {loading ? (
-        <div className="text-sm text-gray-600">Loading claimants…</div>
+        <div className="py-6">
+          <LoadingInline message="Loading claimants…" />
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">

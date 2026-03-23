@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { LoadingBlock } from './LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -90,7 +91,9 @@ export default function ClaimDocumentBuilder({ caseId }) {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return <div className="p-6 text-sm text-gray-600">Loading claim documentation…</div>;
+  if (loading) {
+    return <LoadingBlock message="Loading claim documentation…" className="p-6" minHeight />;
+  }
   if (error) return <div className="p-6 text-red-700 text-sm bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>;
   if (!data) return <div className="p-6 text-sm text-gray-600">No data found.</div>;
 

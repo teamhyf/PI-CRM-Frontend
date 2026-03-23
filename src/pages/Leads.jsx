@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getLeads, deleteLead } from '../services/leadsApi';
 import { LeadDetailModal } from '../components/LeadDetailModal';
+import { TableLoadingRow } from '../components/LoadingSpinner';
 
 function formatISO(iso) {
   if (!iso) return '—';
@@ -148,11 +149,7 @@ export function Leads() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
-                <tr>
-                  <td colSpan="7" className="px-6 py-10 text-center text-gray-500">
-                    Loading…
-                  </td>
-                </tr>
+                <TableLoadingRow colSpan={7} message="Loading leads…" />
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="px-6 py-10 text-center text-gray-500">

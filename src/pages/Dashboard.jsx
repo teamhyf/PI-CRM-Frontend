@@ -9,6 +9,7 @@ import { AISparklesIcon, AIBadge } from '../components/AIIcon';
 import { AICaseIntakeModal } from '../components/AICaseIntakeModal';
 import ClaimantsManagementCard from '../components/ClaimantsManagementCard';
 import { DashboardAnalytics } from '../components/DashboardAnalytics';
+import { LoadingInline } from '../components/LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -127,7 +128,9 @@ export function Dashboard() {
       ) : null}
 
       {loading ? (
-        <div className="mb-8 text-sm text-gray-600">Loading dashboard…</div>
+        <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50/80 px-4 py-4">
+          <LoadingInline message="Loading dashboard…" />
+        </div>
       ) : null}
 
       {/* KPI cards — from database totals */}

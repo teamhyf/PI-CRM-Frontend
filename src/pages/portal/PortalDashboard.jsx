@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useClaimantAuth } from '../../context/ClaimantAuthContext';
+import { LoadingBlock } from '../../components/LoadingSpinner';
 
 function formatISODate(iso) {
   if (!iso) return '—';
@@ -39,7 +40,7 @@ export function PortalDashboard() {
         </div>
 
         {loading ? (
-          <div className="p-8 text-center text-sm text-gray-600">Loading…</div>
+          <LoadingBlock message="Loading your cases…" className="p-8" />
         ) : cases.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-600">
             No cases found for this account. If you believe this is an error, contact your attorney.

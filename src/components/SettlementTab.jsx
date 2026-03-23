@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import AttorneyReferralPanel from './AttorneyReferralPanel';
+import { LoadingInline } from './LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -228,7 +229,11 @@ export default function SettlementTab({ caseId, onChanged }) {
         )}
       </div>
 
-      {loading ? <p className="text-sm text-gray-600">Loading settlement…</p> : null}
+      {loading ? (
+        <div className="rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-3">
+          <LoadingInline message="Loading settlement…" />
+        </div>
+      ) : null}
       {loadError ? <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{loadError}</div> : null}
 
       {!loading && !tracker ? (

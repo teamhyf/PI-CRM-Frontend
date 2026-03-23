@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { TableLoadingRow } from '../components/LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -282,11 +283,7 @@ export function Providers() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-600">
-                    Loading providers...
-                  </td>
-                </tr>
+                <TableLoadingRow colSpan={7} message="Loading providers…" />
               ) : providers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-600">

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { LoadingInline } from './LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -208,7 +209,11 @@ export default function ReferralPanel({ caseId, injuries = [] }) {
 
   return (
     <div className="p-6 space-y-6">
-      {loading && <div className="text-sm text-gray-600">Loading referral data...</div>}
+      {loading && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-3">
+          <LoadingInline message="Loading referral data…" />
+        </div>
+      )}
       {error && <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">{error}</div>}
 
       {!loading && (

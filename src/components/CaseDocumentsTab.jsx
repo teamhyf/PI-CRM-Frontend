@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { DocumentCard } from './DocumentCard';
+import { LoadingInline } from './LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -320,7 +321,9 @@ export default function CaseDocumentsTab({ caseId }) {
 
       {/* Document list */}
       {loading ? (
-        <div className="text-sm text-gray-500">Loading documents…</div>
+        <div className="py-4">
+          <LoadingInline message="Loading documents…" />
+        </div>
       ) : documents.length === 0 ? (
         <div className="text-sm text-gray-500 text-center py-8">No documents uploaded yet.</div>
       ) : (

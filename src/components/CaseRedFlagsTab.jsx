@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { RedFlagBadge } from './RedFlagBadge';
+import { LoadingInline } from './LoadingSpinner';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -106,7 +107,9 @@ export default function CaseRedFlagsTab({ caseId }) {
       )}
 
       {loading ? (
-        <div className="text-sm text-gray-600">Loading red flags...</div>
+        <div className="py-4">
+          <LoadingInline message="Loading red flags…" />
+        </div>
       ) : flags.length === 0 ? (
         <div className="text-sm text-gray-600">No red flags detected.</div>
       ) : (
