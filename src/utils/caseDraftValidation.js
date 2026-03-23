@@ -12,7 +12,7 @@ const REQUIRED_FIELDS = [
   'propertyDamage.hasDamage',
 ];
 
-// Important but optional details we still want to ask about in chat
+// Important but optional details we still want to ask about in chat.
 const OPTIONAL_FIELDS = [
   'accident.atFaultIdentified',
   'accident.policeReport',
