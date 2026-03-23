@@ -282,17 +282,19 @@ export default function CaseDetail() {
 
   if (!caseData) return <div className="p-6">No case found.</div>;
 
+  // Tab order follows typical PI workflow: intake summary → parties → injuries → coverage →
+  // treatment planning → visit chronology → records → risk → demand package → resolution.
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'participants', label: 'Participants' },
     { id: 'injuries', label: 'Injuries' },
     { id: 'insurance', label: 'Insurance' },
+    { id: 'treatment-routing', label: 'Treatment Routing' },
+    { id: 'timeline', label: 'Timeline' },
     { id: 'documents', label: 'Documents' },
     { id: 'red-flags', label: 'Red Flags' },
-    { id: 'timeline', label: 'Timeline' },
     { id: 'documentation-summary', label: 'Documentation Summary' },
     { id: 'settlement', label: 'Settlement' },
-    { id: 'treatment-routing', label: 'Treatment Routing' },
   ];
 
   return (
@@ -410,6 +412,12 @@ export default function CaseDetail() {
             onChanged={fetchCaseDetail}
           />
         )}
+        {activeTab === 'treatment-routing' && (
+          <ReferralPanel caseId={caseData.id} injuries={caseData.injuries || []} />
+        )}
+        {activeTab === 'timeline' && (
+          <CaseTimelineTab caseId={caseData.id} />
+        )}
         {activeTab === 'documents' && (
           <CaseDocumentsTab
             caseId={caseData.id}
@@ -421,16 +429,10 @@ export default function CaseDetail() {
             flags={caseData.redFlags || []}
           />
         )}
-        {activeTab === 'timeline' && (
-          <CaseTimelineTab caseId={caseData.id} />
-        )}
         {activeTab === 'documentation-summary' && (
           <ClaimDocumentBuilder caseId={caseData.id} />
         )}
         {activeTab === 'settlement' && <SettlementTab caseId={caseData.id} />}
-        {activeTab === 'treatment-routing' && (
-          <ReferralPanel caseId={caseData.id} injuries={caseData.injuries || []} />
-        )}
       </div>
     </div>
   );
