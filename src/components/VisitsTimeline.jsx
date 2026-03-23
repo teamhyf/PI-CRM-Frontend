@@ -58,6 +58,7 @@ export default function VisitsTimeline({ caseId, redFlags }) {
 
   const [providers, setProviders] = useState([]);
   const [providersLoading, setProvidersLoading] = useState(false);
+  const [providersError, setProvidersError] = useState('');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create'); // create | edit
@@ -81,6 +82,7 @@ export default function VisitsTimeline({ caseId, redFlags }) {
   const fetchProviders = useCallback(async () => {
     if (!token) return;
     setProvidersLoading(true);
+    setProvidersError('');
     try {
       const res = await fetch(`${base}/api/providers`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -91,6 +93,7 @@ export default function VisitsTimeline({ caseId, redFlags }) {
     } catch (e) {
       // Provider dropdown is optional; allow free-text override if this fails.
       setProviders([]);
+      setProvidersError(e.message || 'Could not load providers');
     } finally {
       setProvidersLoading(false);
     }
@@ -590,6 +593,9 @@ export default function VisitsTimeline({ caseId, redFlags }) {
                   <div className="text-xs text-gray-500 mt-1">
                     If provider list is unavailable, use override below.
                   </div>
+                  {providersError ? (
+                    <p className="text-xs text-amber-700 mt-1">{providersError}</p>
+                  ) : null}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Provider name override</label>

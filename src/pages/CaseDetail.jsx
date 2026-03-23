@@ -18,6 +18,44 @@ const getBaseUrl = () => {
 };
 
 /** When `pi_cases.injury_summary` is empty, show a readable rollup from `case_injuries` rows. */
+/** Display-only planning hint when staff has not saved `statute_deadline` yet. Not legal advice. */
+function statutePlanningReference(dateOfLoss) {
+  if (!dateOfLoss) return null;
+  const d = new Date(dateOfLoss);
+  if (Number.isNaN(d.getTime())) return null;
+  const ref = new Date(d);
+  ref.setFullYear(ref.getFullYear() + 2);
+  return ref;
+}
+
+/** Matches `pi_cases.status` ENUM in migration 007 */
+const CASE_STATUS_OPTIONS = [
+  { value: 'new', label: 'New' },
+  { value: 'accepted', label: 'Accepted' },
+  { value: 'docs_pending', label: 'Docs pending' },
+  { value: 'in_treatment', label: 'In treatment' },
+  { value: 'under_review', label: 'Under review' },
+  { value: 'demand_ready', label: 'Demand ready' },
+  { value: 'settled', label: 'Settled' },
+  { value: 'referred_out', label: 'Referred out' },
+  { value: 'closed', label: 'Closed' },
+];
+
+function statusPillClass(status) {
+  const s =
+    typeof status === 'string' && status.trim() ? status.trim().toLowerCase() : 'new';
+  if (s === 'qualified') return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+  if (s === 'accepted') return 'bg-green-100 text-green-800 border-green-200';
+  if (s === 'docs_pending') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+  if (s === 'in_treatment') return 'bg-blue-100 text-blue-800 border-blue-200';
+  if (s === 'under_review') return 'bg-slate-100 text-slate-800 border-slate-200';
+  if (s === 'demand_ready') return 'bg-orange-100 text-orange-800 border-orange-200';
+  if (s === 'settled') return 'bg-purple-100 text-purple-800 border-purple-200';
+  if (s === 'referred_out') return 'bg-teal-100 text-teal-800 border-teal-200';
+  if (s === 'closed') return 'bg-gray-200 text-gray-900 border-gray-300';
+  return 'bg-gray-100 text-gray-800 border-gray-200';
+}
+
 function summarizeInjuriesFromRecords(injuries) {
   if (!Array.isArray(injuries) || injuries.length === 0) return '';
   const fmt = (s) => (s == null ? '' : String(s).replace(/_/g, ' '));
@@ -42,6 +80,7 @@ function CaseOverviewTab({ data, token }) {
   const [insuranceSummary, setInsuranceSummary] = useState(null);
   const [insuranceLoading, setInsuranceLoading] = useState(false);
   const [insuranceError, setInsuranceError] = useState('');
+  const statuteRefDate = !data.statute_deadline ? statutePlanningReference(data.date_of_loss) : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -79,9 +118,27 @@ function CaseOverviewTab({ data, token }) {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Statute Deadline</label>
-          <p className="text-gray-900 mt-1">
-            {data.statute_deadline ? new Date(data.statute_deadline).toLocaleDateString() : 'Not set'}
-          </p>
+          {data.statute_deadline ? (
+            <p className="text-gray-900 mt-1 font-medium">
+              {new Date(data.statute_deadline).toLocaleDateString()}
+            </p>
+          ) : (
+            <div className="mt-1">
+              <p className="text-gray-600">Not set on file</p>
+              {statuteRefDate ? (
+                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-950">
+                  <span className="font-semibold">Planning reference only:</span>{' '}
+                  {statuteRefDate.toLocaleDateString()} (2 years after date of loss).{' '}
+                  Limitations law varies by state and claim type — confirm with counsel and save the official deadline on
+                  the case when known.
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500 mt-2">
+                  Add a date of loss to see a simple reference, or set the deadline when your office has confirmed it.
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Estimated Severity</label>
@@ -148,6 +205,8 @@ export default function CaseDetail() {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState('');
 
   useEffect(() => {
     fetchCaseDetail();
@@ -174,6 +233,38 @@ export default function CaseDetail() {
       setError(err.message || 'Failed to load case');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const normalizedCaseStatus =
+    typeof caseData?.status === 'string' && caseData.status.trim()
+      ? caseData.status.trim()
+      : 'new';
+
+  const handleCaseStatusChange = async (e) => {
+    const nextStatus = e.target.value;
+    if (!caseData?.id || !token || nextStatus === normalizedCaseStatus) return;
+    setStatusSaving(true);
+    setStatusError('');
+    const base = getBaseUrl();
+    try {
+      const res = await fetch(`${base}/api/cases/${caseData.id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update case status');
+      }
+      setCaseData((prev) => (prev ? { ...prev, status: nextStatus } : prev));
+    } catch (err) {
+      setStatusError(err.message || 'Failed to update case status');
+    } finally {
+      setStatusSaving(false);
     }
   };
 
@@ -246,27 +337,35 @@ export default function CaseDetail() {
             )}
           </div>
 
-          <span
-            className={`flex-shrink-0 px-3 py-1 rounded-full font-semibold text-sm ${
-              (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'qualified'
-                ? 'bg-indigo-100 text-indigo-800'
-                : (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'accepted'
-                ? 'bg-green-100 text-green-800'
-                : (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'docs_pending'
-                ? 'bg-yellow-100 text-yellow-800'
-                : (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'in_treatment'
-                ? 'bg-blue-100 text-blue-800'
-                : (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'demand_ready'
-                ? 'bg-orange-100 text-orange-800'
-                : (typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new') === 'settled'
-                ? 'bg-purple-100 text-purple-800'
-                : 'bg-gray-100 text-gray-800'
-            }`}
-          >
-            {String(
-              typeof caseData.status === 'string' && caseData.status.trim() ? caseData.status : 'new'
-            ).replace(/_/g, ' ').toUpperCase()}
-          </span>
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <label htmlFor="case-status-select" className="text-xs font-medium text-gray-500">
+              Case status
+            </label>
+            <select
+              id="case-status-select"
+              value={normalizedCaseStatus}
+              onChange={handleCaseStatusChange}
+              disabled={statusSaving}
+              className={`min-w-[12rem] rounded-lg border px-3 py-2 text-sm font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 ${statusPillClass(
+                normalizedCaseStatus
+              )}`}
+            >
+              {CASE_STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+              {!CASE_STATUS_OPTIONS.some((o) => o.value === normalizedCaseStatus) ? (
+                <option value={normalizedCaseStatus}>
+                  {String(normalizedCaseStatus).replace(/_/g, ' ')}
+                </option>
+              ) : null}
+            </select>
+            {statusSaving ? (
+              <span className="text-xs text-gray-500">Saving…</span>
+            ) : null}
+            {statusError ? <span className="text-xs text-red-600 max-w-xs text-right">{statusError}</span> : null}
+          </div>
         </div>
       </div>
 
