@@ -73,6 +73,17 @@ function IconSpinner({ className = 'w-5 h-5' }) {
   );
 }
 
+function generateRandomPortalPassword(length = 16) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = new Uint32Array(length);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (let i = 0; i < length; i += 1) {
+    out += chars[bytes[i] % chars.length];
+  }
+  return out;
+}
+
 export default function ClaimantsManagementCard() {
   const { token, user } = useAuth();
 
@@ -80,12 +91,28 @@ export default function ClaimantsManagementCard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const [activatingId, setActivatingId] = useState(null);
-  const [deactivatingId, setDeactivatingId] = useState(null);
+  const [loadError, setLoadError] = useState('');
 
-  const [tempPassword, setTempPassword] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [copiedTemp, setCopiedTemp] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    phone: '',
+    email: '',
+    is_active: true,
+  });
+  const [editSaving, setEditSaving] = useState(false);
+
+  const [portalTarget, setPortalTarget] = useState(null);
+  const [portalForm, setPortalForm] = useState({ email: '', password: '' });
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [portalModalShowPassword, setPortalModalShowPassword] = useState(false);
+  const [portalRegeneratedPassword, setPortalRegeneratedPassword] = useState(null);
+  const [portalCopiedRegenerated, setPortalCopiedRegenerated] = useState(false);
+  /** After first activation with server-generated temp password */
+  const [portalTempPassword, setPortalTempPassword] = useState(null);
+  const [portalSyncedMessage, setPortalSyncedMessage] = useState(null);
 
   const canRender = useMemo(() => user?.role === 'admin', [user]);
 
@@ -107,10 +134,13 @@ export default function ClaimantsManagementCard() {
       if (!res.ok) {
         throw new Error(data?.error || raw || `Failed to load claimants (HTTP ${res.status})`);
       }
-      setClaimants(Array.isArray(data?.claimants) ? data.claimants : []);
+      const list = Array.isArray(data?.claimants) ? data.claimants : [];
+      setClaimants(list);
+      return list;
     } catch (err) {
       setError(err.message || 'Failed to load claimants');
       setClaimants([]);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -121,238 +151,584 @@ export default function ClaimantsManagementCard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const activatePortal = async (claimant) => {
-    setActivatingId(claimant.id);
-    setTempPassword(null);
-    setShowPassword(false);
-    setCopiedTemp(false);
-    try {
-      const base = getBaseUrl();
-      const res = await fetch(`${base}/api/claimants/${claimant.id}/activate-portal`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+  const portalAlreadyActive = (c) => Boolean(c?.portal_activated_at);
 
-      const raw = await res.text().catch(() => '');
-      let data = null;
-      try {
-        data = raw ? JSON.parse(raw) : null;
-      } catch {
-        data = null;
-      }
-
-      if (!res.ok) {
-        throw new Error(data?.error || raw || `Failed to activate (HTTP ${res.status})`);
-      }
-
-      if (data.syncedFromExistingPortal) {
-        setTempPassword(null);
-        setShowPassword(false);
-        alert(
-          data.message ||
-            'Portal linked to existing password for this email. Claimant should use their current portal password.'
-        );
-      } else {
-        setTempPassword(data.tempPassword || null);
-        setShowPassword(true);
-      }
-      await fetchClaimants();
-    } catch (err) {
-      alert(err.message || 'Failed to activate portal');
-    } finally {
-      setActivatingId(null);
-    }
+  const openPortalModal = (c, e) => {
+    if (e) e.stopPropagation();
+    setLoadError('');
+    setPortalRegeneratedPassword(null);
+    setPortalCopiedRegenerated(false);
+    setPortalTempPassword(null);
+    setPortalSyncedMessage(null);
+    setPortalModalShowPassword(false);
+    setPortalTarget(c);
+    setPortalForm({
+      email: String(c.email || '').trim(),
+      password: '',
+    });
   };
 
-  const setActive = async (claimant, nextIsActive) => {
-    setDeactivatingId(claimant.id);
+  const openEdit = (c, e) => {
+    if (e) e.stopPropagation();
+    setLoadError('');
+    setEditId(c.id);
+    setEditForm({
+      first_name: c.first_name || '',
+      last_name: c.last_name || '',
+      phone: c.phone || '',
+      email: c.email || '',
+      is_active: Boolean(c.is_active),
+    });
+    setEditorOpen(true);
+  };
+
+  const submitEdit = async () => {
+    if (editId == null) return;
+    const base = getBaseUrl();
+    setEditSaving(true);
+    setLoadError('');
     try {
-      const base = getBaseUrl();
-      const res = await fetch(`${base}/api/claimants/${claimant.id}`, {
+      const payload = {
+        first_name: editForm.first_name.trim(),
+        last_name: editForm.last_name.trim(),
+        phone: editForm.phone.trim() || null,
+        email: editForm.email.trim(),
+        is_active: Boolean(editForm.is_active),
+      };
+      const res = await fetch(`${base}/api/claimants/${editId}`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ is_active: nextIsActive }),
+        body: JSON.stringify(payload),
       });
-      const raw = await res.text().catch(() => '');
-      let data = null;
-      try {
-        data = raw ? JSON.parse(raw) : null;
-      } catch {
-        data = null;
-      }
-      if (!res.ok) throw new Error(data?.error || raw || `Failed to update (HTTP ${res.status})`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to save claimant');
+      setEditorOpen(false);
+      setEditId(null);
       await fetchClaimants();
     } catch (err) {
-      alert(err.message || 'Failed to update claimant');
+      setLoadError(err.message || 'Failed to save claimant');
     } finally {
-      setDeactivatingId(null);
+      setEditSaving(false);
     }
   };
 
-  const copyTempPassword = async () => {
-    if (!tempPassword) return;
+  const regenerateAndSavePortalPassword = async () => {
+    if (!portalTarget) return;
+    const id = Number(portalTarget.id);
+    const base = getBaseUrl();
+    const email = String(portalForm.email || '').trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setLoadError('Enter a valid portal email first.');
+      return;
+    }
+    const newPassword = generateRandomPortalPassword(16);
+    setPortalBusy(true);
+    setLoadError('');
+    setPortalRegeneratedPassword(null);
+    setPortalCopiedRegenerated(false);
+    setPortalTempPassword(null);
+    setPortalSyncedMessage(null);
     try {
-      await navigator.clipboard.writeText(tempPassword);
-      setCopiedTemp(true);
-      window.setTimeout(() => setCopiedTemp(false), 2000);
-    } catch {
-      alert('Could not copy to clipboard.');
+      const res = await fetch(`${base}/api/claimants/${id}/activate-portal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email, password: newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to update portal password');
+      if (data.syncedFromExistingPortal && data.message) {
+        setPortalSyncedMessage(data.message);
+        setPortalRegeneratedPassword(null);
+      } else {
+        setPortalRegeneratedPassword(newPassword);
+        setPortalForm((prev) => ({ ...prev, password: newPassword }));
+        setPortalModalShowPassword(true);
+      }
+      const list = await fetchClaimants();
+      if (portalTarget) {
+        const refreshed = list.find((row) => Number(row.id) === Number(portalTarget.id));
+        if (refreshed) {
+          setPortalTarget(refreshed);
+          setPortalForm((prev) => ({ ...prev, email: String(refreshed.email || '').trim() }));
+        }
+      }
+    } catch (err) {
+      setLoadError(err.message || 'Failed to regenerate password');
+    } finally {
+      setPortalBusy(false);
+    }
+  };
+
+  const submitPortalActivate = async () => {
+    if (!portalTarget) return;
+    const id = Number(portalTarget.id);
+    const base = getBaseUrl();
+    const email = String(portalForm.email || '').trim().toLowerCase();
+    const password = portalForm.password;
+    const already = portalAlreadyActive(portalTarget);
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setLoadError('Enter a valid portal email.');
+      return;
+    }
+
+    if (!already) {
+      if (password && password.length > 0 && password.length < 8) {
+        setLoadError('Password must be at least 8 characters, or leave blank for a generated temporary password.');
+        return;
+      }
+    } else if (password && password.length > 0 && password.length < 8) {
+      setLoadError('New password must be at least 8 characters, or leave blank to keep the current password.');
+      return;
+    }
+
+    setPortalBusy(true);
+    setLoadError('');
+    setPortalTempPassword(null);
+    setPortalSyncedMessage(null);
+    try {
+      const body = { email };
+      if (!already) {
+        if (password && password.length >= 8) body.password = password;
+      } else if (password && password.length >= 8) {
+        body.password = password;
+      }
+
+      const res = await fetch(`${base}/api/claimants/${id}/activate-portal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to save portal');
+
+      if (data.syncedFromExistingPortal && data.message) {
+        setPortalSyncedMessage(data.message);
+        setPortalRegeneratedPassword(null);
+        setPortalTempPassword(null);
+      } else if (data.tempPassword) {
+        setPortalTempPassword(data.tempPassword);
+        setPortalRegeneratedPassword(null);
+        setPortalSyncedMessage(null);
+      } else {
+        setPortalRegeneratedPassword(null);
+        setPortalTempPassword(null);
+        setPortalSyncedMessage(null);
+      }
+
+      const list = await fetchClaimants();
+
+      const showCopyUi = Boolean(data.syncedFromExistingPortal && data.message) || Boolean(data.tempPassword);
+      if (showCopyUi && portalTarget) {
+        const refreshed = list.find((row) => Number(row.id) === Number(portalTarget.id));
+        if (refreshed) {
+          setPortalTarget(refreshed);
+          setPortalForm((prev) => ({ ...prev, email: String(refreshed.email || '').trim() }));
+        }
+      }
+      if (!showCopyUi) {
+        setPortalTarget(null);
+        setPortalForm({ email: '', password: '' });
+      }
+    } catch (err) {
+      setLoadError(err.message || 'Failed to save portal');
+    } finally {
+      setPortalBusy(false);
     }
   };
 
   if (!canRender) return null;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">Claimant directory</h2>
-          <p className="text-sm text-gray-600 mt-0.5">Portal activation and claimant record status</p>
+    <>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Claimant directory</h2>
+            <p className="text-sm text-gray-600 mt-0.5">Portal activation and claimant record status</p>
+          </div>
+          <div className="text-sm text-gray-600">{claimants.length} claimants</div>
         </div>
-        <div className="text-sm text-gray-600">{claimants.length} claimants</div>
+
+        {error && (
+          <div className="text-sm text-red-700 bg-red-50 border-b border-red-100 px-6 py-3">{error}</div>
+        )}
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Case</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[1%] whitespace-nowrap">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {loading ? (
+                <TableLoadingRow colSpan={6} message="Loading claimants…" />
+              ) : claimants.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-600">
+                    No claimants found.
+                  </td>
+                </tr>
+              ) : (
+                claimants.map((c) => {
+                  const displayName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || '—';
+                  return (
+                    <tr
+                      key={c.id}
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => openEdit(c)}
+                    >
+                      <td className="px-6 py-4 font-semibold text-gray-900">{displayName}</td>
+                      <td className="px-6 py-4 text-gray-700">
+                        <span className="font-medium">#{c.case_id}</span>
+                        {c.case_accident_type ? (
+                          <div className="text-xs text-gray-500 mt-0.5">{c.case_accident_type}</div>
+                        ) : null}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">{c.phone || '—'}</td>
+                      <td className="px-6 py-4 text-gray-700">{c.email || '—'}</td>
+                      <td className="px-6 py-4">
+                        {!c.is_active ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="inline-flex w-fit rounded-full bg-gray-100 border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                              Inactive
+                            </span>
+                            {c.portal_activated_at ? (
+                              <span className="text-xs text-gray-500">Portal since {formatDate(c.portal_activated_at)}</span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-1.5">
+                            <span className="inline-flex w-fit rounded-full bg-green-50 border border-green-200 px-2.5 py-1 text-xs font-semibold text-green-800">
+                              Active
+                            </span>
+                            {c.portal_activated_at ? (
+                              <span className="text-xs text-emerald-700">Portal enabled</span>
+                            ) : (
+                              <span className="text-xs text-amber-700">Portal not set</span>
+                            )}
+                            {c.portal_activated_at ? (
+                              <span className="text-xs text-gray-500">Activated: {formatDate(c.portal_activated_at)}</span>
+                            ) : null}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="inline-flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className={`${actionIconBtn} text-indigo-600 hover:text-indigo-800`}
+                            disabled={portalBusy}
+                            onClick={(e) => openPortalModal(c, e)}
+                            title="Portal login & password"
+                            aria-label="Portal login and password"
+                          >
+                            <IconKey />
+                          </button>
+                          <button
+                            type="button"
+                            className={`${actionIconBtn} text-gray-700 hover:text-gray-900`}
+                            disabled={editSaving}
+                            onClick={(e) => openEdit(c, e)}
+                            title="Edit claimant"
+                            aria-label="Edit claimant"
+                          >
+                            {editSaving && editId === c.id ? <IconSpinner className="w-5 h-5 text-gray-600" /> : <IconPencil />}
+                          </button>
+                          <button
+                            type="button"
+                            className={`${actionIconBtn} text-gray-400 cursor-not-allowed`}
+                            disabled
+                            title="Delete is not available for claimants"
+                            aria-label="Delete unavailable"
+                          >
+                            <IconTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {error && (
-        <div className="text-sm text-red-700 bg-red-50 border-b border-red-100 px-6 py-3">{error}</div>
+      {portalTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => {
+              if (!portalBusy) {
+                setPortalTarget(null);
+                setPortalRegeneratedPassword(null);
+                setPortalTempPassword(null);
+                setPortalSyncedMessage(null);
+              }
+            }}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-y-auto max-h-[90vh] animate-modal-in">
+            <div className="h-1 w-full bg-indigo-500" />
+            <div className="p-6 space-y-4">
+              <h2 className="text-xl font-bold text-gray-900">Claimant portal</h2>
+              <p className="text-sm text-gray-600">
+                Login email and password for the claimant portal at <span className="font-mono text-gray-800">/portal</span>.
+                {portalTarget && portalAlreadyActive(portalTarget) ? (
+                  <span className="block mt-2 text-gray-500">
+                    To change only the login email, save with the password field blank. Enter a new password (8+ characters) to
+                    replace the current one, or use Regenerate password.
+                  </span>
+                ) : (
+                  <span className="block mt-2 text-gray-500">
+                    Leave password blank to generate a temporary password, or set one (8+ characters) before saving.
+                  </span>
+                )}
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Portal email</label>
+                <input
+                  type="email"
+                  value={portalForm.email}
+                  onChange={(e) => setPortalForm((prev) => ({ ...prev, email: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoComplete="off"
+                />
+              </div>
+
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Regenerate password</p>
+                    <p className="text-xs text-gray-600 mt-0.5">Creates a secure random password and saves it immediately.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+                    onClick={regenerateAndSavePortalPassword}
+                    disabled={portalBusy}
+                  >
+                    {portalBusy ? 'Working…' : 'Regenerate password'}
+                  </button>
+                </div>
+                {portalRegeneratedPassword ? (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 space-y-2">
+                    <p className="text-xs font-semibold text-emerald-900">New password — copy and share securely</p>
+                    <p className="font-mono text-sm text-emerald-950 break-all">{portalRegeneratedPassword}</p>
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-emerald-800 hover:text-emerald-950"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(portalRegeneratedPassword);
+                          setPortalCopiedRegenerated(true);
+                          window.setTimeout(() => setPortalCopiedRegenerated(false), 2000);
+                        } catch {
+                          alert('Could not copy to clipboard.');
+                        }
+                      }}
+                    >
+                      {portalCopiedRegenerated ? 'Copied!' : 'Copy password'}
+                    </button>
+                  </div>
+                ) : null}
+                {portalTempPassword ? (
+                  <div className="rounded-lg border border-indigo-200 bg-white p-3 space-y-2">
+                    <p className="text-xs font-semibold text-indigo-900">Temporary password — copy and share securely</p>
+                    <p className="font-mono text-sm text-indigo-950 break-all">{portalTempPassword}</p>
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-indigo-800 hover:text-indigo-950"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(portalTempPassword);
+                          setPortalCopiedRegenerated(true);
+                          window.setTimeout(() => setPortalCopiedRegenerated(false), 2000);
+                        } catch {
+                          alert('Could not copy to clipboard.');
+                        }
+                      }}
+                    >
+                      {portalCopiedRegenerated ? 'Copied!' : 'Copy password'}
+                    </button>
+                  </div>
+                ) : null}
+                {portalSyncedMessage ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">{portalSyncedMessage}</div>
+                ) : null}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {portalTarget && portalAlreadyActive(portalTarget)
+                      ? 'Password (optional — blank keeps current)'
+                      : 'Password (optional — blank generates a temporary password)'}
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      checked={portalModalShowPassword}
+                      onChange={(e) => setPortalModalShowPassword(e.target.checked)}
+                    />
+                    Show password
+                  </label>
+                </div>
+                <input
+                  type={portalModalShowPassword ? 'text' : 'password'}
+                  value={portalForm.password}
+                  onChange={(e) => setPortalForm((prev) => ({ ...prev, password: e.target.value }))}
+                  placeholder={portalTarget && portalAlreadyActive(portalTarget) ? 'Leave blank to keep current' : ''}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoComplete="new-password"
+                />
+              </div>
+              {loadError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">{loadError}</div>
+              )}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  onClick={() => {
+                    setPortalTarget(null);
+                    setPortalRegeneratedPassword(null);
+                    setPortalTempPassword(null);
+                    setPortalSyncedMessage(null);
+                  }}
+                  disabled={portalBusy}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60"
+                  onClick={submitPortalActivate}
+                  disabled={portalBusy}
+                >
+                  {portalBusy
+                    ? 'Saving…'
+                    : portalTarget && portalAlreadyActive(portalTarget)
+                      ? 'Save'
+                      : 'Save & activate'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Case</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[1%] whitespace-nowrap">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {loading ? (
-              <TableLoadingRow colSpan={6} message="Loading claimants…" />
-            ) : claimants.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-600">
-                  No claimants found.
-                </td>
-              </tr>
-            ) : (
-              claimants.map((c) => {
-                const displayName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || '—';
-                return (
-                  <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-gray-900">{displayName}</td>
-                    <td className="px-6 py-4 text-gray-700">
-                      <span className="font-medium">#{c.case_id}</span>
-                      {c.case_accident_type ? (
-                        <div className="text-xs text-gray-500 mt-0.5">{c.case_accident_type}</div>
-                      ) : null}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{c.phone || '—'}</td>
-                    <td className="px-6 py-4 text-gray-700">{c.email || '—'}</td>
-                    <td className="px-6 py-4">
-                      {!c.is_active ? (
-                        <div className="flex flex-col gap-1">
-                          <span className="inline-flex w-fit rounded-full bg-gray-100 border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600">
-                            Inactive
-                          </span>
-                          {c.portal_activated_at ? (
-                            <span className="text-xs text-gray-500">Portal since {formatDate(c.portal_activated_at)}</span>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="inline-flex w-fit rounded-full bg-green-50 border border-green-200 px-2.5 py-1 text-xs font-semibold text-green-800">
-                            Active
-                          </span>
-                          {c.portal_activated_at ? (
-                            <span className="text-xs text-emerald-700">Portal enabled</span>
-                          ) : (
-                            <span className="text-xs text-amber-700">Portal not set</span>
-                          )}
-                          <span className="text-xs text-gray-500">Activated: {formatDate(c.portal_activated_at)}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="inline-flex items-center justify-end gap-0.5">
-                        <button
-                          type="button"
-                          className={`${actionIconBtn} text-indigo-600 hover:text-indigo-800`}
-                          disabled={activatingId === c.id || Boolean(c.portal_activated_at)}
-                          onClick={() => activatePortal(c)}
-                          title={
-                            c.portal_activated_at ? 'Portal already activated' : 'Activate portal / set password'
-                          }
-                          aria-label="Activate portal"
-                        >
-                          {activatingId === c.id ? <IconSpinner className="w-5 h-5 text-indigo-600" /> : <IconKey />}
-                        </button>
-                        <button
-                          type="button"
-                          className={`${actionIconBtn} text-gray-700 hover:text-gray-900`}
-                          disabled={deactivatingId === c.id}
-                          onClick={() => setActive(c, !c.is_active)}
-                          title={c.is_active ? 'Deactivate claimant' : 'Activate claimant'}
-                          aria-label={c.is_active ? 'Deactivate claimant' : 'Activate claimant'}
-                        >
-                          {deactivatingId === c.id ? <IconSpinner className="w-5 h-5 text-gray-600" /> : <IconPencil />}
-                        </button>
-                        <button
-                          type="button"
-                          className={`${actionIconBtn} text-gray-400 cursor-not-allowed`}
-                          disabled
-                          title="Delete is not available for claimants"
-                          aria-label="Delete unavailable"
-                        >
-                          <IconTrash />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      {editorOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !editSaving && setEditorOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-modal-in">
+            <div className="h-1 w-full bg-indigo-500" />
+            <div className="p-6 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Edit claimant</h2>
+                  <p className="text-sm text-gray-600 mt-1">Update contact details and listing status.</p>
+                </div>
+                <button
+                  type="button"
+                  className="text-gray-500 hover:text-gray-900"
+                  onClick={() => !editSaving && setEditorOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
 
-      {showPassword && tempPassword ? (
-        <div className="border-t border-indigo-100 bg-indigo-50/80 px-6 py-4">
-          <div className="text-sm font-semibold text-indigo-900 mb-2">Temporary password generated</div>
-          <div className="font-mono text-sm text-indigo-950 break-all bg-white border border-indigo-100 rounded-lg px-3 py-2">
-            {tempPassword}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 justify-end">
-            <button
-              type="button"
-              className="px-3 py-1.5 text-sm font-semibold rounded-lg border border-indigo-300 bg-white text-indigo-800 hover:bg-indigo-50"
-              onClick={copyTempPassword}
-            >
-              {copiedTemp ? 'Copied!' : 'Copy password'}
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-              onClick={() => {
-                setShowPassword(false);
-                setTempPassword(null);
-              }}
-            >
-              OK
-            </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First name</label>
+                  <input
+                    value={editForm.first_name}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, first_name: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+                  <input
+                    value={editForm.last_name}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, last_name: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="sm:col-span-2 flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="claimant-active"
+                    checked={Boolean(editForm.is_active)}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, is_active: e.target.checked }))}
+                  />
+                  <label htmlFor="claimant-active" className="text-sm font-medium text-gray-700">
+                    Active (listed)
+                  </label>
+                </div>
+              </div>
+
+              {loadError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">{loadError}</div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  onClick={() => setEditorOpen(false)}
+                  disabled={editSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60"
+                  onClick={submitEdit}
+                  disabled={editSaving}
+                >
+                  {editSaving ? 'Saving…' : 'Save changes'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      ) : null}
-    </div>
+      )}
+    </>
   );
 }
