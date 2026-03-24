@@ -26,25 +26,16 @@ const providerTypeLabel = (t) =>
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
 
-/** Server stores bcrypt only — we keep plaintext in sessionStorage after a successful save in Edit (this browser tab). */
-const SESSION_PW_PREFIX = 'ai_crm_provider_portal_pw_';
-
-function getStoredPortalPassword(providerId) {
-  try {
-    return sessionStorage.getItem(SESSION_PW_PREFIX + providerId) || '';
-  } catch {
-    return '';
+/** Cryptographically random password for portal regenerate (client-generated; sent once to the API). */
+function generateRandomPortalPassword(length = 16) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = new Uint32Array(length);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (let i = 0; i < length; i += 1) {
+    out += chars[bytes[i] % chars.length];
   }
-}
-
-function setStoredPortalPassword(providerId, password) {
-  try {
-    if (password) {
-      sessionStorage.setItem(SESSION_PW_PREFIX + providerId, password);
-    }
-  } catch {
-    /* ignore quota / private mode */
-  }
+  return out;
 }
 
 export function Providers() {
@@ -76,13 +67,10 @@ export function Providers() {
   const [portalTarget, setPortalTarget] = useState(null);
   const [portalForm, setPortalForm] = useState({ portal_email: '', password: '' });
   const [portalBusy, setPortalBusy] = useState(false);
-  /** List-page preference: reveal portal password field while typing in the modal */
-  const [showPortalPassword, setShowPortalPassword] = useState(false);
-  /** Re-render after writing sessionStorage password */
-  const [pwSessionTick, setPwSessionTick] = useState(0);
-  /** Which rows show plaintext vs bullets (session password only) */
-  const [passwordRevealedById, setPasswordRevealedById] = useState({});
-  const [copiedPasswordId, setCopiedPasswordId] = useState(null);
+  const [portalModalShowPassword, setPortalModalShowPassword] = useState(false);
+  /** Shown after successful "Regenerate password" in the portal modal */
+  const [portalRegeneratedPassword, setPortalRegeneratedPassword] = useState(null);
+  const [portalCopiedRegenerated, setPortalCopiedRegenerated] = useState(false);
 
   const canRender = useMemo(() => user?.role === 'admin', [user]);
 
@@ -125,15 +113,6 @@ export function Providers() {
     fetchProviders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType]);
-
-  const providersWithSessionPw = useMemo(
-    () =>
-      providers.map((p) => ({
-        ...p,
-        sessionPortalPassword: getStoredPortalPassword(p.id),
-      })),
-    [providers, pwSessionTick]
-  );
 
   const openCreate = () => {
     setEditorMode('create');
@@ -241,11 +220,50 @@ export function Providers() {
   const openPortalActivate = (p, e) => {
     if (e) e.stopPropagation();
     setLoadError('');
+    setPortalRegeneratedPassword(null);
+    setPortalCopiedRegenerated(false);
+    setPortalModalShowPassword(false);
     setPortalTarget(p);
     setPortalForm({
       portal_email: String(p.portal_email || p.email || '').trim(),
       password: '',
     });
+  };
+
+  const regenerateAndSavePortalPassword = async () => {
+    if (!portalTarget) return;
+    const id = Number(portalTarget.id);
+    const base = getBaseUrl();
+    const portal_email = String(portalForm.portal_email || '').trim().toLowerCase();
+    if (!portal_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(portal_email)) {
+      setLoadError('Enter a valid portal email first.');
+      return;
+    }
+    const newPassword = generateRandomPortalPassword(16);
+    setPortalBusy(true);
+    setLoadError('');
+    setPortalRegeneratedPassword(null);
+    setPortalCopiedRegenerated(false);
+    try {
+      const res = await fetch(`${base}/api/providers/${id}/activate-portal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ portal_email, password: newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to update portal password');
+      setPortalRegeneratedPassword(newPassword);
+      setPortalForm((prev) => ({ ...prev, password: newPassword }));
+      setPortalModalShowPassword(true);
+      await fetchProviders();
+    } catch (err) {
+      setLoadError(err.message || 'Failed to regenerate password');
+    } finally {
+      setPortalBusy(false);
+    }
   };
 
   const portalAlreadyActive = (p) => Boolean(p?.portal_activated_at || p?.password_hash);
@@ -290,10 +308,7 @@ export function Providers() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to activate portal');
-      if (body.password) {
-        setStoredPortalPassword(id, body.password);
-        setPwSessionTick((t) => t + 1);
-      }
+      setPortalRegeneratedPassword(null);
       setPortalTarget(null);
       setPortalForm({ portal_email: '', password: '' });
       await fetchProviders();
@@ -330,7 +345,7 @@ export function Providers() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="w-full max-w-[88rem] mx-auto px-4 sm:px-6 lg:px-10 py-6 space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Providers</h1>
@@ -350,40 +365,25 @@ export function Providers() {
         <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">{loadError}</div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex flex-wrap gap-4 items-center justify-between">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-700">Filter by type</label>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="all">All types</option>
-                {providerTypes.map((t) => (
-                  <option key={t} value={t}>
-                    {providerTypeLabel(t)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                checked={showPortalPassword}
-                onChange={(e) => setShowPortalPassword(e.target.checked)}
-              />
-              Show password when editing portal
-            </label>
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">Filter by type</label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">All types</option>
+              {providerTypes.map((t) => (
+                <option key={t} value={t}>
+                  {providerTypeLabel(t)}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="text-sm text-gray-600">{providers.length} providers</div>
         </div>
-        <p className="text-xs text-gray-500">
-          Portal passwords in the table are only available in this browser tab after you save them in Edit—the server
-          stores hashes, not plaintext.
-        </p>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -401,26 +401,20 @@ export function Providers() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lien-friendly</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Portal</th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[14rem]"
-                  title="Password shown only for this browser session after you save in Edit"
-                >
-                  Password <span className="text-gray-400 font-normal normal-case">(session)</span>
-                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <TableLoadingRow colSpan={9} message="Loading providers…" />
+                <TableLoadingRow colSpan={8} message="Loading providers…" />
               ) : providers.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-8 text-center text-sm text-gray-600">
+                  <td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-600">
                     No providers found.
                   </td>
                 </tr>
               ) : (
-                providersWithSessionPw.map((p) => (
+                providers.map((p) => (
                   <tr
                     key={p.id}
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
@@ -465,61 +459,6 @@ export function Providers() {
                         </button>
                       )}
                     </td>
-                    <td
-                      className="px-6 py-4 text-sm align-top"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {p.sessionPortalPassword ? (
-                        <div className="flex flex-col gap-2 max-w-[14rem]">
-                          <label className="inline-flex items-center gap-2 text-xs text-gray-700 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                              checked={Boolean(passwordRevealedById[p.id])}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                setPasswordRevealedById((prev) => ({
-                                  ...prev,
-                                  [p.id]: e.target.checked,
-                                }));
-                              }}
-                            />
-                            Show password
-                          </label>
-                          {passwordRevealedById[p.id] ? (
-                            <div className="flex flex-col gap-1.5">
-                              <span className="font-mono text-xs text-gray-900 break-all bg-gray-50 border border-gray-100 rounded px-2 py-1.5">
-                                {p.sessionPortalPassword}
-                              </span>
-                              <button
-                                type="button"
-                                className="self-start text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  try {
-                                    await navigator.clipboard.writeText(p.sessionPortalPassword);
-                                    setCopiedPasswordId(p.id);
-                                    window.setTimeout(() => setCopiedPasswordId(null), 2000);
-                                  } catch {
-                                    alert('Could not copy to clipboard.');
-                                  }
-                                }}
-                              >
-                                {copiedPasswordId === p.id ? 'Copied!' : 'Copy password'}
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="font-mono text-xs text-gray-400 tracking-widest select-none">••••••••</span>
-                          )}
-                        </div>
-                      ) : p.portal_activated_at || p.password_hash ? (
-                        <span className="text-xs text-gray-500" title="Save a new password in Edit to store it here for this session">
-                          —
-                        </span>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
-                    </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         type="button"
@@ -551,8 +490,16 @@ export function Providers() {
 
       {portalTarget && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !portalBusy && setPortalTarget(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-in">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => {
+              if (!portalBusy) {
+                setPortalTarget(null);
+                setPortalRegeneratedPassword(null);
+              }
+            }}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-y-auto max-h-[90vh] animate-modal-in">
             <div className="h-1 w-full bg-indigo-500" />
             <div className="p-6 space-y-4">
               <h2 className="text-xl font-bold text-gray-900">Edit provider portal</h2>
@@ -562,7 +509,7 @@ export function Providers() {
                 {portalTarget && portalAlreadyActive(portalTarget) ? (
                   <span className="block mt-2 text-gray-500">
                     To change only the login email, leave the password field blank. Enter a new password (8+ characters)
-                    to replace the current one.
+                    to replace the current one, or use Regenerate password.
                   </span>
                 ) : null}
               </p>
@@ -576,6 +523,47 @@ export function Providers() {
                   autoComplete="off"
                 />
               </div>
+
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Regenerate password</p>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      Creates a secure random password and saves it immediately.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+                    onClick={regenerateAndSavePortalPassword}
+                    disabled={portalBusy}
+                  >
+                    {portalBusy ? 'Working…' : 'Regenerate password'}
+                  </button>
+                </div>
+                {portalRegeneratedPassword ? (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 space-y-2">
+                    <p className="text-xs font-semibold text-emerald-900">New password — copy and share securely</p>
+                    <p className="font-mono text-sm text-emerald-950 break-all">{portalRegeneratedPassword}</p>
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-emerald-800 hover:text-emerald-950"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(portalRegeneratedPassword);
+                          setPortalCopiedRegenerated(true);
+                          window.setTimeout(() => setPortalCopiedRegenerated(false), 2000);
+                        } catch {
+                          alert('Could not copy to clipboard.');
+                        }
+                      }}
+                    >
+                      {portalCopiedRegenerated ? 'Copied!' : 'Copy password'}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
               <div>
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <label className="block text-sm font-medium text-gray-700">
@@ -587,14 +575,14 @@ export function Providers() {
                     <input
                       type="checkbox"
                       className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      checked={showPortalPassword}
-                      onChange={(e) => setShowPortalPassword(e.target.checked)}
+                      checked={portalModalShowPassword}
+                      onChange={(e) => setPortalModalShowPassword(e.target.checked)}
                     />
                     Show password
                   </label>
                 </div>
                 <input
-                  type={showPortalPassword ? 'text' : 'password'}
+                  type={portalModalShowPassword ? 'text' : 'password'}
                   value={portalForm.password}
                   onChange={(e) => setPortalForm((prev) => ({ ...prev, password: e.target.value }))}
                   placeholder={portalTarget && portalAlreadyActive(portalTarget) ? 'Leave blank to keep current' : ''}
@@ -609,7 +597,10 @@ export function Providers() {
                 <button
                   type="button"
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                  onClick={() => setPortalTarget(null)}
+                  onClick={() => {
+                    setPortalTarget(null);
+                    setPortalRegeneratedPassword(null);
+                  }}
                   disabled={portalBusy}
                 >
                   Cancel
