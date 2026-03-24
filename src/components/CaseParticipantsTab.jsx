@@ -21,6 +21,8 @@ export default function CaseParticipantsTab({ caseId, participants, onChanged })
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [claimantCredentials, setClaimantCredentials] = useState(null);
+  const [credCopied, setCredCopied] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,6 +33,11 @@ export default function CaseParticipantsTab({ caseId, participants, onChanged })
     e.preventDefault();
     setSaving(true);
     setError('');
+    if (form.role === 'claimant' && !form.email.trim()) {
+      setError('Email is required for claimant participants');
+      setSaving(false);
+      return;
+    }
     try {
       const base = getBaseUrl();
       const res = await fetch(`${base}/api/cases/${caseId}/participants`, {
@@ -44,6 +51,19 @@ export default function CaseParticipantsTab({ caseId, participants, onChanged })
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || 'Failed to create participant');
+      }
+      if (
+        form.role === 'claimant' &&
+        (data.tempPassword || data.syncedFromExistingPortal || data.portalAlreadyActive)
+      ) {
+        setClaimantCredentials({
+          claimantId: data.claimantId,
+          portalEmail: data.portalEmail,
+          tempPassword: data.tempPassword || null,
+          syncedFromExistingPortal: Boolean(data.syncedFromExistingPortal),
+          portalAlreadyActive: Boolean(data.portalAlreadyActive),
+          syncedMessage: data.syncedMessage || null,
+        });
       }
       setForm({
         role: 'claimant',
@@ -93,6 +113,53 @@ export default function CaseParticipantsTab({ caseId, participants, onChanged })
         </div>
       )}
 
+      {claimantCredentials && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-2 mb-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-emerald-900">
+              {claimantCredentials.portalAlreadyActive && !claimantCredentials.tempPassword
+                ? 'Claimant linked — portal already active'
+                : 'Claimant portal created — share securely with the client'}
+            </p>
+            <button
+              type="button"
+              onClick={() => setClaimantCredentials(null)}
+              className="text-xs text-emerald-700 hover:text-emerald-900"
+            >
+              Dismiss
+            </button>
+          </div>
+          <p className="text-xs text-emerald-800">
+            Email: <span className="font-mono">{claimantCredentials.portalEmail}</span>
+          </p>
+          {claimantCredentials.tempPassword && (
+            <>
+              <p className="text-xs text-emerald-800">
+                Temporary password:{' '}
+                <span className="font-mono break-all">{claimantCredentials.tempPassword}</span>
+              </p>
+              <button
+                type="button"
+                className="text-sm font-semibold text-emerald-800 hover:text-emerald-950"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(claimantCredentials.tempPassword);
+                  setCredCopied(true);
+                  setTimeout(() => setCredCopied(false), 2000);
+                }}
+              >
+                {credCopied ? 'Copied!' : 'Copy password'}
+              </button>
+            </>
+          )}
+          {(claimantCredentials.syncedFromExistingPortal || claimantCredentials.portalAlreadyActive) &&
+            claimantCredentials.syncedMessage && (
+              <div className="rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-950">
+                {claimantCredentials.syncedMessage}
+              </div>
+            )}
+        </div>
+      )}
+
       <form onSubmit={handleCreate} className="bg-gray-50 rounded-lg p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -133,7 +200,9 @@ export default function CaseParticipantsTab({ caseId, participants, onChanged })
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Email{form.role === 'claimant' ? ' (required for portal)' : ''}
+            </label>
             <input
               name="email"
               value={form.email}
