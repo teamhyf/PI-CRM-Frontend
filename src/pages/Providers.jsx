@@ -26,6 +26,51 @@ const providerTypeLabel = (t) =>
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
 
+const actionIconBtn =
+  'inline-flex items-center justify-center rounded-lg p-2 border border-transparent text-gray-600 hover:bg-gray-100 hover:border-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1';
+
+function IconKey({ className = 'w-5 h-5' }) {
+  return (
+    <svg
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+    </svg>
+  );
+}
+
+function IconPencil({ className = 'w-5 h-5' }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+      />
+    </svg>
+  );
+}
+
+function IconTrash({ className = 'w-5 h-5' }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+      />
+    </svg>
+  );
+}
+
 /** Cryptographically random password for portal regenerate (client-generated; sent once to the API). */
 function generateRandomPortalPassword(length = 16) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -62,7 +107,6 @@ export function Providers() {
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [togglingId, setTogglingId] = useState(null);
 
   const [portalTarget, setPortalTarget] = useState(null);
   const [portalForm, setPortalForm] = useState({ portal_email: '', password: '' });
@@ -192,28 +236,6 @@ export function Providers() {
       setLoadError(err.message || 'Failed to save provider');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const toggleActive = async (id, nextVal) => {
-    const base = getBaseUrl();
-    setTogglingId(id);
-    try {
-      const res = await fetch(`${base}/api/providers/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ is_active: Boolean(nextVal) }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Failed to update provider');
-      await fetchProviders();
-    } catch (err) {
-      alert(err.message || 'Failed to toggle active');
-    } finally {
-      setTogglingId(null);
     }
   };
 
@@ -399,17 +421,18 @@ export function Providers() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lien-friendly</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Portal</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[1%] whitespace-nowrap">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <TableLoadingRow colSpan={8} message="Loading providers…" />
+                <TableLoadingRow colSpan={7} message="Loading providers…" />
               ) : providers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-600">
+                  <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-600">
                     No providers found.
                   </td>
                 </tr>
@@ -434,51 +457,59 @@ export function Providers() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(p.is_active)}
-                        disabled={togglingId === p.id}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          toggleActive(p.id, e.target.checked);
-                        }}
-                      />
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {p.portal_activated_at || p.password_hash ? (
-                        <span className="inline-flex items-center rounded-full bg-green-50 border border-green-200 px-2.5 py-1 text-xs font-semibold text-green-800">
-                          Active
+                      {!p.is_active ? (
+                        <span className="inline-flex rounded-full bg-gray-100 border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                          Inactive
                         </span>
                       ) : (
-                        <button
-                          type="button"
-                          className="text-indigo-600 hover:text-indigo-900 font-semibold text-sm"
-                          onClick={(e) => openPortalActivate(p, e)}
-                        >
-                          Activate
-                        </button>
+                        <div className="flex flex-col gap-1.5">
+                          <span className="inline-flex w-fit rounded-full bg-green-50 border border-green-200 px-2.5 py-1 text-xs font-semibold text-green-800">
+                            Active
+                          </span>
+                          {p.portal_activated_at || p.password_hash ? (
+                            <span className="text-xs text-emerald-700">Portal enabled</span>
+                          ) : (
+                            <span className="text-xs text-amber-700">Portal not set</span>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        type="button"
-                        className="text-indigo-600 hover:text-indigo-900 mr-3 font-semibold"
-                        onClick={(e) => openPortalActivate(p, e)}
-                        title="Edit portal email and password"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="text-red-600 hover:text-red-900"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteTarget(p);
-                        }}
-                        title="Delete provider"
-                      >
-                        Delete
-                      </button>
+                      <div className="inline-flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className={`${actionIconBtn} text-indigo-600 hover:text-indigo-800`}
+                          onClick={(e) => openPortalActivate(p, e)}
+                          title="Change password"
+                          aria-label="Change password"
+                        >
+                          <IconKey />
+                        </button>
+                        <button
+                          type="button"
+                          className={`${actionIconBtn} text-gray-700 hover:text-gray-900`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(p);
+                          }}
+                          title="Edit"
+                          aria-label="Edit provider"
+                        >
+                          <IconPencil />
+                        </button>
+                        <button
+                          type="button"
+                          className={`${actionIconBtn} text-red-600 hover:text-red-800`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(p);
+                          }}
+                          title="Delete"
+                          aria-label="Delete provider"
+                        >
+                          <IconTrash />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
