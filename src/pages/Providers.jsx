@@ -55,6 +55,8 @@ export function Providers() {
   const [portalTarget, setPortalTarget] = useState(null);
   const [portalForm, setPortalForm] = useState({ portal_email: '', password: '' });
   const [portalBusy, setPortalBusy] = useState(false);
+  /** List-page preference: reveal portal password field while typing in the modal */
+  const [showPortalPassword, setShowPortalPassword] = useState(false);
 
   const canRender = useMemo(() => user?.role === 'admin', [user]);
 
@@ -211,30 +213,45 @@ export function Providers() {
     });
   };
 
+  const portalAlreadyActive = (p) => Boolean(p?.portal_activated_at || p?.password_hash);
+
   const submitPortalActivate = async () => {
     if (!portalTarget) return;
     const id = Number(portalTarget.id);
     const base = getBaseUrl();
     const portal_email = String(portalForm.portal_email || '').trim().toLowerCase();
     const password = portalForm.password;
+    const already = portalAlreadyActive(portalTarget);
+
     if (!portal_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(portal_email)) {
       setLoadError('Enter a valid portal email.');
       return;
     }
-    if (!password || password.length < 8) {
-      setLoadError('Password must be at least 8 characters.');
+    if (!already) {
+      if (!password || password.length < 8) {
+        setLoadError('Password must be at least 8 characters.');
+        return;
+      }
+    } else if (password && password.length < 8) {
+      setLoadError('New password must be at least 8 characters, or leave blank to keep the current password.');
       return;
     }
     setPortalBusy(true);
     setLoadError('');
     try {
+      const body = { portal_email };
+      if (!already) {
+        body.password = password;
+      } else if (password && password.length >= 8) {
+        body.password = password;
+      }
       const res = await fetch(`${base}/api/providers/${id}/activate-portal`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ portal_email, password }),
+        body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to activate portal');
@@ -295,21 +312,32 @@ export function Providers() {
       )}
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-wrap gap-3 items-center justify-between">
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Filter by type</label>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">All types</option>
-              {providerTypes.map((t) => (
-                <option key={t} value={t}>
-                  {providerTypeLabel(t)}
-                </option>
-              ))}
-            </select>
+        <div className="flex flex-wrap gap-4 items-center justify-between">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">Filter by type</label>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="all">All types</option>
+                {providerTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {providerTypeLabel(t)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                checked={showPortalPassword}
+                onChange={(e) => setShowPortalPassword(e.target.checked)}
+              />
+              Show password when editing portal
+            </label>
           </div>
           <div className="text-sm text-gray-600">{providers.length} providers</div>
         </div>
@@ -391,11 +419,11 @@ export function Providers() {
                     <td className="px-6 py-4 text-right">
                       <button
                         type="button"
-                        className="text-indigo-600 hover:text-indigo-900 mr-3"
+                        className="text-indigo-600 hover:text-indigo-900 mr-3 font-semibold"
                         onClick={(e) => openPortalActivate(p, e)}
-                        title="Set portal password"
+                        title="Edit portal email and password"
                       >
-                        Portal login
+                        Edit
                       </button>
                       <button
                         type="button"
@@ -423,10 +451,16 @@ export function Providers() {
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-in">
             <div className="h-1 w-full bg-indigo-500" />
             <div className="p-6 space-y-4">
-              <h2 className="text-xl font-bold text-gray-900">Provider portal login</h2>
+              <h2 className="text-xl font-bold text-gray-900">Edit provider portal</h2>
               <p className="text-sm text-gray-600">
                 Set the email and password this organization uses to sign in at{' '}
                 <span className="font-mono text-gray-800">/provider-portal</span>.
+                {portalTarget && portalAlreadyActive(portalTarget) ? (
+                  <span className="block mt-2 text-gray-500">
+                    To change only the login email, leave the password field blank. Enter a new password (8+ characters)
+                    to replace the current one.
+                  </span>
+                ) : null}
               </p>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Portal email</label>
@@ -439,11 +473,27 @@ export function Providers() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password (min. 8 characters)</label>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {portalTarget && portalAlreadyActive(portalTarget)
+                      ? 'Password (optional — blank keeps current)'
+                      : 'Password (min. 8 characters)'}
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      checked={showPortalPassword}
+                      onChange={(e) => setShowPortalPassword(e.target.checked)}
+                    />
+                    Show password
+                  </label>
+                </div>
                 <input
-                  type="password"
+                  type={showPortalPassword ? 'text' : 'password'}
                   value={portalForm.password}
                   onChange={(e) => setPortalForm((prev) => ({ ...prev, password: e.target.value }))}
+                  placeholder={portalTarget && portalAlreadyActive(portalTarget) ? 'Leave blank to keep current' : ''}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   autoComplete="new-password"
                 />
@@ -466,7 +516,11 @@ export function Providers() {
                   onClick={submitPortalActivate}
                   disabled={portalBusy}
                 >
-                  {portalBusy ? 'Saving…' : 'Save & activate'}
+                  {portalBusy
+                    ? 'Saving…'
+                    : portalTarget && portalAlreadyActive(portalTarget)
+                      ? 'Save'
+                      : 'Save & activate'}
                 </button>
               </div>
             </div>

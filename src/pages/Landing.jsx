@@ -86,6 +86,12 @@ export function Landing() {
             >
               Portal login
             </Link>
+            <Link
+              to="/provider-portal/login"
+              className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              Provider login
+            </Link>
             {isAuthenticated ? (
               <Link to="/dashboard" className="btn-primary text-sm py-2 px-4">
                 Dashboard
