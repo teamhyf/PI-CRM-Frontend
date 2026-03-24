@@ -3,7 +3,7 @@
  * Create, update, delete users
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { LoadingScreen } from '../components/LoadingSpinner';
@@ -91,6 +91,10 @@ export function UserManagement() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterRole, setFilterRole] = useState('all'); // all | admin | attorney | staff
+  const [filterStatus, setFilterStatus] = useState('all'); // all | active | inactive
+
   useEffect(() => {
     if (user && user.role !== 'admin') {
       navigate('/dashboard');
@@ -123,6 +127,30 @@ export function UserManagement() {
     fetchUsers(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const visibleUsers = useMemo(() => {
+    let list = users;
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((u) => {
+        const email = String(u.email || '').toLowerCase();
+        const fullName = String(u.fullName || '').toLowerCase();
+        const role = String(u.role || '').toLowerCase();
+        const idStr = u.id != null ? String(u.id) : '';
+        return email.includes(q) || fullName.includes(q) || role.includes(q) || idStr.includes(q);
+      });
+    }
+    if (filterRole !== 'all') {
+      const want = filterRole.toLowerCase();
+      list = list.filter((u) => String(u.role || '').toLowerCase() === want);
+    }
+    if (filterStatus === 'active') {
+      list = list.filter((u) => Boolean(u.isActive));
+    } else if (filterStatus === 'inactive') {
+      list = list.filter((u) => !u.isActive);
+    }
+    return list;
+  }, [users, searchQuery, filterRole, filterStatus]);
 
   const openEdit = (u, e) => {
     if (e) e.stopPropagation();
@@ -386,8 +414,55 @@ export function UserManagement() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <h2 className="text-lg font-bold text-gray-900">
-            Users <span className="text-gray-500 font-normal">({users.length})</span>
+            Users{' '}
+            <span className="text-gray-500 font-normal">
+              (
+              {visibleUsers.length === users.length
+                ? users.length
+                : `${visibleUsers.length} of ${users.length}`}
+              )
+            </span>
           </h2>
+        </div>
+        <div className="px-6 py-4 border-b border-gray-100 bg-white flex flex-col sm:flex-row flex-wrap gap-3 sm:items-end">
+          <div className="flex-1 min-w-[12rem]">
+            <label htmlFor="users-search" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              Search
+            </label>
+            <input
+              id="users-search"
+              type="search"
+              placeholder="Email, name, role, user id…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div className="w-full sm:w-auto sm:min-w-[10rem]">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Role</label>
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">All roles</option>
+              <option value="admin">Admin</option>
+              <option value="attorney">Attorney</option>
+              <option value="staff">Staff</option>
+            </select>
+          </div>
+          <div className="w-full sm:w-auto sm:min-w-[10rem]">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">All</option>
+              <option value="active">Active only</option>
+              <option value="inactive">Inactive only</option>
+            </select>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -410,8 +485,14 @@ export function UserManagement() {
                     No users yet.
                   </td>
                 </tr>
+              ) : visibleUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-600">
+                    No users match your search or filters.
+                  </td>
+                </tr>
               ) : (
-                users.map((u) => (
+                visibleUsers.map((u) => (
                   <tr
                     key={u.id}
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
