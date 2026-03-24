@@ -114,7 +114,45 @@ export default function ClaimantsManagementCard() {
   const [portalTempPassword, setPortalTempPassword] = useState(null);
   const [portalSyncedMessage, setPortalSyncedMessage] = useState(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterActive, setFilterActive] = useState('all'); // all | active | inactive
+  const [filterPortal, setFilterPortal] = useState('all'); // all | enabled | not_enabled
+
   const canRender = useMemo(() => user?.role === 'admin', [user]);
+
+  const filteredClaimants = useMemo(() => {
+    let list = claimants;
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((c) => {
+        const name = `${c.first_name || ''} ${c.last_name || ''}`.trim().toLowerCase();
+        const email = String(c.email || '').toLowerCase();
+        const phone = String(c.phone || '').toLowerCase();
+        const caseId = c.case_id != null ? String(c.case_id) : '';
+        const accident = String(c.case_accident_type || '').toLowerCase();
+        const status = String(c.case_status || '').toLowerCase();
+        return (
+          name.includes(q) ||
+          email.includes(q) ||
+          phone.includes(q) ||
+          caseId.includes(q) ||
+          accident.includes(q) ||
+          status.includes(q)
+        );
+      });
+    }
+    if (filterActive === 'active') {
+      list = list.filter((c) => Boolean(c.is_active));
+    } else if (filterActive === 'inactive') {
+      list = list.filter((c) => !c.is_active);
+    }
+    if (filterPortal === 'enabled') {
+      list = list.filter((c) => Boolean(c.portal_activated_at));
+    } else if (filterPortal === 'not_enabled') {
+      list = list.filter((c) => !c.portal_activated_at);
+    }
+    return list;
+  }, [claimants, searchQuery, filterActive, filterPortal]);
 
   const fetchClaimants = async () => {
     const base = getBaseUrl();
@@ -356,7 +394,51 @@ export default function ClaimantsManagementCard() {
             <h2 className="text-lg font-bold text-gray-900">Claimant directory</h2>
             <p className="text-sm text-gray-600 mt-0.5">Portal activation and claimant record status</p>
           </div>
-          <div className="text-sm text-gray-600">{claimants.length} claimants</div>
+          <div className="text-sm text-gray-600">
+            {filteredClaimants.length === claimants.length
+              ? `${claimants.length} claimants`
+              : `Showing ${filteredClaimants.length} of ${claimants.length}`}
+          </div>
+        </div>
+
+        <div className="px-6 py-4 border-b border-gray-100 bg-white flex flex-col lg:flex-row flex-wrap gap-3 lg:items-end">
+          <div className="flex-1 min-w-[12rem]">
+            <label htmlFor="claimants-search" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              Search
+            </label>
+            <input
+              id="claimants-search"
+              type="search"
+              placeholder="Name, email, phone, case #…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div className="w-full sm:w-auto sm:min-w-[10rem]">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Record status</label>
+            <select
+              value={filterActive}
+              onChange={(e) => setFilterActive(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">All</option>
+              <option value="active">Active only</option>
+              <option value="inactive">Inactive only</option>
+            </select>
+          </div>
+          <div className="w-full sm:w-auto sm:min-w-[11rem]">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Portal</label>
+            <select
+              value={filterPortal}
+              onChange={(e) => setFilterPortal(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">All</option>
+              <option value="enabled">Portal enabled</option>
+              <option value="not_enabled">Portal not set</option>
+            </select>
+          </div>
         </div>
 
         {error && (
@@ -386,8 +468,14 @@ export default function ClaimantsManagementCard() {
                     No claimants found.
                   </td>
                 </tr>
+              ) : filteredClaimants.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-600">
+                    No claimants match your search or filters.
+                  </td>
+                </tr>
               ) : (
-                claimants.map((c) => {
+                filteredClaimants.map((c) => {
                   const displayName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || '—';
                   return (
                     <tr

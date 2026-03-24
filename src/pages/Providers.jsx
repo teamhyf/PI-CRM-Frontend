@@ -91,6 +91,10 @@ export function Providers() {
   const [loadError, setLoadError] = useState('');
 
   const [filterType, setFilterType] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all'); // all | active | inactive
+  const [filterPortal, setFilterPortal] = useState('all'); // all | enabled | not_enabled
+  const [filterLien, setFilterLien] = useState('all'); // all | yes | no
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState('create'); // 'create' | 'edit'
@@ -157,6 +161,45 @@ export function Providers() {
     fetchProviders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType]);
+
+  const visibleProviders = useMemo(() => {
+    let list = providers;
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((p) => {
+        const name = String(p.name || '').toLowerCase();
+        const phone = String(p.phone || '').toLowerCase();
+        const email = String(p.email || '').toLowerCase();
+        const portalEmail = String(p.portal_email || '').toLowerCase();
+        const address = String(p.address || '').toLowerCase();
+        const typeLabel = providerTypeLabel(p.provider_type).toLowerCase();
+        return (
+          name.includes(q) ||
+          phone.includes(q) ||
+          email.includes(q) ||
+          portalEmail.includes(q) ||
+          address.includes(q) ||
+          typeLabel.includes(q)
+        );
+      });
+    }
+    if (filterStatus === 'active') {
+      list = list.filter((p) => Boolean(p.is_active));
+    } else if (filterStatus === 'inactive') {
+      list = list.filter((p) => !p.is_active);
+    }
+    if (filterPortal === 'enabled') {
+      list = list.filter((p) => Boolean(p.portal_activated_at || p.password_hash));
+    } else if (filterPortal === 'not_enabled') {
+      list = list.filter((p) => !p.portal_activated_at && !p.password_hash);
+    }
+    if (filterLien === 'yes') {
+      list = list.filter((p) => Boolean(p.lien_friendly));
+    } else if (filterLien === 'no') {
+      list = list.filter((p) => !p.lien_friendly);
+    }
+    return list;
+  }, [providers, searchQuery, filterStatus, filterPortal, filterLien]);
 
   const openCreate = () => {
     setEditorMode('create');
@@ -387,14 +430,34 @@ export function Providers() {
         <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">{loadError}</div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-wrap gap-4 items-center justify-between">
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Filter by type</label>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-4">
+        <div className="flex flex-wrap gap-4 items-end justify-between">
+          <div className="flex-1 min-w-[14rem]">
+            <label htmlFor="providers-search" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              Search
+            </label>
+            <input
+              id="providers-search"
+              type="search"
+              placeholder="Name, email, phone, address, portal email…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div className="text-sm text-gray-600 shrink-0">
+            {visibleProviders.length === providers.length
+              ? `${providers.length} providers`
+              : `Showing ${visibleProviders.length} of ${providers.length}`}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-4 items-end">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Provider type</label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[11rem]"
             >
               <option value="all">All types</option>
               {providerTypes.map((t) => (
@@ -404,7 +467,42 @@ export function Providers() {
               ))}
             </select>
           </div>
-          <div className="text-sm text-gray-600">{providers.length} providers</div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[10rem]"
+            >
+              <option value="all">All</option>
+              <option value="active">Active only</option>
+              <option value="inactive">Inactive only</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Portal</label>
+            <select
+              value={filterPortal}
+              onChange={(e) => setFilterPortal(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[11rem]"
+            >
+              <option value="all">All</option>
+              <option value="enabled">Portal enabled</option>
+              <option value="not_enabled">Portal not set</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Lien-friendly</label>
+            <select
+              value={filterLien}
+              onChange={(e) => setFilterLien(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[9rem]"
+            >
+              <option value="all">All</option>
+              <option value="yes">Yes only</option>
+              <option value="no">No only</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -436,8 +534,14 @@ export function Providers() {
                     No providers found.
                   </td>
                 </tr>
+              ) : visibleProviders.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-600">
+                    No providers match your search or filters.
+                  </td>
+                </tr>
               ) : (
-                providers.map((p) => (
+                visibleProviders.map((p) => (
                   <tr
                     key={p.id}
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
