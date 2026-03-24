@@ -16,12 +16,18 @@ import { Login } from './components/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 import { ClaimantAuthProvider } from './context/ClaimantAuthContext';
+import { ProviderAuthProvider } from './context/ProviderAuthContext';
 import { PortalLayout } from './components/PortalLayout';
+import { ProviderPortalLayout } from './components/ProviderPortalLayout';
 import { PortalLogin } from './pages/portal/PortalLogin';
 import { PortalDashboard } from './pages/portal/PortalDashboard';
 import { PortalCaseDetail } from './pages/portal/PortalCaseDetail';
 import { CaseClosure } from './pages/portal/CaseClosure';
 import { ProtectedClaimantRoute } from './components/ProtectedClaimantRoute';
+import { ProviderLogin } from './pages/provider-portal/ProviderLogin';
+import { ProviderDashboard } from './pages/provider-portal/ProviderDashboard';
+import { ProviderCaseDetail } from './pages/provider-portal/ProviderCaseDetail';
+import { ProtectedProviderRoute } from './components/ProtectedProviderRoute';
 
 function PortalRoutes() {
   return (
@@ -43,6 +49,25 @@ function PortalRoutes() {
   );
 }
 
+function ProviderPortalRoutes() {
+  return (
+    <Routes>
+      <Route path="login" element={<ProviderLogin />} />
+      <Route
+        element={
+          <ProtectedProviderRoute>
+            <ProviderPortalLayout />
+          </ProtectedProviderRoute>
+        }
+      >
+        <Route path="dashboard" element={<ProviderDashboard />} />
+        <Route path="case/:caseId" element={<ProviderCaseDetail />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/provider-portal/login" replace />} />
+    </Routes>
+  );
+}
+
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
 
@@ -55,6 +80,14 @@ function AppRoutes() {
           <ClaimantAuthProvider>
             <PortalRoutes />
           </ClaimantAuthProvider>
+        }
+      />
+      <Route
+        path="/provider-portal/*"
+        element={
+          <ProviderAuthProvider>
+            <ProviderPortalRoutes />
+          </ProviderAuthProvider>
         }
       />
       <Route

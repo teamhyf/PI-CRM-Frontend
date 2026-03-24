@@ -52,6 +52,10 @@ export function Providers() {
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
 
+  const [portalTarget, setPortalTarget] = useState(null);
+  const [portalForm, setPortalForm] = useState({ portal_email: '', password: '' });
+  const [portalBusy, setPortalBusy] = useState(false);
+
   const canRender = useMemo(() => user?.role === 'admin', [user]);
 
   const fetchProviders = async () => {
@@ -197,6 +201,53 @@ export function Providers() {
     }
   };
 
+  const openPortalActivate = (p, e) => {
+    if (e) e.stopPropagation();
+    setLoadError('');
+    setPortalTarget(p);
+    setPortalForm({
+      portal_email: String(p.portal_email || p.email || '').trim(),
+      password: '',
+    });
+  };
+
+  const submitPortalActivate = async () => {
+    if (!portalTarget) return;
+    const id = Number(portalTarget.id);
+    const base = getBaseUrl();
+    const portal_email = String(portalForm.portal_email || '').trim().toLowerCase();
+    const password = portalForm.password;
+    if (!portal_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(portal_email)) {
+      setLoadError('Enter a valid portal email.');
+      return;
+    }
+    if (!password || password.length < 8) {
+      setLoadError('Password must be at least 8 characters.');
+      return;
+    }
+    setPortalBusy(true);
+    setLoadError('');
+    try {
+      const res = await fetch(`${base}/api/providers/${id}/activate-portal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ portal_email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to activate portal');
+      setPortalTarget(null);
+      setPortalForm({ portal_email: '', password: '' });
+      await fetchProviders();
+    } catch (err) {
+      setLoadError(err.message || 'Failed to activate portal');
+    } finally {
+      setPortalBusy(false);
+    }
+  };
+
   const executeDelete = async () => {
     if (!deleteTarget) return;
     const id = Number(deleteTarget.id);
@@ -278,15 +329,16 @@ export function Providers() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lien-friendly</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Portal</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <TableLoadingRow colSpan={7} message="Loading providers…" />
+                <TableLoadingRow colSpan={8} message="Loading providers…" />
               ) : providers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-600">
+                  <td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-600">
                     No providers found.
                   </td>
                 </tr>
@@ -321,7 +373,30 @@ export function Providers() {
                         }}
                       />
                     </td>
+                    <td className="px-6 py-4 text-sm">
+                      {p.portal_activated_at || p.password_hash ? (
+                        <span className="inline-flex items-center rounded-full bg-green-50 border border-green-200 px-2.5 py-1 text-xs font-semibold text-green-800">
+                          Active
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="text-indigo-600 hover:text-indigo-900 font-semibold text-sm"
+                          onClick={(e) => openPortalActivate(p, e)}
+                        >
+                          Activate
+                        </button>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right">
+                      <button
+                        type="button"
+                        className="text-indigo-600 hover:text-indigo-900 mr-3"
+                        onClick={(e) => openPortalActivate(p, e)}
+                        title="Set portal password"
+                      >
+                        Portal login
+                      </button>
                       <button
                         type="button"
                         className="text-red-600 hover:text-red-900"
@@ -341,6 +416,63 @@ export function Providers() {
           </table>
         </div>
       </div>
+
+      {portalTarget && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !portalBusy && setPortalTarget(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-in">
+            <div className="h-1 w-full bg-indigo-500" />
+            <div className="p-6 space-y-4">
+              <h2 className="text-xl font-bold text-gray-900">Provider portal login</h2>
+              <p className="text-sm text-gray-600">
+                Set the email and password this organization uses to sign in at{' '}
+                <span className="font-mono text-gray-800">/provider-portal</span>.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Portal email</label>
+                <input
+                  type="email"
+                  value={portalForm.portal_email}
+                  onChange={(e) => setPortalForm((prev) => ({ ...prev, portal_email: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password (min. 8 characters)</label>
+                <input
+                  type="password"
+                  value={portalForm.password}
+                  onChange={(e) => setPortalForm((prev) => ({ ...prev, password: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoComplete="new-password"
+                />
+              </div>
+              {loadError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">{loadError}</div>
+              )}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  onClick={() => setPortalTarget(null)}
+                  disabled={portalBusy}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60"
+                  onClick={submitPortalActivate}
+                  disabled={portalBusy}
+                >
+                  {portalBusy ? 'Saving…' : 'Save & activate'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         open={!!deleteTarget}
