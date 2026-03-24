@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AISparklesIcon } from '../components/AIIcon';
+import { BackToHomeLink } from '../components/BackToHomeLink';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -27,7 +28,10 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20">
+        <BackToHomeLink />
+      </div>
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-8">
           {/* Header */}

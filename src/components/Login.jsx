@@ -10,6 +10,7 @@ import { z } from "zod";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { AISparklesIcon, AIBadge } from "./AIIcon";
+import { BackToHomeLink } from "./BackToHomeLink";
 
 const loginSchema = z.object({
   email: z.string().email("Valid email is required"),
@@ -45,6 +46,9 @@ export function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20">
+        <BackToHomeLink />
+      </div>
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>

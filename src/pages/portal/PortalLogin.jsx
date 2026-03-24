@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { useClaimantAuth } from '../../context/ClaimantAuthContext';
 import { AISparklesIcon, AIBadge } from '../../components/AIIcon';
+import { BackToHomeLink } from '../../components/BackToHomeLink';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -91,6 +92,9 @@ export function PortalLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20">
+        <BackToHomeLink />
+      </div>
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
