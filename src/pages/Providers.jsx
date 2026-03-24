@@ -26,6 +26,27 @@ const providerTypeLabel = (t) =>
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
 
+/** Server stores bcrypt only — we keep plaintext in sessionStorage after a successful save in Edit (this browser tab). */
+const SESSION_PW_PREFIX = 'ai_crm_provider_portal_pw_';
+
+function getStoredPortalPassword(providerId) {
+  try {
+    return sessionStorage.getItem(SESSION_PW_PREFIX + providerId) || '';
+  } catch {
+    return '';
+  }
+}
+
+function setStoredPortalPassword(providerId, password) {
+  try {
+    if (password) {
+      sessionStorage.setItem(SESSION_PW_PREFIX + providerId, password);
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
 export function Providers() {
   const { token, user } = useAuth();
 
@@ -57,6 +78,11 @@ export function Providers() {
   const [portalBusy, setPortalBusy] = useState(false);
   /** List-page preference: reveal portal password field while typing in the modal */
   const [showPortalPassword, setShowPortalPassword] = useState(false);
+  /** Re-render after writing sessionStorage password */
+  const [pwSessionTick, setPwSessionTick] = useState(0);
+  /** Which rows show plaintext vs bullets (session password only) */
+  const [passwordRevealedById, setPasswordRevealedById] = useState({});
+  const [copiedPasswordId, setCopiedPasswordId] = useState(null);
 
   const canRender = useMemo(() => user?.role === 'admin', [user]);
 
@@ -99,6 +125,15 @@ export function Providers() {
     fetchProviders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType]);
+
+  const providersWithSessionPw = useMemo(
+    () =>
+      providers.map((p) => ({
+        ...p,
+        sessionPortalPassword: getStoredPortalPassword(p.id),
+      })),
+    [providers, pwSessionTick]
+  );
 
   const openCreate = () => {
     setEditorMode('create');
@@ -255,6 +290,10 @@ export function Providers() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to activate portal');
+      if (body.password) {
+        setStoredPortalPassword(id, body.password);
+        setPwSessionTick((t) => t + 1);
+      }
       setPortalTarget(null);
       setPortalForm({ portal_email: '', password: '' });
       await fetchProviders();
@@ -311,7 +350,7 @@ export function Providers() {
         <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">{loadError}</div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3">
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-3">
@@ -341,6 +380,10 @@ export function Providers() {
           </div>
           <div className="text-sm text-gray-600">{providers.length} providers</div>
         </div>
+        <p className="text-xs text-gray-500">
+          Portal passwords in the table are only available in this browser tab after you save them in Edit—the server
+          stores hashes, not plaintext.
+        </p>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -358,20 +401,26 @@ export function Providers() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lien-friendly</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Portal</th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider max-w-[14rem]"
+                  title="Password shown only for this browser session after you save in Edit"
+                >
+                  Password <span className="text-gray-400 font-normal normal-case">(session)</span>
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <TableLoadingRow colSpan={8} message="Loading providers…" />
+                <TableLoadingRow colSpan={9} message="Loading providers…" />
               ) : providers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-600">
+                  <td colSpan={9} className="px-6 py-8 text-center text-sm text-gray-600">
                     No providers found.
                   </td>
                 </tr>
               ) : (
-                providers.map((p) => (
+                providersWithSessionPw.map((p) => (
                   <tr
                     key={p.id}
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
@@ -414,6 +463,61 @@ export function Providers() {
                         >
                           Activate
                         </button>
+                      )}
+                    </td>
+                    <td
+                      className="px-6 py-4 text-sm align-top"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {p.sessionPortalPassword ? (
+                        <div className="flex flex-col gap-2 max-w-[14rem]">
+                          <label className="inline-flex items-center gap-2 text-xs text-gray-700 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              checked={Boolean(passwordRevealedById[p.id])}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                setPasswordRevealedById((prev) => ({
+                                  ...prev,
+                                  [p.id]: e.target.checked,
+                                }));
+                              }}
+                            />
+                            Show password
+                          </label>
+                          {passwordRevealedById[p.id] ? (
+                            <div className="flex flex-col gap-1.5">
+                              <span className="font-mono text-xs text-gray-900 break-all bg-gray-50 border border-gray-100 rounded px-2 py-1.5">
+                                {p.sessionPortalPassword}
+                              </span>
+                              <button
+                                type="button"
+                                className="self-start text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await navigator.clipboard.writeText(p.sessionPortalPassword);
+                                    setCopiedPasswordId(p.id);
+                                    window.setTimeout(() => setCopiedPasswordId(null), 2000);
+                                  } catch {
+                                    alert('Could not copy to clipboard.');
+                                  }
+                                }}
+                              >
+                                {copiedPasswordId === p.id ? 'Copied!' : 'Copy password'}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="font-mono text-xs text-gray-400 tracking-widest select-none">••••••••</span>
+                          )}
+                        </div>
+                      ) : p.portal_activated_at || p.password_hash ? (
+                        <span className="text-xs text-gray-500" title="Save a new password in Edit to store it here for this session">
+                          —
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
