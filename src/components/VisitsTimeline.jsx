@@ -43,9 +43,15 @@ function badgeForVisitType(type) {
   return 'bg-gray-100 text-gray-700 border-gray-200';
 }
 
-export default function VisitsTimeline({ caseId, redFlags }) {
+export default function VisitsTimeline({
+  caseId,
+  redFlags,
+  apiPrefix = '/api',
+  token: tokenOverride,
+}) {
   const { token } = useAuth();
   const base = getBaseUrl();
+  const authToken = tokenOverride || token;
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -81,12 +87,12 @@ export default function VisitsTimeline({ caseId, redFlags }) {
   const fileInputRef = useRef(null);
 
   const fetchProviders = useCallback(async () => {
-    if (!token) return;
+    if (!authToken) return;
     setProvidersLoading(true);
     setProvidersError('');
     try {
-      const res = await fetch(`${base}/api/providers`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${base}${apiPrefix}/providers`, {
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to load providers');
@@ -98,15 +104,15 @@ export default function VisitsTimeline({ caseId, redFlags }) {
     } finally {
       setProvidersLoading(false);
     }
-  }, [token, base]);
+  }, [authToken, base, apiPrefix]);
 
   const fetchVisits = useCallback(async () => {
-    if (!token) return;
+    if (!authToken) return;
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${base}/api/cases/${caseId}/medical-visits?status=all&sort=date`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${base}${apiPrefix}/cases/${caseId}/medical-visits?status=all&sort=date`, {
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to load medical visits');
@@ -120,15 +126,15 @@ export default function VisitsTimeline({ caseId, redFlags }) {
     } finally {
       setLoading(false);
     }
-  }, [token, caseId, base]);
+  }, [authToken, caseId, base, apiPrefix]);
 
   const fetchTimeline = useCallback(async () => {
-    if (!token) return;
+    if (!authToken) return;
     setTimelineLoading(true);
     setTimelineError('');
     try {
-      const res = await fetch(`${base}/api/cases/${caseId}/treatment-timeline`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${base}${apiPrefix}/cases/${caseId}/treatment-timeline`, {
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to load treatment timeline');
@@ -139,7 +145,7 @@ export default function VisitsTimeline({ caseId, redFlags }) {
     } finally {
       setTimelineLoading(false);
     }
-  }, [token, caseId, base]);
+  }, [authToken, caseId, base, apiPrefix]);
 
   useEffect(() => {
     fetchVisits();
@@ -226,10 +232,10 @@ export default function VisitsTimeline({ caseId, redFlags }) {
   }, [caseId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateRecordReceived = async (visitId, nextValue) => {
-    const res = await fetch(`${base}/api/medical-visits/${visitId}`, {
+    const res = await fetch(`${base}${apiPrefix}/medical-visits/${visitId}`, {
       method: 'PATCH',
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${authToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ record_received: nextValue }),
@@ -241,10 +247,10 @@ export default function VisitsTimeline({ caseId, redFlags }) {
   };
 
   const updateBillReceived = async (visitId, nextValue) => {
-    const res = await fetch(`${base}/api/medical-visits/${visitId}`, {
+    const res = await fetch(`${base}${apiPrefix}/medical-visits/${visitId}`, {
       method: 'PATCH',
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${authToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ bill_received: nextValue }),
@@ -257,9 +263,9 @@ export default function VisitsTimeline({ caseId, redFlags }) {
 
   const handleDeleteVisit = async (visitId) => {
     if (!window.confirm('Delete this medical visit?')) return;
-    const res = await fetch(`${base}/api/medical-visits/${visitId}`, {
+    const res = await fetch(`${base}${apiPrefix}/medical-visits/${visitId}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${authToken}` },
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -288,10 +294,10 @@ export default function VisitsTimeline({ caseId, redFlags }) {
       };
 
       if (modalMode === 'edit' && editingVisitId) {
-        const res = await fetch(`${base}/api/medical-visits/${editingVisitId}`, {
+        const res = await fetch(`${base}${apiPrefix}/medical-visits/${editingVisitId}`, {
           method: 'PATCH',
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${authToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(payload),
@@ -299,10 +305,10 @@ export default function VisitsTimeline({ caseId, redFlags }) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || 'Failed to update visit');
       } else {
-        const res = await fetch(`${base}/api/cases/${caseId}/medical-visits`, {
+        const res = await fetch(`${base}${apiPrefix}/cases/${caseId}/medical-visits`, {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${authToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(payload),

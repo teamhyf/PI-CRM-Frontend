@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useClaimantAuth } from '../../context/ClaimantAuthContext';
 import { LoadingBlock, LoadingInline } from '../../components/LoadingSpinner';
+import VisitsTimeline from '../../components/VisitsTimeline';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -174,14 +175,6 @@ export function PortalCaseDetail() {
   const [saveCaseError, setSaveCaseError] = useState('');
   const [saveCaseOk, setSaveCaseOk] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-
-  const [visitsLoading, setVisitsLoading] = useState(false);
-  const [visitsError, setVisitsError] = useState('');
-  const [visits, setVisits] = useState([]);
-  const [visitTotals, setVisitTotals] = useState({ totalBilled: 0, totalReceived: 0 });
-  const [treatmentTimelineLoading, setTreatmentTimelineLoading] = useState(false);
-  const [treatmentTimelineError, setTreatmentTimelineError] = useState('');
-  const [treatmentTimeline, setTreatmentTimeline] = useState(null);
 
   const [claimSummaryLoading, setClaimSummaryLoading] = useState(false);
   const [claimSummaryError, setClaimSummaryError] = useState('');
@@ -434,36 +427,6 @@ export function PortalCaseDetail() {
   }, [token, canLoadCase]);
 
   // Additional tab data loads (must stay above any early returns to keep hook order stable)
-  useEffect(() => {
-    let cancelled = false;
-    if (!token || !caseIdNum) return undefined;
-    (async () => {
-      setVisitsLoading(true);
-      setVisitsError('');
-      try {
-        const base = getBaseUrl();
-        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/medical-visits`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Failed to load medical visits');
-        if (!cancelled) {
-          setVisits(Array.isArray(data.visits) ? data.visits : []);
-          setVisitTotals({
-            totalBilled: Number(data.totalBilled || 0),
-            totalReceived: Number(data.totalReceived || 0),
-          });
-        }
-      } catch (e) {
-        if (!cancelled) setVisitsError(e.message || 'Failed to load medical visits');
-      } finally {
-        if (!cancelled) setVisitsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token, caseIdNum]);
 
   const loadInsuranceSummary = async () => {
     if (!token || !caseIdNum) return;
@@ -834,31 +797,6 @@ export function PortalCaseDetail() {
       setPolicySaving(false);
     }
   };
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!token || !caseIdNum) return undefined;
-    (async () => {
-      setTreatmentTimelineLoading(true);
-      setTreatmentTimelineError('');
-      try {
-        const base = getBaseUrl();
-        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/treatment-timeline`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Failed to load treatment timeline');
-        if (!cancelled) setTreatmentTimeline(data || null);
-      } catch (e) {
-        if (!cancelled) setTreatmentTimelineError(e.message || 'Failed to load treatment timeline');
-      } finally {
-        if (!cancelled) setTreatmentTimelineLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [token, caseIdNum]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1831,68 +1769,7 @@ export function PortalCaseDetail() {
           ) : null}
 
           {activeTab === 'timeline' ? (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">Totals</p>
-                <p className="text-sm text-gray-700 mt-1">
-                  Total billed: <span className="font-semibold">${Number(visitTotals.totalBilled || 0).toLocaleString()}</span>
-                  {' · '}
-                  Bills received: <span className="font-semibold">${Number(visitTotals.totalReceived || 0).toLocaleString()}</span>
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-gray-200 bg-white p-4">
-                <p className="text-sm font-semibold text-gray-900">Narrative timeline</p>
-                {treatmentTimelineLoading ? (
-                  <div className="mt-2">
-                    <LoadingInline message="Loading narrative timeline…" />
-                  </div>
-                ) : treatmentTimelineError ? (
-                  <p className="mt-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    {treatmentTimelineError}
-                  </p>
-                ) : (
-                  <p className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
-                    {treatmentTimeline?.timelineText || treatmentTimeline?.narrative || '—'}
-                  </p>
-                )}
-              </div>
-
-              <div className="rounded-xl border border-gray-200 bg-white p-4">
-                <p className="text-sm font-semibold text-gray-900">Visits</p>
-                {visitsLoading ? (
-                  <div className="mt-2">
-                    <LoadingInline message="Loading visits…" />
-                  </div>
-                ) : visitsError ? (
-                  <p className="mt-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    {visitsError}
-                  </p>
-                ) : visits.length === 0 ? (
-                  <p className="mt-2 text-sm text-gray-600">No visits on file.</p>
-                ) : (
-                  <ul className="mt-3 space-y-2">
-                    {visits.map((v) => (
-                      <li key={v.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {formatISODate(v.visit_date)}{' '}
-                          <span className="text-xs font-semibold text-gray-500">
-                            · {String(v.visit_type || 'visit').replace(/_/g, ' ')}
-                          </span>
-                        </p>
-                        <p className="text-xs text-gray-600 mt-1">
-                          {v.provider_name || v.provider_name_override || '—'}
-                          {v.billed_amount != null ? ` · $${Number(v.billed_amount).toLocaleString()}` : ''}
-                        </p>
-                        {v.diagnosis_summary ? (
-                          <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{v.diagnosis_summary}</p>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
+            <VisitsTimeline caseId={caseIdNum} apiPrefix="/api/portal" token={token} />
           ) : null}
 
           {activeTab === 'documents' ? (
