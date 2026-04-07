@@ -335,7 +335,7 @@ export default function SettlementTab({
             <div>
               <p className="text-sm font-semibold text-gray-900">Settlement Status</p>
               <p className="text-xs text-gray-500 mt-1">
-                {readOnly ? 'Current settlement status and amounts.' : 'Update demand status and financial records.'}
+                {readOnly ? 'Current settlement status and amounts.' : 'Update demand status and financial records'}
               </p>
             </div>
 
