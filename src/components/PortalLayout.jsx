@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useClaimantAuth } from '../context/ClaimantAuthContext';
+import { AIBadge } from './AIIcon';
 
 export function PortalLayout() {
   const { claimant, logout } = useClaimantAuth();
@@ -10,14 +11,16 @@ export function PortalLayout() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex flex-col">
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
-              My Case
-              <span className="ml-2 align-middle inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                Claimant Portal
+          <div className="flex items-center gap-3">
+            <Link to="/portal/dashboard" className="flex items-center gap-2 shrink-0">
+              <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">
+                PI CRM
               </span>
-            </h1>
-            <p className="text-sm text-gray-600">Track your case, treatment, and documents.</p>
+              <AIBadge size="sm" />
+            </Link>
+            <span className="hidden sm:inline-flex items-center rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+              Claimant Portal
+            </span>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             {onCaseDetail ? (
