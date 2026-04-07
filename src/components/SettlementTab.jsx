@@ -334,96 +334,156 @@ export default function SettlementTab({
           <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-4">
             <div>
               <p className="text-sm font-semibold text-gray-900">Settlement Status</p>
-              <p className="text-xs text-gray-500 mt-1">Update demand status and financial records.</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {readOnly ? 'Current settlement status and amounts.' : 'Update demand status and financial records.'}
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Demand Status</label>
-                <select
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={form.demand_status}
-                  disabled={patchingStatus || readOnly}
-                  onChange={(e) => patchDemandStatus(e.target.value)}
-                >
-                  {DEMAND_STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Treatment Days</label>
-                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-800">
-                  {Number.isFinite(treatmentDays) ? treatmentDays : '—'} days
+            {readOnly ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <p className="text-xs font-semibold text-gray-600">Demand Status</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                    {String(form.demand_status || '—').replace(/_/g, ' ')}
+                  </p>
+                </div>
+                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <p className="text-xs font-semibold text-gray-600">Treatment Days</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                    {Number.isFinite(treatmentDays) ? `${treatmentDays} days` : '—'}
+                  </p>
+                </div>
+
+                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <p className="text-xs font-semibold text-gray-600">Demand Amount</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                    {form.demand_amount !== '' ? `$${Number(form.demand_amount).toLocaleString()}` : '—'}
+                  </p>
+                </div>
+                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <p className="text-xs font-semibold text-gray-600">Claimed Medicals</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                    {form.claimed_medicals !== '' ? `$${Number(form.claimed_medicals).toLocaleString()}` : '—'}
+                  </p>
+                </div>
+                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <p className="text-xs font-semibold text-gray-600">Negotiated Medicals</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                    {form.negotiated_medicals !== '' ? `$${Number(form.negotiated_medicals).toLocaleString()}` : '—'}
+                  </p>
+                </div>
+                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <p className="text-xs font-semibold text-gray-600">Final Settlement</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                    {form.final_settlement !== '' ? `$${Number(form.final_settlement).toLocaleString()}` : '—'}
+                  </p>
+                </div>
+
+                <div className="md:col-span-2 border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <p className="text-xs font-semibold text-gray-600">Net to Client</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                    {netToClient != null && Number.isFinite(netToClient)
+                      ? `$${Number(netToClient).toLocaleString()}`
+                      : '—'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">(final_settlement - negotiated_medicals)</p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <p className="text-xs font-semibold text-gray-600">Notes</p>
+                  <div className="mt-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap">
+                    {form.notes ? form.notes : '—'}
+                  </div>
                 </div>
               </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Demand Status</label>
+                    <select
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={form.demand_status}
+                      disabled={patchingStatus}
+                      onChange={(e) => patchDemandStatus(e.target.value)}
+                    >
+                      {DEMAND_STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Treatment Days</label>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-800">
+                      {Number.isFinite(treatmentDays) ? treatmentDays : '—'} days
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Demand Amount</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.demand_amount}
-                  onChange={(e) => setForm((f) => ({ ...f, demand_amount: e.target.value }))}
-                  disabled={readOnly}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Claimed Medicals</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.claimed_medicals}
-                  onChange={(e) => setForm((f) => ({ ...f, claimed_medicals: e.target.value }))}
-                  disabled={readOnly}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Negotiated Medicals</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.negotiated_medicals}
-                  onChange={(e) => setForm((f) => ({ ...f, negotiated_medicals: e.target.value }))}
-                  disabled={readOnly}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Final Settlement</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.final_settlement}
-                  onChange={(e) => setForm((f) => ({ ...f, final_settlement: e.target.value }))}
-                  disabled={readOnly}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Demand Amount</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.demand_amount}
+                      onChange={(e) => setForm((f) => ({ ...f, demand_amount: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Claimed Medicals</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.claimed_medicals}
+                      onChange={(e) => setForm((f) => ({ ...f, claimed_medicals: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Negotiated Medicals</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.negotiated_medicals}
+                      onChange={(e) => setForm((f) => ({ ...f, negotiated_medicals: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Final Settlement</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.final_settlement}
+                      onChange={(e) => setForm((f) => ({ ...f, final_settlement: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Net to Client</label>
-                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-800">
-                  {netToClient != null && Number.isFinite(netToClient) ? `$${Number(netToClient).toLocaleString()}` : '—'}
-                  <span className="text-xs text-gray-500 font-normal ml-2">(final_settlement - negotiated_medicals)</span>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Net to Client</label>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-800">
+                      {netToClient != null && Number.isFinite(netToClient)
+                        ? `$${Number(netToClient).toLocaleString()}`
+                        : '—'}
+                      <span className="text-xs text-gray-500 font-normal ml-2">(final_settlement - negotiated_medicals)</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
-              <textarea
-                rows={4}
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                disabled={readOnly}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
+                  <textarea
+                    rows={4}
+                    value={form.notes}
+                    onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </>
+            )}
 
             {!readOnly ? (
               <div className="flex items-center justify-end gap-3">
