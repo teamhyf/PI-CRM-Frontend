@@ -950,7 +950,7 @@ export function PortalCaseDetail() {
     activeCaseRow?.caseId != null ? `Case #${activeCaseRow.caseId}` : 'Case details';
 
   return (
-    <div className="p-6">
+    <div className="pb-2">
       <div className="mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -962,7 +962,7 @@ export function PortalCaseDetail() {
                 <span aria-hidden>←</span> My cases
               </Link>
             </div>
-            <h1 className="text-3xl font-bold mt-2">
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mt-2">
               {caseIdNum ? `Case #${caseIdNum}` : activeCaseLabel}
             </h1>
             <p className="text-gray-600 mt-1">
@@ -990,7 +990,7 @@ export function PortalCaseDetail() {
         </div>
       </div>
 
-      <div className="border-b border-gray-200 mb-6">
+      <div className="sticky top-[72px] z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-gray-200 bg-white/80 backdrop-blur mb-6">
         <div className="flex flex-wrap gap-x-6 gap-y-2">
           {CASE_TABS.map((tab) => (
             <button
@@ -1009,7 +1009,7 @@ export function PortalCaseDetail() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
         <div className="p-6">
           {activeTab === 'overview' ? (
             <>

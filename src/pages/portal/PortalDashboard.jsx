@@ -20,7 +20,7 @@ export function PortalDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-bold text-gray-900">Welcome</h2>
         <p className="text-sm text-gray-600 mt-1">
           {claimant?.fullName ? `${claimant.fullName} · ` : ''}
@@ -59,7 +59,7 @@ export function PortalDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {cases.map((c) => (
-                  <tr key={c.claimantId} className="hover:bg-gray-50/80">
+                  <tr key={c.claimantId} className="hover:bg-indigo-50/30">
                     <td className="px-6 py-4 font-semibold text-gray-900">#{c.caseId}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex rounded-lg bg-indigo-50 text-indigo-900 border border-indigo-100 px-2.5 py-1 text-xs font-semibold capitalize">
