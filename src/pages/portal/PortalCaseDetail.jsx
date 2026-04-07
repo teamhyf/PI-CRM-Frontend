@@ -6,6 +6,7 @@ import VisitsTimeline from '../../components/VisitsTimeline';
 import CaseDocumentsTab from '../../components/CaseDocumentsTab';
 import CaseRedFlagsTab from '../../components/CaseRedFlagsTab';
 import ClaimDocumentBuilder from '../../components/ClaimDocumentBuilder';
+import SettlementTab from '../../components/SettlementTab';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -1788,62 +1789,7 @@ export function PortalCaseDetail() {
           ) : null}
 
           {activeTab === 'settlement' ? (
-            <div className="space-y-4">
-              {settlementLoading ? (
-                <LoadingInline message="Loading settlement…" />
-              ) : settlementError ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  {settlementError}
-                </p>
-              ) : settlement ? (
-                <>
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                    <p className="text-sm font-semibold text-gray-900">Readiness</p>
-                    <p className="text-sm text-gray-700 mt-1">
-                      {settlement.readiness?.ready ? (
-                        <span className="font-semibold text-green-700">Ready</span>
-                      ) : (
-                        <span className="font-semibold text-amber-700">Not ready</span>
-                      )}
-                    </p>
-                    {Array.isArray(settlement.readiness?.blockers) && settlement.readiness.blockers.length > 0 ? (
-                      <ul className="mt-2 text-sm text-gray-700 list-disc pl-5">
-                        {settlement.readiness.blockers.map((b) => (
-                          <li key={b}>{b}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-
-                  <div className="rounded-xl border border-gray-200 bg-white p-4">
-                    <p className="text-sm font-semibold text-gray-900">Settlement tracker</p>
-                    {settlement.tracker ? (
-                      <div className="mt-2 text-sm text-gray-800 space-y-1">
-                        <div>
-                          Status: <span className="font-semibold">{settlement.tracker.demand_status || '—'}</span>
-                        </div>
-                        <div>
-                          Demand: <span className="font-semibold">{settlement.tracker.demand_amount ?? '—'}</span>
-                        </div>
-                        <div>
-                          Final: <span className="font-semibold">{settlement.tracker.final_settlement ?? '—'}</span>
-                        </div>
-                        {settlement.tracker.notes ? (
-                          <div className="pt-2">
-                            <p className="text-xs font-semibold text-gray-500 uppercase">Notes</p>
-                            <p className="text-sm text-gray-800 whitespace-pre-wrap mt-1">{settlement.tracker.notes}</p>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-sm text-gray-600">No settlement tracker has been created yet.</p>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-gray-600">No settlement data.</p>
-              )}
-            </div>
+            <SettlementTab caseId={caseIdNum} apiPrefix="/api/portal" token={token} readOnly />
           ) : null}
         </div>
       </div>

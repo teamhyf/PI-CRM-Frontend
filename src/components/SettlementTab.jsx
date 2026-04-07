@@ -37,8 +37,15 @@ function parseMaybeJson(val) {
   return val;
 }
 
-export default function SettlementTab({ caseId, onChanged }) {
+export default function SettlementTab({
+  caseId,
+  onChanged,
+  apiPrefix = '/api',
+  token: tokenOverride,
+  readOnly = false,
+}) {
   const { token } = useAuth();
+  const authToken = tokenOverride || token;
   const { success, error } = useToast();
 
   const [loading, setLoading] = useState(false);
@@ -89,13 +96,13 @@ export default function SettlementTab({ caseId, onChanged }) {
   }, [form.final_settlement, form.negotiated_medicals, tracker?.net_to_client]);
 
   const fetchSettlement = async () => {
-    if (!token || !caseId) return;
+    if (!authToken || !caseId) return;
     setLoading(true);
     setLoadError('');
     try {
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/cases/${caseId}/settlement`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${base}${apiPrefix}/cases/${caseId}/settlement`, {
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to load settlement');
@@ -126,16 +133,18 @@ export default function SettlementTab({ caseId, onChanged }) {
   useEffect(() => {
     fetchSettlement();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseId, token]);
+  }, [caseId, authToken, apiPrefix]);
 
   const createTracker = async () => {
-    if (!token || !caseId || creating) return;
+    if (readOnly) return;
+    if (!authToken || !caseId || creating) return;
     setCreating(true);
     try {
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/cases/${caseId}/settlement`, {
+      if (apiPrefix !== '/api') throw new Error('Settlement tracker creation is not enabled for this portal.');
+      const res = await fetch(`${base}${apiPrefix}/cases/${caseId}/settlement`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
       const data = await res.json().catch(() => ({}));
@@ -153,10 +162,12 @@ export default function SettlementTab({ caseId, onChanged }) {
 
   const saveSettlement = async () => {
     if (!tracker?.id) return;
+    if (readOnly) return;
     if (saving) return;
     setSaving(true);
     try {
       const base = getBaseUrl();
+      if (apiPrefix !== '/api') throw new Error('Settlement editing is not enabled for this portal.');
       const payload = {
         demand_status: form.demand_status,
         demand_amount: form.demand_amount === '' ? null : Number(form.demand_amount),
@@ -166,9 +177,9 @@ export default function SettlementTab({ caseId, onChanged }) {
         notes: form.notes || null,
       };
 
-      const res = await fetch(`${base}/api/settlement/${tracker.id}`, {
+      const res = await fetch(`${base}${apiPrefix}/settlement/${tracker.id}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
@@ -186,14 +197,16 @@ export default function SettlementTab({ caseId, onChanged }) {
 
   const patchDemandStatus = async (nextStatus) => {
     if (!tracker?.id) return;
+    if (readOnly) return;
     if (patchingStatus) return;
     setPatchingStatus(true);
     setForm((f) => ({ ...f, demand_status: nextStatus }));
     try {
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/settlement/${tracker.id}`, {
+      if (apiPrefix !== '/api') throw new Error('Settlement editing is not enabled for this portal.');
+      const res = await fetch(`${base}${apiPrefix}/settlement/${tracker.id}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ demand_status: nextStatus }),
       });
       const data = await res.json().catch(() => ({}));
@@ -239,14 +252,20 @@ export default function SettlementTab({ caseId, onChanged }) {
       {!loading && !tracker ? (
         <div className="border border-gray-200 rounded-xl p-4 bg-white">
           <p className="text-sm font-semibold text-gray-900">Settlement tracker not created</p>
-          <p className="text-sm text-gray-600 mt-1">Create it to start recording settlement and readiness.</p>
-          <button
-            onClick={createTracker}
-            disabled={creating}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {creating ? 'Creating…' : 'Create Settlement Tracker'}
-          </button>
+          <p className="text-sm text-gray-600 mt-1">
+            {readOnly
+              ? 'A settlement tracker has not been created yet.'
+              : 'Create it to start recording settlement and readiness.'}
+          </p>
+          {!readOnly ? (
+            <button
+              onClick={createTracker}
+              disabled={creating}
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? 'Creating…' : 'Create Settlement Tracker'}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -324,7 +343,7 @@ export default function SettlementTab({ caseId, onChanged }) {
                 <select
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   value={form.demand_status}
-                  disabled={patchingStatus}
+                  disabled={patchingStatus || readOnly}
                   onChange={(e) => patchDemandStatus(e.target.value)}
                 >
                   {DEMAND_STATUS_OPTIONS.map((opt) => (
@@ -348,6 +367,7 @@ export default function SettlementTab({ caseId, onChanged }) {
                   step="0.01"
                   value={form.demand_amount}
                   onChange={(e) => setForm((f) => ({ ...f, demand_amount: e.target.value }))}
+                  disabled={readOnly}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -358,6 +378,7 @@ export default function SettlementTab({ caseId, onChanged }) {
                   step="0.01"
                   value={form.claimed_medicals}
                   onChange={(e) => setForm((f) => ({ ...f, claimed_medicals: e.target.value }))}
+                  disabled={readOnly}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -368,6 +389,7 @@ export default function SettlementTab({ caseId, onChanged }) {
                   step="0.01"
                   value={form.negotiated_medicals}
                   onChange={(e) => setForm((f) => ({ ...f, negotiated_medicals: e.target.value }))}
+                  disabled={readOnly}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -378,6 +400,7 @@ export default function SettlementTab({ caseId, onChanged }) {
                   step="0.01"
                   value={form.final_settlement}
                   onChange={(e) => setForm((f) => ({ ...f, final_settlement: e.target.value }))}
+                  disabled={readOnly}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -397,19 +420,22 @@ export default function SettlementTab({ caseId, onChanged }) {
                 rows={4}
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                disabled={readOnly}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3">
-              <button
-                onClick={saveSettlement}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Saving…' : 'Save Settlement Info'}
-              </button>
-            </div>
+            {!readOnly ? (
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  onClick={saveSettlement}
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saving ? 'Saving…' : 'Save Settlement Info'}
+                </button>
+              </div>
+            ) : null}
           </div>
 
           {negotiation?.negotiationSummary ? (
@@ -465,14 +491,16 @@ export default function SettlementTab({ caseId, onChanged }) {
         </>
       ) : null}
 
-      <AttorneyReferralPanel
-        caseId={caseId}
-        onChanged={async () => {
-          // Refresh settlement readiness and tracker values after referral updates.
-          await fetchSettlement();
-          if (onChanged) await onChanged();
-        }}
-      />
+      {!readOnly ? (
+        <AttorneyReferralPanel
+          caseId={caseId}
+          onChanged={async () => {
+            // Refresh settlement readiness and tracker values after referral updates.
+            await fetchSettlement();
+            if (onChanged) await onChanged();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
