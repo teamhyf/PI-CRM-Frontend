@@ -35,6 +35,14 @@ export function IntakeProvider({ children }) {
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
+    if (!token) {
+      setCases([]);
+      setIsLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     getCases(token)
       .then((apiCases) => {
         if (!cancelled) {
