@@ -4,6 +4,8 @@ import { useClaimantAuth } from '../../context/ClaimantAuthContext';
 import { LoadingBlock, LoadingInline } from '../../components/LoadingSpinner';
 import VisitsTimeline from '../../components/VisitsTimeline';
 import CaseDocumentsTab from '../../components/CaseDocumentsTab';
+import CaseRedFlagsTab from '../../components/CaseRedFlagsTab';
+import ClaimDocumentBuilder from '../../components/ClaimDocumentBuilder';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -1774,77 +1776,15 @@ export function PortalCaseDetail() {
           ) : null}
 
           {activeTab === 'documents' ? (
-            <CaseDocumentsTab caseId={caseIdNum} apiPrefix="/api/portal" token={token} />
+            <CaseDocumentsTab caseId={caseIdNum} apiPrefix="/api/portal" token={token} allowStatusChange={false} />
           ) : null}
 
           {activeTab === 'red_flags' ? (
-            <div className="space-y-3">
-              {fullDetailLoading ? (
-                <LoadingInline message="Loading red flags…" />
-              ) : fullDetailError ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  {fullDetailError}
-                </p>
-              ) : (fullDetail?.redFlags || []).length === 0 ? (
-                <p className="text-sm text-gray-600">No red flags detected.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {fullDetail.redFlags.map((f) => (
-                    <li key={f.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {String(f.flag_type || 'flag').replace(/_/g, ' ')}
-                        {f.severity ? (
-                          <span className="text-xs font-semibold text-gray-500"> · {String(f.severity)}</span>
-                        ) : null}
-                      </p>
-                      {f.explanation ? (
-                        <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{f.explanation}</p>
-                      ) : null}
-                      {f.recommended_action ? (
-                        <p className="text-xs text-gray-600 mt-2">
-                          <span className="font-semibold">Recommended:</span> {f.recommended_action}
-                        </p>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <CaseRedFlagsTab caseId={caseIdNum} apiPrefix="/api/portal" token={token} />
           ) : null}
 
           {activeTab === 'documentation_summary' ? (
-            <div className="space-y-4">
-              {claimSummaryLoading ? (
-                <LoadingInline message="Loading documentation summary…" />
-              ) : claimSummaryError ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  {claimSummaryError}
-                </p>
-              ) : claimSummary ? (
-                <>
-                  <div className="rounded-xl border border-gray-200 bg-white p-4">
-                    <p className="text-sm font-semibold text-gray-900">Accident summary</p>
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap mt-2">
-                      {claimSummary.accidentSummary?.markdown || claimSummary.accidentSummary?.text || '—'}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-gray-200 bg-white p-4">
-                    <p className="text-sm font-semibold text-gray-900">Treatment timeline</p>
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap mt-2">
-                      {claimSummary.treatmentTimeline?.markdown || claimSummary.treatmentTimeline?.text || '—'}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-gray-200 bg-white p-4">
-                    <p className="text-sm font-semibold text-gray-900">Documentation index</p>
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap mt-2">
-                      {claimSummary.documentationIndex?.markdown || claimSummary.documentationIndex?.text || '—'}
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-gray-600">No documentation summary found.</p>
-              )}
-            </div>
+            <ClaimDocumentBuilder caseId={caseIdNum} apiPrefix="/api/portal" token={token} />
           ) : null}
 
           {activeTab === 'settlement' ? (

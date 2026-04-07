@@ -35,7 +35,7 @@ function DocTypeIcon({ docType }) {
   return <span className="text-2xl">{icons[docType] || '📎'}</span>;
 }
 
-export function DocumentCard({ doc, onDelete, onStatusChange }) {
+export function DocumentCard({ doc, onDelete, onStatusChange, showStatusDropdown = true }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
 
@@ -71,16 +71,20 @@ export function DocumentCard({ doc, onDelete, onStatusChange }) {
       </div>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <select
-          value={doc.document_status}
-          onChange={(e) => handleStatusChange(e.target.value)}
-          disabled={statusLoading}
-          className="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
-        >
-          <option value="pending_review">Pending Review</option>
-          <option value="reviewed">Reviewed</option>
-          <option value="incomplete">Incomplete</option>
-        </select>
+        {showStatusDropdown ? (
+          <select
+            value={doc.document_status}
+            onChange={(e) => handleStatusChange(e.target.value)}
+            disabled={statusLoading}
+            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+          >
+            <option value="pending_review">Pending Review</option>
+            <option value="reviewed">Reviewed</option>
+            <option value="incomplete">Incomplete</option>
+          </select>
+        ) : (
+          <div className="text-xs text-gray-500"> </div>
+        )}
 
         {confirmDelete ? (
           <div className="flex items-center gap-2">

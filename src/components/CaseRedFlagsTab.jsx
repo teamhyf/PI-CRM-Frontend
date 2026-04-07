@@ -16,8 +16,13 @@ function getRiskBarStyle(riskScore) {
   return { colorClass: 'bg-red-600', labelClass: 'text-red-700' };
 }
 
-export default function CaseRedFlagsTab({ caseId }) {
+export default function CaseRedFlagsTab({
+  caseId,
+  apiPrefix = '/api',
+  token: tokenOverride,
+}) {
   const { token } = useAuth();
+  const authToken = tokenOverride || token;
   const [flags, setFlags] = useState([]);
   const [riskScore, setRiskScore] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -28,8 +33,8 @@ export default function CaseRedFlagsTab({ caseId }) {
       setLoading(true);
       setError('');
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/cases/${caseId}/red-flags`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${base}${apiPrefix}/cases/${caseId}/red-flags`, {
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to load red flags');
@@ -64,11 +69,11 @@ export default function CaseRedFlagsTab({ caseId }) {
   const handleResolve = async (flagId) => {
     try {
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/red-flags/${flagId}/resolve`, {
+      const res = await fetch(`${base}${apiPrefix}/red-flags/${flagId}/resolve`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({ resolved_status: 'resolved' }),
       });

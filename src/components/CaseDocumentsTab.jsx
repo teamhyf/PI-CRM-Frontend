@@ -47,6 +47,7 @@ export default function CaseDocumentsTab({
   caseId,
   apiPrefix = '/api',
   token: tokenOverride,
+  allowStatusChange = true,
 }) {
   const { token } = useAuth();
   const authToken = tokenOverride || token;
@@ -339,6 +340,7 @@ export default function CaseDocumentsTab({
               doc={doc}
               onDelete={handleDelete}
               onStatusChange={handleStatusChange}
+              showStatusDropdown={allowStatusChange}
             />
           ))}
         </div>

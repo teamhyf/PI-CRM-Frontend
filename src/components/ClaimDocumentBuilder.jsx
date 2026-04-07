@@ -28,8 +28,13 @@ function SectionProgress({ items }) {
   );
 }
 
-export default function ClaimDocumentBuilder({ caseId }) {
+export default function ClaimDocumentBuilder({
+  caseId,
+  apiPrefix = '/api',
+  token: tokenOverride,
+}) {
   const { token } = useAuth();
+  const authToken = tokenOverride || token;
   const base = getBaseUrl();
 
   const [loading, setLoading] = useState(true);
@@ -46,12 +51,12 @@ export default function ClaimDocumentBuilder({ caseId }) {
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      if (!token || !caseId) return;
+      if (!authToken || !caseId) return;
       setLoading(true);
       setError('');
       try {
-        const res = await fetch(`${base}/api/cases/${caseId}/claim-summary`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await fetch(`${base}${apiPrefix}/cases/${caseId}/claim-summary`, {
+          headers: { Authorization: `Bearer ${authToken}` },
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.error || 'Failed to load claim summary');
@@ -66,7 +71,7 @@ export default function ClaimDocumentBuilder({ caseId }) {
     return () => {
       cancelled = true;
     };
-  }, [token, caseId, base]);
+  }, [authToken, caseId, base, apiPrefix]);
 
   const copyAll = async () => {
     if (!combinedMarkdown) return;
