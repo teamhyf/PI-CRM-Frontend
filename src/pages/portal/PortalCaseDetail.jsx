@@ -74,6 +74,16 @@ export function PortalCaseDetail() {
   const [uploadSuccess, setUploadSuccess] = useState('');
   const fileInputRef = useRef(null);
 
+  const [fullDetail, setFullDetail] = useState(null);
+  const [fullDetailLoading, setFullDetailLoading] = useState(false);
+  const [fullDetailError, setFullDetailError] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editInjury, setEditInjury] = useState('');
+  const [editLiability, setEditLiability] = useState('');
+  const [savingCase, setSavingCase] = useState(false);
+  const [saveCaseError, setSaveCaseError] = useState('');
+  const [saveCaseOk, setSaveCaseOk] = useState(false);
+
   useEffect(() => {
     setCaseData(null);
     setPathway(null);
@@ -169,6 +179,36 @@ export function PortalCaseDetail() {
 
   useEffect(() => {
     let cancelled = false;
+    if (!canLoadCase) return undefined;
+    (async () => {
+      setFullDetailLoading(true);
+      setFullDetailError('');
+      try {
+        const base = getBaseUrl();
+        const res = await fetch(`${base}/api/portal/full-detail`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to load full case');
+        if (!cancelled) {
+          setFullDetail(data);
+          setEditNotes(data.notes ?? '');
+          setEditInjury(data.injury_summary ?? '');
+          setEditLiability(data.liability_summary ?? '');
+        }
+      } catch (e) {
+        if (!cancelled) setFullDetailError(e.message || 'Failed to load');
+      } finally {
+        if (!cancelled) setFullDetailLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, canLoadCase]);
+
+  useEffect(() => {
+    let cancelled = false;
     const run = async () => {
       if (!canLoadCase || !caseData?.caseId) return;
 
@@ -221,6 +261,46 @@ export function PortalCaseDetail() {
     if (canLoadCase) fetchDocs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, canLoadCase]);
+
+  const handleSaveCaseInfo = async (e) => {
+    e.preventDefault();
+    if (!fullDetail?.id) return;
+    setSavingCase(true);
+    setSaveCaseError('');
+    setSaveCaseOk(false);
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${fullDetail.id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notes: editNotes,
+          injury_summary: editInjury,
+          liability_summary: editLiability,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Save failed');
+      setSaveCaseOk(true);
+      setFullDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              notes: editNotes,
+              injury_summary: editInjury,
+              liability_summary: editLiability,
+            }
+          : prev
+      );
+    } catch (err) {
+      setSaveCaseError(err.message || 'Save failed');
+    } finally {
+      setSavingCase(false);
+    }
+  };
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -330,6 +410,131 @@ export function PortalCaseDetail() {
           </div>
         ) : (
           <p className="text-sm text-gray-600">No case found.</p>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Case record</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Same information your legal team sees for this matter. Update the narrative fields below as your situation
+          changes.
+        </p>
+
+        {fullDetailLoading ? (
+          <LoadingInline message="Loading case record…" />
+        ) : fullDetailError ? (
+          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">{fullDetailError}</p>
+        ) : fullDetail ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase">AI viability</p>
+                <p className="font-semibold text-gray-900 mt-1">
+                  {fullDetail.ai_viability_score != null ? `${fullDetail.ai_viability_score}/100` : '—'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase">Risk score</p>
+                <p className="font-semibold text-gray-900 mt-1">
+                  {fullDetail.risk_score != null ? `${fullDetail.risk_score}/100` : '—'}
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase">Severity (est.)</p>
+                <p className="font-semibold text-gray-900 mt-1">
+                  {fullDetail.estimated_severity_score != null ? `${fullDetail.estimated_severity_score}/100` : '—'}
+                </p>
+              </div>
+            </div>
+
+            {fullDetail.ai_summary ? (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">AI summary</p>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap border border-gray-100 rounded-xl p-3 bg-gray-50/80">
+                  {fullDetail.ai_summary}
+                </p>
+              </div>
+            ) : null}
+
+            {Array.isArray(fullDetail.injuries) && fullDetail.injuries.length > 0 ? (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Injuries on file</p>
+                <ul className="space-y-2">
+                  {fullDetail.injuries.map((inj) => (
+                    <li key={inj.id} className="text-sm border border-gray-100 rounded-lg p-3 bg-white">
+                      <span className="font-medium text-gray-900">
+                        {[inj.body_part, inj.symptom_type].filter(Boolean).join(' · ') || 'Injury'}
+                      </span>
+                      {inj.severity_level ? (
+                        <span className="text-gray-600"> · {String(inj.severity_level).replace(/_/g, ' ')}</span>
+                      ) : null}
+                      {inj.notes ? <p className="text-gray-600 mt-1 text-xs">{inj.notes}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {Array.isArray(fullDetail.policies) && fullDetail.policies.length > 0 ? (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Insurance policies</p>
+                <ul className="space-y-2 text-sm text-gray-800">
+                  {fullDetail.policies.map((p) => (
+                    <li key={p.id} className="border border-gray-100 rounded-lg p-3">
+                      {p.carrier_name || 'Policy'} {p.policy_number ? `· #${p.policy_number}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <form onSubmit={handleSaveCaseInfo} className="space-y-4 border-t border-gray-100 pt-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Liability / accident narrative</label>
+                <textarea
+                  value={editLiability}
+                  onChange={(e) => setEditLiability(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Injury narrative</label>
+                <textarea
+                  value={editInjury}
+                  onChange={(e) => setEditInjury(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Additional notes</label>
+                <textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              {saveCaseError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{saveCaseError}</p>
+              ) : null}
+              {saveCaseOk ? (
+                <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                  Saved. Your legal team can review updates.
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                disabled={savingCase}
+                className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {savingCase ? 'Saving…' : 'Save updates'}
+              </button>
+            </form>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No extended record available.</p>
         )}
       </div>
 
