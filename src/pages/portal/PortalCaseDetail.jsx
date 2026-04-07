@@ -130,6 +130,10 @@ export function PortalCaseDetail() {
   const [settlementError, setSettlementError] = useState('');
   const [settlement, setSettlement] = useState(null);
 
+  const caseIdNum =
+    fullDetail?.id ||
+    (caseData?.caseId ? Number(String(caseData.caseId).replace(/^CASE-/, '')) : null);
+
   useEffect(() => {
     setCaseData(null);
     setPathway(null);
@@ -309,106 +313,7 @@ export function PortalCaseDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, canLoadCase]);
 
-  const handleSaveCaseInfo = async (e) => {
-    e.preventDefault();
-    if (!fullDetail?.id) return;
-    setSavingCase(true);
-    setSaveCaseError('');
-    setSaveCaseOk(false);
-    try {
-      const base = getBaseUrl();
-      const res = await fetch(`${base}/api/portal/cases/${fullDetail.id}`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          notes: editNotes,
-          injury_summary: editInjury,
-          liability_summary: editLiability,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Save failed');
-      setSaveCaseOk(true);
-      setFullDetail((prev) =>
-        prev
-          ? {
-              ...prev,
-              notes: editNotes,
-              injury_summary: editInjury,
-              liability_summary: editLiability,
-            }
-          : prev
-      );
-    } catch (err) {
-      setSaveCaseError(err.message || 'Save failed');
-    } finally {
-      setSavingCase(false);
-    }
-  };
-
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (!uploadFile) return;
-    setUploading(true);
-    setUploadError('');
-    setUploadSuccess('');
-    try {
-      const base = getBaseUrl();
-      const form = new FormData();
-      form.append('file', uploadFile);
-      form.append('docType', uploadDocType);
-      const res = await fetch(`${base}/api/portal/documents`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
-      setUploadSuccess(`"${data.file_name}" uploaded successfully.`);
-      setUploadFile(null);
-      setUploadDocType('other');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      await fetchDocs();
-    } catch (e) {
-      setUploadError(e.message || 'Upload failed');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  if (syncError) {
-    return (
-      <div className="space-y-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-6">
-          <p className="text-sm text-red-800 font-medium">{syncError}</p>
-          <Link
-            to="/portal/dashboard"
-            className="inline-block mt-4 text-sm font-semibold text-indigo-700 hover:underline"
-          >
-            ← Back to my cases
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (syncing || authLoading || !claimant || claimant.id !== targetClaimantId) {
-    return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-        <LoadingBlock message="Loading case…" />
-      </div>
-    );
-  }
-
-  const activeCaseRow = cases.find((c) => c.claimantId === targetClaimantId);
-  const activeCaseLabel =
-    activeCaseRow?.caseId != null ? `Case #${activeCaseRow.caseId}` : 'Case details';
-
-  const caseIdNum = fullDetail?.id || (caseData?.caseId ? Number(String(caseData.caseId).replace(/^CASE-/, '')) : null);
-
+  // Additional tab data loads (must stay above any early returns to keep hook order stable)
   useEffect(() => {
     let cancelled = false;
     if (!token || !caseIdNum) return undefined;
@@ -514,6 +419,104 @@ export function PortalCaseDetail() {
       cancelled = true;
     };
   }, [token, caseIdNum]);
+
+  const handleSaveCaseInfo = async (e) => {
+    e.preventDefault();
+    if (!fullDetail?.id) return;
+    setSavingCase(true);
+    setSaveCaseError('');
+    setSaveCaseOk(false);
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${fullDetail.id}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notes: editNotes,
+          injury_summary: editInjury,
+          liability_summary: editLiability,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Save failed');
+      setSaveCaseOk(true);
+      setFullDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              notes: editNotes,
+              injury_summary: editInjury,
+              liability_summary: editLiability,
+            }
+          : prev
+      );
+    } catch (err) {
+      setSaveCaseError(err.message || 'Save failed');
+    } finally {
+      setSavingCase(false);
+    }
+  };
+
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!uploadFile) return;
+    setUploading(true);
+    setUploadError('');
+    setUploadSuccess('');
+    try {
+      const base = getBaseUrl();
+      const form = new FormData();
+      form.append('file', uploadFile);
+      form.append('docType', uploadDocType);
+      const res = await fetch(`${base}/api/portal/documents`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      setUploadSuccess(`"${data.file_name}" uploaded successfully.`);
+      setUploadFile(null);
+      setUploadDocType('other');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      await fetchDocs();
+    } catch (e) {
+      setUploadError(e.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (syncError) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-6">
+          <p className="text-sm text-red-800 font-medium">{syncError}</p>
+          <Link
+            to="/portal/dashboard"
+            className="inline-block mt-4 text-sm font-semibold text-indigo-700 hover:underline"
+          >
+            ← Back to my cases
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (syncing || authLoading || !claimant || claimant.id !== targetClaimantId) {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <LoadingBlock message="Loading case…" />
+      </div>
+    );
+  }
+
+  const activeCaseRow = cases.find((c) => c.claimantId === targetClaimantId);
+  const activeCaseLabel =
+    activeCaseRow?.caseId != null ? `Case #${activeCaseRow.caseId}` : 'Case details';
 
   return (
     <div className="p-6">
