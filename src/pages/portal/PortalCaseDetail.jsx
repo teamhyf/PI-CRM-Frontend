@@ -48,6 +48,35 @@ const STATUS_LABELS = {
   incomplete: 'Incomplete',
 };
 
+const CASE_TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'participants', label: 'Participants' },
+  { id: 'injuries', label: 'Injuries' },
+  { id: 'insurance', label: 'Insurance' },
+  { id: 'treatment', label: 'Treatment Routing' },
+  { id: 'timeline', label: 'Timeline' },
+  { id: 'documents', label: 'Documents' },
+  { id: 'red_flags', label: 'Red Flags' },
+  { id: 'documentation_summary', label: 'Documentation Summary' },
+  { id: 'settlement', label: 'Settlement' },
+];
+
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`whitespace-nowrap px-3 py-2 text-sm font-semibold border-b-2 transition-colors ${
+        active
+          ? 'border-indigo-600 text-indigo-700'
+          : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-200'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function PortalCaseDetail() {
   const { claimantId: claimantIdParam } = useParams();
   const targetClaimantId = Number(claimantIdParam);
@@ -83,6 +112,23 @@ export function PortalCaseDetail() {
   const [savingCase, setSavingCase] = useState(false);
   const [saveCaseError, setSaveCaseError] = useState('');
   const [saveCaseOk, setSaveCaseOk] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const [visitsLoading, setVisitsLoading] = useState(false);
+  const [visitsError, setVisitsError] = useState('');
+  const [visits, setVisits] = useState([]);
+  const [visitTotals, setVisitTotals] = useState({ totalBilled: 0, totalReceived: 0 });
+  const [treatmentTimelineLoading, setTreatmentTimelineLoading] = useState(false);
+  const [treatmentTimelineError, setTreatmentTimelineError] = useState('');
+  const [treatmentTimeline, setTreatmentTimeline] = useState(null);
+
+  const [claimSummaryLoading, setClaimSummaryLoading] = useState(false);
+  const [claimSummaryError, setClaimSummaryError] = useState('');
+  const [claimSummary, setClaimSummary] = useState(null);
+
+  const [settlementLoading, setSettlementLoading] = useState(false);
+  const [settlementError, setSettlementError] = useState('');
+  const [settlement, setSettlement] = useState(null);
 
   useEffect(() => {
     setCaseData(null);
@@ -90,6 +136,7 @@ export function PortalCaseDetail() {
     setPathwayError('');
     setError('');
     setDocs([]);
+    setActiveTab('overview');
   }, [targetClaimantId]);
 
   useEffect(() => {
@@ -360,6 +407,114 @@ export function PortalCaseDetail() {
   const activeCaseLabel =
     activeCaseRow?.caseId != null ? `Case #${activeCaseRow.caseId}` : 'Case details';
 
+  const caseIdNum = fullDetail?.id || (caseData?.caseId ? Number(String(caseData.caseId).replace(/^CASE-/, '')) : null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!token || !caseIdNum) return undefined;
+    (async () => {
+      setVisitsLoading(true);
+      setVisitsError('');
+      try {
+        const base = getBaseUrl();
+        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/medical-visits`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to load medical visits');
+        if (!cancelled) {
+          setVisits(Array.isArray(data.visits) ? data.visits : []);
+          setVisitTotals({
+            totalBilled: Number(data.totalBilled || 0),
+            totalReceived: Number(data.totalReceived || 0),
+          });
+        }
+      } catch (e) {
+        if (!cancelled) setVisitsError(e.message || 'Failed to load medical visits');
+      } finally {
+        if (!cancelled) setVisitsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, caseIdNum]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!token || !caseIdNum) return undefined;
+    (async () => {
+      setTreatmentTimelineLoading(true);
+      setTreatmentTimelineError('');
+      try {
+        const base = getBaseUrl();
+        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/treatment-timeline`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to load treatment timeline');
+        if (!cancelled) setTreatmentTimeline(data || null);
+      } catch (e) {
+        if (!cancelled) setTreatmentTimelineError(e.message || 'Failed to load treatment timeline');
+      } finally {
+        if (!cancelled) setTreatmentTimelineLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, caseIdNum]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!token || !caseIdNum) return undefined;
+    (async () => {
+      setClaimSummaryLoading(true);
+      setClaimSummaryError('');
+      try {
+        const base = getBaseUrl();
+        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/claim-summary`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to load documentation summary');
+        if (!cancelled) setClaimSummary(data || null);
+      } catch (e) {
+        if (!cancelled) setClaimSummaryError(e.message || 'Failed to load documentation summary');
+      } finally {
+        if (!cancelled) setClaimSummaryLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, caseIdNum]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!token || !caseIdNum) return undefined;
+    (async () => {
+      setSettlementLoading(true);
+      setSettlementError('');
+      try {
+        const base = getBaseUrl();
+        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/settlement`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to load settlement');
+        if (!cancelled) setSettlement(data || null);
+      } catch (e) {
+        if (!cancelled) setSettlementError(e.message || 'Failed to load settlement');
+      } finally {
+        if (!cancelled) setSettlementLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, caseIdNum]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -381,36 +536,370 @@ export function PortalCaseDetail() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-3">Case Status</h2>
-
-        {loading ? (
-          <LoadingInline message="Loading case details…" />
-        ) : error ? (
-          <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div>
-        ) : caseData ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Case</p>
-              <p className="text-lg font-bold text-gray-900 mt-1">{caseData.caseId}</p>
-            </div>
-            <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200">
-              <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Status</p>
-              <p className="text-lg font-bold text-indigo-900 mt-1">
-                {String(normalizedCaseStatus).replace(/_/g, ' ').toUpperCase()}
-              </p>
-            </div>
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Accident type</p>
-              <p className="text-sm font-semibold text-gray-900 mt-1">{caseData.accidentType || '—'}</p>
-            </div>
-            <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Date of loss</p>
-              <p className="text-sm font-semibold text-gray-900 mt-1">{formatISODate(caseData.dateOfLoss)}</p>
-            </div>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Case</h2>
+            <p className="text-sm text-gray-600">Use the tabs below to navigate, just like the staff view.</p>
           </div>
-        ) : (
-          <p className="text-sm text-gray-600">No case found.</p>
-        )}
+          {caseData?.caseId ? (
+            <div className="text-right">
+              <p className="text-xs font-semibold text-gray-500 uppercase">Case ID</p>
+              <p className="text-sm font-bold text-gray-900">{caseData.caseId}</p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-5 -mx-6 px-6 border-b border-gray-200 overflow-x-auto">
+          <div className="flex gap-1">
+            {CASE_TABS.map((t) => (
+              <TabButton key={t.id} active={activeTab === t.id} onClick={() => setActiveTab(t.id)}>
+                {t.label}
+              </TabButton>
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-6">
+          {activeTab === 'overview' ? (
+            <>
+              {loading ? (
+                <LoadingInline message="Loading case details…" />
+              ) : error ? (
+                <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div>
+              ) : caseData ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</p>
+                    <p className="text-lg font-bold text-gray-900 mt-1">
+                      {String(normalizedCaseStatus).replace(/_/g, ' ').toUpperCase()}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Accident type</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-1">{caseData.accidentType || '—'}</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Date of loss</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-1">{formatISODate(caseData.dateOfLoss)}</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Created</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-1">{formatISODate(caseData.createdAt)}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600">No case found.</p>
+              )}
+            </>
+          ) : null}
+
+          {activeTab === 'participants' ? (
+            <div className="space-y-3">
+              {fullDetailLoading ? (
+                <LoadingInline message="Loading participants…" />
+              ) : fullDetailError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {fullDetailError}
+                </p>
+              ) : (fullDetail?.participants || []).length === 0 ? (
+                <p className="text-sm text-gray-600">No participants on file.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {fullDetail.participants.map((p) => (
+                    <li key={p.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {p.full_name || 'Participant'}{' '}
+                          <span className="text-xs font-semibold text-gray-500">
+                            {p.role ? `· ${String(p.role).replace(/_/g, ' ')}` : ''}
+                          </span>
+                        </p>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {[p.phone, p.email].filter(Boolean).join(' · ') || '—'}
+                      </p>
+                      {p.notes ? <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{p.notes}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
+
+          {activeTab === 'injuries' ? (
+            <div className="space-y-3">
+              {fullDetailLoading ? (
+                <LoadingInline message="Loading injuries…" />
+              ) : fullDetailError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {fullDetailError}
+                </p>
+              ) : (fullDetail?.injuries || []).length === 0 ? (
+                <p className="text-sm text-gray-600">No injuries on file yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {fullDetail.injuries.map((inj) => (
+                    <li key={inj.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {[inj.body_part, inj.symptom_type].filter(Boolean).join(' · ') || 'Injury'}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {[inj.severity_level, inj.first_reported_date].filter(Boolean).join(' · ') || '—'}
+                      </p>
+                      {inj.notes ? <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{inj.notes}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
+
+          {activeTab === 'insurance' ? (
+            <div className="space-y-3">
+              {fullDetailLoading ? (
+                <LoadingInline message="Loading insurance…" />
+              ) : fullDetailError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {fullDetailError}
+                </p>
+              ) : (fullDetail?.policies || []).length === 0 ? (
+                <p className="text-sm text-gray-600">No insurance policies on file.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {fullDetail.policies.map((p) => (
+                    <li key={p.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {p.carrier_name || 'Policy'}{' '}
+                        {p.policy_type ? (
+                          <span className="text-xs font-semibold text-gray-500">
+                            · {String(p.policy_type).replace(/_/g, ' ')}
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {[p.policy_number ? `#${p.policy_number}` : null, p.claim_number ? `Claim ${p.claim_number}` : null]
+                          .filter(Boolean)
+                          .join(' · ') || '—'}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
+
+          {activeTab === 'treatment' ? (
+            <div className="space-y-3">
+              <div className="text-sm text-gray-600">
+                This is a suggested routing based on your documented injuries and insurance coverage.
+              </div>
+              {/* existing Treatment Pathway card lives below; keep it visible by jumping the user */}
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
+                Scroll down to the <span className="font-semibold">Treatment Pathway</span> section below.
+              </div>
+            </div>
+          ) : null}
+
+          {activeTab === 'timeline' ? (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <p className="text-sm font-semibold text-gray-900">Totals</p>
+                <p className="text-sm text-gray-700 mt-1">
+                  Total billed: <span className="font-semibold">${Number(visitTotals.totalBilled || 0).toLocaleString()}</span>
+                  {' · '}
+                  Bills received: <span className="font-semibold">${Number(visitTotals.totalReceived || 0).toLocaleString()}</span>
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-4">
+                <p className="text-sm font-semibold text-gray-900">Narrative timeline</p>
+                {treatmentTimelineLoading ? (
+                  <div className="mt-2">
+                    <LoadingInline message="Loading narrative timeline…" />
+                  </div>
+                ) : treatmentTimelineError ? (
+                  <p className="mt-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    {treatmentTimelineError}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
+                    {treatmentTimeline?.timelineText || treatmentTimeline?.narrative || '—'}
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-4">
+                <p className="text-sm font-semibold text-gray-900">Visits</p>
+                {visitsLoading ? (
+                  <div className="mt-2">
+                    <LoadingInline message="Loading visits…" />
+                  </div>
+                ) : visitsError ? (
+                  <p className="mt-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    {visitsError}
+                  </p>
+                ) : visits.length === 0 ? (
+                  <p className="mt-2 text-sm text-gray-600">No visits on file.</p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {visits.map((v) => (
+                      <li key={v.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatISODate(v.visit_date)}{' '}
+                          <span className="text-xs font-semibold text-gray-500">
+                            · {String(v.visit_type || 'visit').replace(/_/g, ' ')}
+                          </span>
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {v.provider_name || v.provider_name_override || '—'}
+                          {v.billed_amount != null ? ` · $${Number(v.billed_amount).toLocaleString()}` : ''}
+                        </p>
+                        {v.diagnosis_summary ? (
+                          <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{v.diagnosis_summary}</p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {activeTab === 'documents' ? (
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
+              Scroll down to the <span className="font-semibold">My Documents</span> section below.
+            </div>
+          ) : null}
+
+          {activeTab === 'red_flags' ? (
+            <div className="space-y-3">
+              {fullDetailLoading ? (
+                <LoadingInline message="Loading red flags…" />
+              ) : fullDetailError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {fullDetailError}
+                </p>
+              ) : (fullDetail?.redFlags || []).length === 0 ? (
+                <p className="text-sm text-gray-600">No red flags detected.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {fullDetail.redFlags.map((f) => (
+                    <li key={f.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {String(f.flag_type || 'flag').replace(/_/g, ' ')}
+                        {f.severity ? (
+                          <span className="text-xs font-semibold text-gray-500"> · {String(f.severity)}</span>
+                        ) : null}
+                      </p>
+                      {f.explanation ? (
+                        <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{f.explanation}</p>
+                      ) : null}
+                      {f.recommended_action ? (
+                        <p className="text-xs text-gray-600 mt-2">
+                          <span className="font-semibold">Recommended:</span> {f.recommended_action}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
+
+          {activeTab === 'documentation_summary' ? (
+            <div className="space-y-4">
+              {claimSummaryLoading ? (
+                <LoadingInline message="Loading documentation summary…" />
+              ) : claimSummaryError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {claimSummaryError}
+                </p>
+              ) : claimSummary ? (
+                <>
+                  <div className="rounded-xl border border-gray-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-gray-900">Accident summary</p>
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap mt-2">
+                      {claimSummary.accidentSummary?.markdown || claimSummary.accidentSummary?.text || '—'}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-gray-900">Treatment timeline</p>
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap mt-2">
+                      {claimSummary.treatmentTimeline?.markdown || claimSummary.treatmentTimeline?.text || '—'}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-gray-900">Documentation index</p>
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap mt-2">
+                      {claimSummary.documentationIndex?.markdown || claimSummary.documentationIndex?.text || '—'}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-gray-600">No documentation summary found.</p>
+              )}
+            </div>
+          ) : null}
+
+          {activeTab === 'settlement' ? (
+            <div className="space-y-4">
+              {settlementLoading ? (
+                <LoadingInline message="Loading settlement…" />
+              ) : settlementError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {settlementError}
+                </p>
+              ) : settlement ? (
+                <>
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <p className="text-sm font-semibold text-gray-900">Readiness</p>
+                    <p className="text-sm text-gray-700 mt-1">
+                      {settlement.readiness?.ready ? (
+                        <span className="font-semibold text-green-700">Ready</span>
+                      ) : (
+                        <span className="font-semibold text-amber-700">Not ready</span>
+                      )}
+                    </p>
+                    {Array.isArray(settlement.readiness?.blockers) && settlement.readiness.blockers.length > 0 ? (
+                      <ul className="mt-2 text-sm text-gray-700 list-disc pl-5">
+                        {settlement.readiness.blockers.map((b) => (
+                          <li key={b}>{b}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-xl border border-gray-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-gray-900">Settlement tracker</p>
+                    {settlement.tracker ? (
+                      <div className="mt-2 text-sm text-gray-800 space-y-1">
+                        <div>
+                          Status: <span className="font-semibold">{settlement.tracker.demand_status || '—'}</span>
+                        </div>
+                        <div>
+                          Demand: <span className="font-semibold">{settlement.tracker.demand_amount ?? '—'}</span>
+                        </div>
+                        <div>
+                          Final: <span className="font-semibold">{settlement.tracker.final_settlement ?? '—'}</span>
+                        </div>
+                        {settlement.tracker.notes ? (
+                          <div className="pt-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase">Notes</p>
+                            <p className="text-sm text-gray-800 whitespace-pre-wrap mt-1">{settlement.tracker.notes}</p>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-gray-600">No settlement tracker has been created yet.</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-gray-600">No settlement data.</p>
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
