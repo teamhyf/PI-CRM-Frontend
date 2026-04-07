@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useClaimantAuth } from '../../context/ClaimantAuthContext';
 import { LoadingBlock, LoadingInline } from '../../components/LoadingSpinner';
 import VisitsTimeline from '../../components/VisitsTimeline';
+import CaseDocumentsTab from '../../components/CaseDocumentsTab';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -1773,92 +1774,7 @@ export function PortalCaseDetail() {
           ) : null}
 
           {activeTab === 'documents' ? (
-            <div className="space-y-6">
-              <h3 className="text-lg font-bold text-gray-900">Documents</h3>
-
-              <form onSubmit={handleUpload} className="space-y-3">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Document Type</label>
-                    <select
-                      value={uploadDocType}
-                      onChange={(e) => setUploadDocType(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      {DOC_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
-                      File <span className="text-gray-400">(max 25 MB)</span>
-                    </label>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.txt"
-                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                      className="w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
-                    />
-                  </div>
-                </div>
-
-                {uploadError && (
-                  <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{uploadError}</p>
-                )}
-                {uploadSuccess && (
-                  <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                    {uploadSuccess}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={!uploadFile || uploading}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {uploading ? 'Uploading…' : 'Upload Document'}
-                </button>
-              </form>
-
-              {docsLoading ? (
-                <LoadingInline message="Loading documents…" />
-              ) : docsError ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{docsError}</p>
-              ) : docs.length === 0 ? (
-                <p className="text-sm text-gray-500 italic">No documents uploaded yet.</p>
-              ) : (
-                <ul className="divide-y divide-gray-100">
-                  {docs.map((doc) => (
-                    <li key={doc.id} className="flex items-start justify-between gap-4 py-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{doc.file_name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {DOC_TYPES.find((t) => t.value === doc.document_type)?.label || doc.document_type}
-                          {' · '}
-                          {formatISODate(doc.uploaded_at)}
-                          {' · '}
-                          <span className={doc.uploaded_by === 'user' ? 'text-indigo-600 font-medium' : 'text-gray-400'}>
-                            {doc.uploaded_by === 'user' ? 'Uploaded by you' : 'Added by staff'}
-                          </span>
-                        </p>
-                        {doc.ai_summary && <p className="text-xs text-gray-600 mt-1 italic">{doc.ai_summary}</p>}
-                      </div>
-                      <span
-                        className={`flex-shrink-0 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                          STATUS_STYLES[doc.document_status] || 'bg-gray-100 text-gray-700 border-gray-200'
-                        }`}
-                      >
-                        {STATUS_LABELS[doc.document_status] || doc.document_status}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <CaseDocumentsTab caseId={caseIdNum} apiPrefix="/api/portal" token={token} />
           ) : null}
 
           {activeTab === 'red_flags' ? (

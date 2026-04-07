@@ -43,8 +43,13 @@ function CompletenessBar({ score }) {
   );
 }
 
-export default function CaseDocumentsTab({ caseId }) {
+export default function CaseDocumentsTab({
+  caseId,
+  apiPrefix = '/api',
+  token: tokenOverride,
+}) {
   const { token } = useAuth();
+  const authToken = tokenOverride || token;
   const [documents, setDocuments] = useState([]);
   const [completenessScore, setCompletenessScore] = useState(0);
   const [missing, setMissing] = useState([]);
@@ -65,8 +70,8 @@ export default function CaseDocumentsTab({ caseId }) {
       setLoading(true);
       setError('');
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/cases/${caseId}/documents`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${base}${apiPrefix}/cases/${caseId}/documents`, {
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to load documents');
@@ -81,7 +86,7 @@ export default function CaseDocumentsTab({ caseId }) {
     } finally {
       setLoading(false);
     }
-  }, [caseId, token]);
+  }, [apiPrefix, authToken, caseId]);
 
   useEffect(() => {
     fetchDocuments();
@@ -99,9 +104,9 @@ export default function CaseDocumentsTab({ caseId }) {
 
     try {
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/cases/${caseId}/documents`, {
+      const res = await fetch(`${base}${apiPrefix}/cases/${caseId}/documents`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${authToken}` },
         body: formData,
       });
       const data = await res.json().catch(() => ({}));
@@ -159,11 +164,11 @@ export default function CaseDocumentsTab({ caseId }) {
   const handleStatusChange = async (docId, newStatus) => {
     try {
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/documents/${docId}`, {
+      const res = await fetch(`${base}${apiPrefix}/documents/${docId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -178,9 +183,9 @@ export default function CaseDocumentsTab({ caseId }) {
   const handleDelete = async (docId) => {
     try {
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/documents/${docId}`, {
+      const res = await fetch(`${base}${apiPrefix}/documents/${docId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
