@@ -23,6 +23,23 @@ const providerTypeLabel = (t) =>
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
 
+const statusBadgeClasses = (status) => {
+  switch (status) {
+    case 'suggested':
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+    case 'scheduled':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'completed':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'declined':
+      return 'bg-red-100 text-red-800 border-red-200';
+    case 'no_response':
+      return 'bg-amber-100 text-amber-800 border-amber-200';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
+};
+
 const DOC_TYPES = [
   { value: 'police_report', label: 'Police Report' },
   { value: 'vehicle_photos', label: 'Vehicle Photos' },
@@ -177,6 +194,11 @@ export function PortalCaseDetail() {
   const [insuranceSummary, setInsuranceSummary] = useState(null);
   const [insuranceLoading, setInsuranceLoading] = useState(false);
   const [insuranceError, setInsuranceError] = useState('');
+
+  const [referralsLoading, setReferralsLoading] = useState(false);
+  const [referralsError, setReferralsError] = useState('');
+  const [referrals, setReferrals] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
 
   const [participantsList, setParticipantsList] = useState([]);
   const [participantsLoading, setParticipantsLoading] = useState(false);
@@ -469,6 +491,43 @@ export function PortalCaseDetail() {
     loadInsuranceSummary();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, caseIdNum]);
+
+  const loadReferrals = async () => {
+    if (!token || !caseIdNum) return;
+    setReferralsLoading(true);
+    setReferralsError('');
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/referrals`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to load referrals');
+      setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
+      setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+    } catch (e) {
+      setReferralsError(e.message || 'Failed to load referrals');
+    } finally {
+      setReferralsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReferrals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, caseIdNum]);
+
+  const patchReferralStatus = async (referralId, nextStatus) => {
+    const base = getBaseUrl();
+    const res = await fetch(`${base}/api/portal/referrals/${referralId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ referral_status: nextStatus }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to update referral');
+    return data;
+  };
 
   const loadParticipants = async () => {
     if (!token || !caseIdNum) return;
@@ -1636,28 +1695,138 @@ export function PortalCaseDetail() {
 
           {activeTab === 'treatment' ? (
             <div className="space-y-4">
-              <div className="text-sm text-gray-600">
-                This is a suggested routing based on your documented injuries and insurance coverage.
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Suggested Referrals</h2>
+                <p className="text-sm text-gray-600">Auto-mapped based on documented injuries.</p>
+
+                {referralsLoading ? (
+                  <div className="mt-4 rounded-lg border border-gray-200 bg-white px-4 py-3">
+                    <LoadingInline message="Loading referral data…" />
+                  </div>
+                ) : referralsError ? (
+                  <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">
+                    {referralsError}
+                  </div>
+                ) : suggestions.length === 0 ? (
+                  <div className="mt-4 text-sm text-gray-600">No suggestions available yet.</div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {suggestions.map((s) => (
+                      <div key={s.id} className="border border-gray-200 rounded-xl p-4 bg-white">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">
+                              {s.provider_name}{' '}
+                              <span className="text-gray-500 font-normal">
+                                ({providerTypeLabel(s.provider_type)})
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-600 mt-1">
+                              Injury mapping:{' '}
+                              {(s.injury_ids || [])
+                                .map((id) => (injuriesList || []).find((x) => Number(x.id) === Number(id)))
+                                .filter(Boolean)
+                                .map((inj) =>
+                                  [providerTypeLabel(inj.body_part), inj.symptom_type, inj.severity_level]
+                                    .filter(Boolean)
+                                    .join(' • ')
+                                )
+                                .join(', ') || '—'}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await patchReferralStatus(s.id, 'scheduled');
+                                await loadReferrals();
+                              } catch (e) {
+                                alert(e.message || 'Failed to schedule');
+                              }
+                            }}
+                            className="px-3 py-2 text-sm font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+                          >
+                            Schedule
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {pathwayLoading ? (
-                <LoadingInline message="Loading treatment pathway…" />
-              ) : pathwayError ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">{pathwayError}</p>
-              ) : pathway ? (
-                <div className="space-y-4">
-                  {pathway.introText ? <div className="text-sm text-gray-900 whitespace-pre-wrap">{pathway.introText}</div> : null}
-                  {(pathway.suggestedProviderTypeList || []).map((t) => (
-                    <div key={t} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                      <div className="text-sm font-semibold text-gray-900">{providerTypeLabel(t)}</div>
-                      <div className="text-sm text-gray-700 mt-1">{pathway.providerDescriptions?.[t] || '—'}</div>
-                    </div>
-                  ))}
-                  {pathway.closingNote ? <div className="text-sm text-gray-900 whitespace-pre-wrap font-medium">{pathway.closingNote}</div> : null}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-600">No pathway available.</p>
-              )}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Referral Status Tracker</h2>
+                <p className="text-sm text-gray-600">Track suggested → scheduled → completed referral outcomes.</p>
+
+                {referralsLoading ? (
+                  <div className="mt-4 rounded-lg border border-gray-200 bg-white px-4 py-3">
+                    <LoadingInline message="Loading referrals…" />
+                  </div>
+                ) : referrals.length === 0 ? (
+                  <div className="mt-4 text-sm text-gray-600">No referrals yet.</div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {referrals.map((r) => (
+                      <div key={r.id} className="border border-gray-200 rounded-xl p-4 bg-white">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">
+                              {r.provider_name}{' '}
+                              <span className="text-gray-500 font-normal">
+                                ({providerTypeLabel(r.provider_type)})
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-600 mt-1">
+                              Injury mapping:{' '}
+                              {(r.injury_ids || [])
+                                .map((id) => (injuriesList || []).find((x) => Number(x.id) === Number(id)))
+                                .filter(Boolean)
+                                .map((inj) =>
+                                  [providerTypeLabel(inj.body_part), inj.symptom_type, inj.severity_level]
+                                    .filter(Boolean)
+                                    .join(' • ')
+                                )
+                                .join(', ') || '—'}
+                            </div>
+                            {r.notes ? (
+                              <div className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{r.notes}</div>
+                            ) : null}
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusBadgeClasses(
+                                r.referral_status
+                              )}`}
+                            >
+                              {String(r.referral_status || 'suggested').replace(/_/g, ' ')}
+                            </span>
+                            <select
+                              value={r.referral_status || 'suggested'}
+                              onChange={async (e) => {
+                                try {
+                                  await patchReferralStatus(r.id, e.target.value);
+                                  await loadReferrals();
+                                } catch (err) {
+                                  alert(err.message || 'Failed to update');
+                                }
+                              }}
+                              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold"
+                            >
+                              {['suggested', 'scheduled', 'completed', 'declined', 'no_response'].map((s) => (
+                                <option key={s} value={s}>
+                                  {s}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ) : null}
 
