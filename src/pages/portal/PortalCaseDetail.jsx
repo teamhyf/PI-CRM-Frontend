@@ -77,6 +77,50 @@ function TabButton({ active, onClick, children }) {
   );
 }
 
+function statutePlanningReference(dateOfLoss) {
+  if (!dateOfLoss) return null;
+  const d = new Date(dateOfLoss);
+  if (Number.isNaN(d.getTime())) return null;
+  const ref = new Date(d);
+  ref.setFullYear(ref.getFullYear() + 2);
+  return ref;
+}
+
+function summarizeInjuriesFromRecords(injuries) {
+  if (!Array.isArray(injuries) || injuries.length === 0) return '';
+  const fmt = (s) => (s == null ? '' : String(s).replace(/_/g, ' '));
+  return injuries
+    .map((i) => {
+      const parts = [
+        fmt(i.body_part),
+        fmt(i.symptom_type),
+        i.severity_level ? `${fmt(i.severity_level)} severity` : null,
+        i.first_reported_date ? `first reported ${String(i.first_reported_date).slice(0, 10)}` : null,
+        i.ongoing === 1 || i.ongoing === true ? 'ongoing' : null,
+      ].filter(Boolean);
+      const line = parts.join(' · ');
+      const note = i.notes
+        ? ` — ${String(i.notes).trim().slice(0, 160)}${String(i.notes).length > 160 ? '…' : ''}`
+        : '';
+      return line ? `• ${line}${note}` : null;
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function getBandColor(band) {
+  if (band === '100k_plus') return 'bg-green-100 text-green-800 border-green-200';
+  if (band === '50k' || band === '25k') return 'bg-amber-100 text-amber-800 border-amber-200';
+  if (band === 'under_25k') return 'bg-red-100 text-red-800 border-red-200';
+  return 'bg-gray-100 text-gray-700 border-gray-200';
+}
+
+function formatCurrency(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return '—';
+  return `$${num.toLocaleString()}`;
+}
+
 export function PortalCaseDetail() {
   const { claimantId: claimantIdParam } = useParams();
   const targetClaimantId = Number(claimantIdParam);
@@ -130,6 +174,10 @@ export function PortalCaseDetail() {
   const [settlementError, setSettlementError] = useState('');
   const [settlement, setSettlement] = useState(null);
 
+  const [insuranceSummary, setInsuranceSummary] = useState(null);
+  const [insuranceLoading, setInsuranceLoading] = useState(false);
+  const [insuranceError, setInsuranceError] = useState('');
+
   const [participantsList, setParticipantsList] = useState([]);
   const [participantsLoading, setParticipantsLoading] = useState(false);
   const [participantsError, setParticipantsError] = useState('');
@@ -174,6 +222,11 @@ export function PortalCaseDetail() {
     policyLimitPerOccurrence: '',
   });
   const [policySaving, setPolicySaving] = useState(false);
+
+  const [policyModalOpen, setPolicyModalOpen] = useState(false);
+  const [policyModalMode, setPolicyModalMode] = useState('create'); // create | edit
+  const [editingPolicyId, setEditingPolicyId] = useState(null);
+  const [policyModalError, setPolicyModalError] = useState('');
 
   const caseIdNum =
     fullDetail?.id ||
@@ -390,6 +443,33 @@ export function PortalCaseDetail() {
     };
   }, [token, caseIdNum]);
 
+  const loadInsuranceSummary = async () => {
+    if (!token || !caseIdNum) return;
+    setInsuranceLoading(true);
+    setInsuranceError('');
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/insurance-summary`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.error || data?.message || `Failed to load insurance summary (${res.status})`;
+        throw new Error(msg);
+      }
+      setInsuranceSummary(data || null);
+    } catch (e) {
+      setInsuranceError(e.message || 'Failed to load insurance summary');
+    } finally {
+      setInsuranceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadInsuranceSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, caseIdNum]);
+
   const loadParticipants = async () => {
     if (!token || !caseIdNum) return;
     setParticipantsLoading(true);
@@ -586,6 +666,7 @@ export function PortalCaseDetail() {
         policyLimitPerOccurrence: '',
       });
       await loadPolicies();
+      await loadInsuranceSummary();
     } catch (e) {
       setPoliciesError(e.message || 'Failed to create policy');
     } finally {
@@ -605,8 +686,93 @@ export function PortalCaseDetail() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to delete policy');
       await loadPolicies();
+      await loadInsuranceSummary();
     } catch (e) {
       alert(e.message || 'Failed to delete');
+    }
+  };
+
+  const openCreatePolicyModal = () => {
+    setPolicyModalMode('create');
+    setEditingPolicyId(null);
+    setPolicyModalError('');
+    setPolicyForm({
+      policyType: 'bodily_injury',
+      carrierName: '',
+      policyNumber: '',
+      claimNumber: '',
+      adjusterName: '',
+      adjusterEmail: '',
+      adjusterPhone: '',
+      policyLimitPerPerson: '',
+      policyLimitPerOccurrence: '',
+    });
+    setPolicyModalOpen(true);
+  };
+
+  const openEditPolicyModal = (p) => {
+    setPolicyModalMode('edit');
+    setEditingPolicyId(p.id);
+    setPolicyModalError('');
+    setPolicyForm({
+      policyType: p.policy_type || 'bodily_injury',
+      carrierName: p.carrier_name || '',
+      policyNumber: p.policy_number || '',
+      claimNumber: p.claim_number || '',
+      adjusterName: p.adjuster_name || '',
+      adjusterEmail: p.adjuster_email || '',
+      adjusterPhone: p.adjuster_phone || '',
+      policyLimitPerPerson: p.policy_limit_per_person != null ? String(p.policy_limit_per_person) : '',
+      policyLimitPerOccurrence: p.policy_limit_per_occurrence != null ? String(p.policy_limit_per_occurrence) : '',
+    });
+    setPolicyModalOpen(true);
+  };
+
+  const savePolicyModal = async (e) => {
+    e.preventDefault();
+    if (!token || !caseIdNum) return;
+    setPolicySaving(true);
+    setPolicyModalError('');
+    try {
+      const base = getBaseUrl();
+      const body = {
+        policyType: policyForm.policyType,
+        carrierName: policyForm.carrierName || null,
+        policyNumber: policyForm.policyNumber || null,
+        claimNumber: policyForm.claimNumber || null,
+        adjusterName: policyForm.adjusterName || null,
+        adjusterEmail: policyForm.adjusterEmail || null,
+        adjusterPhone: policyForm.adjusterPhone || null,
+        policyLimitPerPerson: policyForm.policyLimitPerPerson !== '' ? Number(policyForm.policyLimitPerPerson) : null,
+        policyLimitPerOccurrence:
+          policyForm.policyLimitPerOccurrence !== '' ? Number(policyForm.policyLimitPerOccurrence) : null,
+      };
+
+      if (policyModalMode === 'edit' && editingPolicyId) {
+        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/insurance-policies/${editingPolicyId}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to update policy');
+      } else {
+        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/insurance-policies`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to create policy');
+      }
+
+      setPolicyModalOpen(false);
+      await loadPolicies();
+      await loadInsuranceSummary();
+    } catch (err) {
+      setPolicyModalError(err.message || 'Failed to save policy');
+    } finally {
+      setPolicySaving(false);
     }
   };
 
@@ -852,125 +1018,91 @@ export function PortalCaseDetail() {
               ) : error ? (
                 <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div>
               ) : caseData ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</p>
-                    <p className="text-lg font-bold text-gray-900 mt-1">
-                      {String(normalizedCaseStatus).replace(/_/g, ' ').toUpperCase()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Accident type</p>
-                    <p className="text-sm font-semibold text-gray-900 mt-1">{caseData.accidentType || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Date of loss</p>
-                    <p className="text-sm font-semibold text-gray-900 mt-1">{formatISODate(caseData.dateOfLoss)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Created</p>
-                    <p className="text-sm font-semibold text-gray-900 mt-1">{formatISODate(caseData.createdAt)}</p>
-                  </div>
-                </div>
+                (() => {
+                  const statuteRefDate = !fullDetail?.statute_deadline
+                    ? statutePlanningReference(fullDetail?.date_of_loss || caseData.dateOfLoss)
+                    : null;
+                  const fromRecords = summarizeInjuriesFromRecords(fullDetail?.injuries || []);
+                  const injuryNarrative =
+                    (fullDetail?.injury_summary && String(fullDetail.injury_summary).trim()) || fromRecords;
+                  const showCompiledNote = !(fullDetail?.injury_summary && String(fullDetail.injury_summary).trim()) && !!fromRecords;
+
+                  return (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Jurisdiction State</label>
+                          <p className="text-gray-900 mt-1">{fullDetail?.jurisdiction_state || 'Not set'}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Statute Deadline</label>
+                          {fullDetail?.statute_deadline ? (
+                            <p className="text-gray-900 mt-1 font-medium">
+                              {new Date(fullDetail.statute_deadline).toLocaleDateString()}
+                            </p>
+                          ) : (
+                            <div className="mt-1">
+                              <p className="text-gray-600">Not set on file</p>
+                              {statuteRefDate ? (
+                                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-950">
+                                  <span className="font-semibold">Planning reference only:</span>{' '}
+                                  {statuteRefDate.toLocaleDateString()} (2 years after date of loss). Limitations law
+                                  varies by state and claim type — confirm with counsel and save the official deadline on
+                                  the case when known.
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Estimated Severity</label>
+                          <p className="text-gray-900 mt-1">
+                            {fullDetail?.estimated_severity_score != null ? `${fullDetail.estimated_severity_score}/100` : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Risk Score</label>
+                          <p className="text-gray-900 mt-1">{fullDetail?.risk_score != null ? `${fullDetail.risk_score}/100` : '—'}</p>
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700">Insurance Coverage Note</label>
+                          <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                            {insuranceLoading ? (
+                              <LoadingInline message="Loading coverage note…" className="py-2" />
+                            ) : insuranceError ? (
+                              <p className="text-sm text-red-700">{insuranceError}</p>
+                            ) : (
+                              <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                                {insuranceSummary?.coverageNote || 'No insurance summary yet.'}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Liability Summary</label>
+                        <p className="text-gray-900 mt-1 whitespace-pre-wrap">{fullDetail?.liability_summary || 'No summary'}</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Injury Summary</label>
+                        <p className="text-gray-900 mt-1 whitespace-pre-wrap">
+                          {injuryNarrative || 'No summary — add injuries on the Injuries tab or enter a narrative.'}
+                        </p>
+                        {showCompiledNote ? (
+                          <p className="text-xs text-gray-500 mt-2">
+                            Compiled from structured injury records (the narrative field on the case is still empty).
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })()
               ) : (
                 <p className="text-sm text-gray-600">No case found.</p>
               )}
-
-              {/* Overview should include the case record (admin parity) */}
-              <div className="mt-8">
-                <h3 className="text-lg font-bold text-gray-900 mb-1">Case record</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Same information your legal team sees for this matter. Update the narrative fields below as your
-                  situation changes.
-                </p>
-
-                {fullDetailLoading ? (
-                  <LoadingInline message="Loading case record…" />
-                ) : fullDetailError ? (
-                  <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    {fullDetailError}
-                  </p>
-                ) : fullDetail ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                        <p className="text-xs font-semibold text-gray-500 uppercase">AI viability</p>
-                        <p className="font-semibold text-gray-900 mt-1">
-                          {fullDetail.ai_viability_score != null ? `${fullDetail.ai_viability_score}/100` : '—'}
-                        </p>
-                      </div>
-                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                        <p className="text-xs font-semibold text-gray-500 uppercase">Risk score</p>
-                        <p className="font-semibold text-gray-900 mt-1">
-                          {fullDetail.risk_score != null ? `${fullDetail.risk_score}/100` : '—'}
-                        </p>
-                      </div>
-                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                        <p className="text-xs font-semibold text-gray-500 uppercase">Severity (est.)</p>
-                        <p className="font-semibold text-gray-900 mt-1">
-                          {fullDetail.estimated_severity_score != null ? `${fullDetail.estimated_severity_score}/100` : '—'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {fullDetail.ai_summary ? (
-                      <div>
-                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">AI summary</p>
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap border border-gray-100 rounded-xl p-3 bg-gray-50/80">
-                          {fullDetail.ai_summary}
-                        </p>
-                      </div>
-                    ) : null}
-
-                    <form onSubmit={handleSaveCaseInfo} className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Liability / accident narrative</label>
-                        <textarea
-                          value={editLiability}
-                          onChange={(e) => setEditLiability(e.target.value)}
-                          rows={4}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Injury narrative</label>
-                        <textarea
-                          value={editInjury}
-                          onChange={(e) => setEditInjury(e.target.value)}
-                          rows={4}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Additional notes</label>
-                        <textarea
-                          value={editNotes}
-                          onChange={(e) => setEditNotes(e.target.value)}
-                          rows={3}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                      {saveCaseError ? (
-                        <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{saveCaseError}</p>
-                      ) : null}
-                      {saveCaseOk ? (
-                        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                          Saved. Your legal team can review updates.
-                        </p>
-                      ) : null}
-                      <button
-                        type="submit"
-                        disabled={savingCase}
-                        className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
-                      >
-                        {savingCase ? 'Saving…' : 'Save updates'}
-                      </button>
-                    </form>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-600">No extended record available.</p>
-                )}
-              </div>
             </>
           ) : null}
 
@@ -1085,23 +1217,42 @@ export function PortalCaseDetail() {
 
           {activeTab === 'injuries' ? (
             <div className="space-y-3">
-              <form onSubmit={createInjury} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <form onSubmit={createInjury} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Body part</label>
-                    <input
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Body Part</label>
+                    <select
                       value={injuryForm.bodyPart}
                       onChange={(e) => setInjuryForm((p) => ({ ...p, bodyPart: e.target.value }))}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    />
+                    >
+                      <option value="neck">Neck</option>
+                      <option value="low_back">Low Back</option>
+                      <option value="mid_back">Mid Back</option>
+                      <option value="shoulder">Shoulder</option>
+                      <option value="knee">Knee</option>
+                      <option value="head">Head</option>
+                      <option value="wrist">Wrist</option>
+                      <option value="ankle">Ankle</option>
+                      <option value="hip">Hip</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Symptom</label>
-                    <input
+                    <select
                       value={injuryForm.symptomType}
                       onChange={(e) => setInjuryForm((p) => ({ ...p, symptomType: e.target.value }))}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    />
+                    >
+                      <option value="pain">Pain</option>
+                      <option value="numbness">Numbness</option>
+                      <option value="tingling">Tingling</option>
+                      <option value="headaches">Headaches</option>
+                      <option value="weakness">Weakness</option>
+                      <option value="limited_motion">Limited Motion</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Severity</label>
@@ -1110,15 +1261,13 @@ export function PortalCaseDetail() {
                       onChange={(e) => setInjuryForm((p) => ({ ...p, severityLevel: e.target.value }))}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                     >
-                      <option value="mild">mild</option>
-                      <option value="moderate">moderate</option>
-                      <option value="severe">severe</option>
+                      <option value="mild">Mild</option>
+                      <option value="moderate">Moderate</option>
+                      <option value="severe">Severe</option>
                     </select>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">First reported</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">First Reported</label>
                     <input
                       type="date"
                       value={injuryForm.firstReportedDate}
@@ -1126,7 +1275,10 @@ export function PortalCaseDetail() {
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
                     />
                   </div>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 mt-6">
+                </div>
+
+                <div className="flex flex-wrap items-center gap-6">
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
                     <input
                       type="checkbox"
                       checked={!!injuryForm.ongoing}
@@ -1134,7 +1286,7 @@ export function PortalCaseDetail() {
                     />
                     Ongoing
                   </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700 mt-6">
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
                     <input
                       type="checkbox"
                       checked={!!injuryForm.priorSimilarInjury}
@@ -1143,6 +1295,7 @@ export function PortalCaseDetail() {
                     Prior similar injury
                   </label>
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
                   <textarea
@@ -1150,17 +1303,20 @@ export function PortalCaseDetail() {
                     onChange={(e) => setInjuryForm((p) => ({ ...p, notes: e.target.value }))}
                     rows={2}
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    placeholder="Optional"
                   />
                 </div>
+
                 {injuriesError ? (
                   <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{injuriesError}</p>
                 ) : null}
+
                 <button
                   type="submit"
                   disabled={injurySaving}
                   className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  {injurySaving ? 'Adding…' : 'Add injury'}
+                  {injurySaving ? 'Adding…' : 'Add Injury'}
                 </button>
               </form>
 
@@ -1169,132 +1325,312 @@ export function PortalCaseDetail() {
               ) : injuriesList.length === 0 ? (
                 <p className="text-sm text-gray-600">No injuries on file yet.</p>
               ) : (
-                <ul className="space-y-2">
-                  {injuriesList.map((inj) => (
-                    <li key={inj.id} className="rounded-xl border border-gray-200 bg-white p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {[inj.body_part, inj.symptom_type].filter(Boolean).join(' · ') || 'Injury'}
-                          </p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {[inj.severity_level, inj.first_reported_date].filter(Boolean).join(' · ') || '—'}
-                          </p>
-                          {inj.notes ? <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{inj.notes}</p> : null}
-                        </div>
-                        <button type="button" onClick={() => deleteInjury(inj.id)} className="text-xs font-semibold text-red-700 hover:underline">
-                          Delete
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <h3 className="text-sm font-semibold text-gray-900">Injuries</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          <th className="px-4 py-3">Body Part</th>
+                          <th className="px-4 py-3">Symptom</th>
+                          <th className="px-4 py-3">Severity</th>
+                          <th className="px-4 py-3">First Reported</th>
+                          <th className="px-4 py-3">Status</th>
+                          <th className="px-4 py-3 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {injuriesList.map((inj) => {
+                          const status = inj.ongoing === 1 || inj.ongoing === true ? 'Ongoing' : 'Resolved';
+                          const first = inj.first_reported_date ? String(inj.first_reported_date).slice(0, 10) : '';
+                          return (
+                            <tr key={inj.id} className="hover:bg-gray-50/60">
+                              <td className="px-4 py-3 text-gray-900">{inj.body_part || '—'}</td>
+                              <td className="px-4 py-3 text-gray-700">{inj.symptom_type || '—'}</td>
+                              <td className="px-4 py-3 text-gray-700">{inj.severity_level ? String(inj.severity_level).replace(/_/g, ' ') : '—'}</td>
+                              <td className="px-4 py-3 text-gray-700">{first || '—'}</td>
+                              <td className="px-4 py-3 text-gray-700">{status}</td>
+                              <td className="px-4 py-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => deleteInjury(inj.id)}
+                                  className="text-xs font-semibold text-red-700 hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </div>
           ) : null}
 
           {activeTab === 'insurance' ? (
             <div className="space-y-3">
-              <form onSubmit={createPolicy} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Policy type</label>
-                    <select
-                      value={policyForm.policyType}
-                      onChange={(e) => setPolicyForm((p) => ({ ...p, policyType: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="bodily_injury">Bodily Injury</option>
-                      <option value="property_damage">Property Damage</option>
-                      <option value="medpay">Med-Pay</option>
-                      <option value="uim_um">UIM / UM</option>
-                    </select>
+                    <div className="text-sm font-semibold text-gray-900">Primary BI Coverage</div>
+                    <div className="text-xl font-bold text-gray-900 mt-1">
+                      {formatCurrency(insuranceSummary?.primaryBodyilyInjury?.totalBiLimitPerPerson)}
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1">
+                      <span className="font-semibold">Med-Pay Available:</span>{' '}
+                      {insuranceSummary?.medpayAvailable ? 'Yes' : 'No'}
+                      {' · '}
+                      <span className="font-semibold">Verification Status:</span>{' '}
+                      {Number(insuranceSummary?.verifiedCount || 0)} of {Number(insuranceSummary?.totalPolicies || 0)} policies verified
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Carrier</label>
-                    <input
-                      value={policyForm.carrierName}
-                      onChange={(e) => setPolicyForm((p) => ({ ...p, carrierName: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Policy #</label>
-                    <input
-                      value={policyForm.policyNumber}
-                      onChange={(e) => setPolicyForm((p) => ({ ...p, policyNumber: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    />
-                  </div>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getBandColor(
+                      insuranceSummary?.primaryBodyilyInjury?.policy_band || 'unknown'
+                    )}`}
+                  >
+                    {String(insuranceSummary?.primaryBodyilyInjury?.policy_band || 'unknown').replace(/_/g, ' ').toUpperCase()}
+                  </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Claim #</label>
-                    <input
-                      value={policyForm.claimNumber}
-                      onChange={(e) => setPolicyForm((p) => ({ ...p, claimNumber: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Adjuster name</label>
-                    <input
-                      value={policyForm.adjusterName}
-                      onChange={(e) => setPolicyForm((p) => ({ ...p, adjusterName: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Adjuster email</label>
-                    <input
-                      value={policyForm.adjusterEmail}
-                      onChange={(e) => setPolicyForm((p) => ({ ...p, adjusterEmail: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    />
-                  </div>
+
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  {(() => {
+                    const total = Number(insuranceSummary?.totalPolicies || 0);
+                    const verified = Number(insuranceSummary?.verifiedCount || 0);
+                    const pct = total > 0 ? Math.round((verified / total) * 100) : 0;
+                    return (
+                      <div className="h-3 bg-indigo-600 transition-all" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+                    );
+                  })()}
                 </div>
-                {policiesError ? (
-                  <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{policiesError}</p>
+
+                {insuranceLoading ? (
+                  <div className="pt-1">
+                    <LoadingInline message="Loading coverage note…" />
+                  </div>
+                ) : insuranceError ? (
+                  <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    {insuranceError}
+                  </div>
+                ) : insuranceSummary?.coverageNote ? (
+                  <div className="text-sm text-gray-800 whitespace-pre-wrap pt-1">{insuranceSummary.coverageNote}</div>
                 ) : null}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="text-lg font-bold text-gray-900">Policies</div>
                 <button
-                  type="submit"
-                  disabled={policySaving}
-                  className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                  type="button"
+                  onClick={openCreatePolicyModal}
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
                 >
-                  {policySaving ? 'Adding…' : 'Add policy'}
+                  + Add Policy
                 </button>
-              </form>
+              </div>
+
+              {policiesError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{policiesError}</p>
+              ) : null}
 
               {policiesLoading ? (
-                <LoadingInline message="Loading insurance…" />
+                <LoadingInline message="Loading policies…" />
               ) : policiesList.length === 0 ? (
                 <p className="text-sm text-gray-600">No insurance policies on file.</p>
               ) : (
-                <ul className="space-y-2">
-                  {policiesList.map((p) => (
-                    <li key={p.id} className="rounded-xl border border-gray-200 bg-white p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {p.carrier_name || 'Policy'}{' '}
-                            {p.policy_type ? (
-                              <span className="text-xs font-semibold text-gray-500">· {String(p.policy_type).replace(/_/g, ' ')}</span>
-                            ) : null}
-                          </p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {[p.policy_number ? `#${p.policy_number}` : null, p.claim_number ? `Claim ${p.claim_number}` : null]
-                              .filter(Boolean)
-                              .join(' · ') || '—'}
-                          </p>
+                <div className="space-y-4">
+                  {policiesList.map((p) => {
+                    const band = p.policy_band || insuranceSummary?.primaryBodyilyInjury?.policy_band || 'unknown';
+                    return (
+                      <div key={p.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-gray-700 rounded-full border border-gray-200 px-2 py-0.5 bg-gray-50">
+                                {String(p.policy_type || 'policy').replace(/_/g, ' ')}
+                              </span>
+                              <span className={`text-[10px] font-bold rounded-full border px-2 py-0.5 ${getBandColor(band)}`}>
+                                {String(band).replace(/_/g, ' ').toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="text-sm font-bold text-gray-900">
+                              {p.carrier_name || 'Policy'} {p.policy_number ? `(${p.policy_number})` : ''}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              Limits: {p.policy_limit_per_person != null ? formatCurrency(p.policy_limit_per_person) : '—'} per person,{' '}
+                              {p.policy_limit_per_occurrence != null ? formatCurrency(p.policy_limit_per_occurrence) : '—'} per occurrence
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-2">
+                            <label className="inline-flex items-center gap-2 text-xs font-semibold text-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={!!p.coverage_verified}
+                                onChange={async (e) => {
+                                  try {
+                                    const base = getBaseUrl();
+                                    const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/insurance-policies/${p.id}`, {
+                                      method: 'PATCH',
+                                      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ coverageVerified: e.target.checked }),
+                                    });
+                                    const data = await res.json().catch(() => ({}));
+                                    if (!res.ok) throw new Error(data.error || 'Failed to update verification');
+                                    await loadPolicies();
+                                    await loadInsuranceSummary();
+                                  } catch (err) {
+                                    alert(err.message || 'Failed to update');
+                                  }
+                                }}
+                              />
+                              Verified
+                            </label>
+                            <div className="flex items-center gap-3 text-xs">
+                              <button
+                                type="button"
+                                onClick={() => openEditPolicyModal(p)}
+                                className="font-semibold text-indigo-700 hover:underline"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deletePolicy(p.id)}
+                                className="font-semibold text-red-700 hover:underline"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <button type="button" onClick={() => deletePolicy(p.id)} className="text-xs font-semibold text-red-700 hover:underline">
-                          Delete
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {policyModalOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                  <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl border border-gray-200">
+                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                      <div className="text-lg font-bold text-gray-900">
+                        {policyModalMode === 'edit' ? 'Edit Policy' : 'Add Policy'}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPolicyModalOpen(false)}
+                        className="text-sm font-semibold text-gray-600 hover:text-gray-900"
+                      >
+                        Close
+                      </button>
+                    </div>
+
+                    <form onSubmit={savePolicyModal} className="p-5 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Policy type</label>
+                          <select
+                            value={policyForm.policyType}
+                            onChange={(e) => setPolicyForm((p) => ({ ...p, policyType: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                          >
+                            <option value="bodily_injury">Bodily Injury</option>
+                            <option value="property_damage">Property Damage</option>
+                            <option value="medpay">Med-Pay</option>
+                            <option value="uim_um">UIM / UM</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Carrier</label>
+                          <input
+                            value={policyForm.carrierName}
+                            onChange={(e) => setPolicyForm((p) => ({ ...p, carrierName: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Policy #</label>
+                          <input
+                            value={policyForm.policyNumber}
+                            onChange={(e) => setPolicyForm((p) => ({ ...p, policyNumber: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Claim #</label>
+                          <input
+                            value={policyForm.claimNumber}
+                            onChange={(e) => setPolicyForm((p) => ({ ...p, claimNumber: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Adjuster name</label>
+                          <input
+                            value={policyForm.adjusterName}
+                            onChange={(e) => setPolicyForm((p) => ({ ...p, adjusterName: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Adjuster email</label>
+                          <input
+                            value={policyForm.adjusterEmail}
+                            onChange={(e) => setPolicyForm((p) => ({ ...p, adjusterEmail: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Limit per person</label>
+                          <input
+                            value={policyForm.policyLimitPerPerson}
+                            onChange={(e) => setPolicyForm((p) => ({ ...p, policyLimitPerPerson: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Limit per occurrence</label>
+                          <input
+                            value={policyForm.policyLimitPerOccurrence}
+                            onChange={(e) => setPolicyForm((p) => ({ ...p, policyLimitPerOccurrence: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                            inputMode="numeric"
+                          />
+                        </div>
+                      </div>
+
+                      {policyModalError ? (
+                        <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                          {policyModalError}
+                        </p>
+                      ) : null}
+
+                      <div className="flex items-center justify-end gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setPolicyModalOpen(false)}
+                          className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={policySaving}
+                          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          {policySaving ? 'Saving…' : policyModalMode === 'edit' ? 'Save Changes' : 'Save Policy'}
                         </button>
                       </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                    </form>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
