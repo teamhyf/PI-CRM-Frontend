@@ -390,7 +390,7 @@ export function PortalCaseDetail() {
       setPathwayError('');
       try {
         const base = getBaseUrl();
-        const res = await fetch(`${base}/api/cases/${caseIdNum}/treatment-pathway`, {
+        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/treatment-pathway`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json().catch(() => ({}));
