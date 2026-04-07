@@ -130,6 +130,51 @@ export function PortalCaseDetail() {
   const [settlementError, setSettlementError] = useState('');
   const [settlement, setSettlement] = useState(null);
 
+  const [participantsList, setParticipantsList] = useState([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
+  const [participantsError, setParticipantsError] = useState('');
+  const [participantForm, setParticipantForm] = useState({
+    role: 'claimant',
+    fullName: '',
+    phone: '',
+    email: '',
+    insuranceCarrier: '',
+    policyNumber: '',
+    vehicleInfo: '',
+    notes: '',
+  });
+  const [participantSaving, setParticipantSaving] = useState(false);
+
+  const [injuriesList, setInjuriesList] = useState([]);
+  const [injuriesLoading, setInjuriesLoading] = useState(false);
+  const [injuriesError, setInjuriesError] = useState('');
+  const [injuryForm, setInjuryForm] = useState({
+    bodyPart: 'neck',
+    symptomType: 'pain',
+    severityLevel: 'mild',
+    firstReportedDate: '',
+    ongoing: true,
+    priorSimilarInjury: false,
+    notes: '',
+  });
+  const [injurySaving, setInjurySaving] = useState(false);
+
+  const [policiesList, setPoliciesList] = useState([]);
+  const [policiesLoading, setPoliciesLoading] = useState(false);
+  const [policiesError, setPoliciesError] = useState('');
+  const [policyForm, setPolicyForm] = useState({
+    policyType: 'bodily_injury',
+    carrierName: '',
+    policyNumber: '',
+    claimNumber: '',
+    adjusterName: '',
+    adjusterEmail: '',
+    adjusterPhone: '',
+    policyLimitPerPerson: '',
+    policyLimitPerOccurrence: '',
+  });
+  const [policySaving, setPolicySaving] = useState(false);
+
   const caseIdNum =
     fullDetail?.id ||
     (caseData?.caseId ? Number(String(caseData.caseId).replace(/^CASE-/, '')) : null);
@@ -344,6 +389,226 @@ export function PortalCaseDetail() {
       cancelled = true;
     };
   }, [token, caseIdNum]);
+
+  const loadParticipants = async () => {
+    if (!token || !caseIdNum) return;
+    setParticipantsLoading(true);
+    setParticipantsError('');
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/participants`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to load participants');
+      setParticipantsList(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setParticipantsError(e.message || 'Failed to load participants');
+    } finally {
+      setParticipantsLoading(false);
+    }
+  };
+
+  const loadInjuries = async () => {
+    if (!token || !caseIdNum) return;
+    setInjuriesLoading(true);
+    setInjuriesError('');
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/injuries`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to load injuries');
+      setInjuriesList(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setInjuriesError(e.message || 'Failed to load injuries');
+    } finally {
+      setInjuriesLoading(false);
+    }
+  };
+
+  const loadPolicies = async () => {
+    if (!token || !caseIdNum) return;
+    setPoliciesLoading(true);
+    setPoliciesError('');
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/insurance-policies`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to load insurance policies');
+      setPoliciesList(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setPoliciesError(e.message || 'Failed to load insurance policies');
+    } finally {
+      setPoliciesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!token || !caseIdNum) return;
+    loadParticipants();
+    loadInjuries();
+    loadPolicies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, caseIdNum]);
+
+  const createParticipant = async (e) => {
+    e.preventDefault();
+    if (!token || !caseIdNum) return;
+    setParticipantSaving(true);
+    setParticipantsError('');
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/participants`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(participantForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to create participant');
+      setParticipantForm({
+        role: 'claimant',
+        fullName: '',
+        phone: '',
+        email: '',
+        insuranceCarrier: '',
+        policyNumber: '',
+        vehicleInfo: '',
+        notes: '',
+      });
+      await loadParticipants();
+      await loadPolicies();
+      await loadInjuries();
+      // refresh overview detail to keep parity
+      const base2 = getBaseUrl();
+      fetch(`${base2}/api/portal/full-detail`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((j) => setFullDetail(j))
+        .catch(() => {});
+    } catch (err) {
+      setParticipantsError(err.message || 'Failed to create participant');
+    } finally {
+      setParticipantSaving(false);
+    }
+  };
+
+  const deleteParticipant = async (id) => {
+    if (!token || !caseIdNum) return;
+    if (!window.confirm('Delete this participant?')) return;
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/participants/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to delete participant');
+      await loadParticipants();
+    } catch (e) {
+      alert(e.message || 'Failed to delete');
+    }
+  };
+
+  const createInjury = async (e) => {
+    e.preventDefault();
+    if (!token || !caseIdNum) return;
+    setInjurySaving(true);
+    setInjuriesError('');
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/injuries`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(injuryForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to create injury');
+      setInjuryForm({
+        bodyPart: 'neck',
+        symptomType: 'pain',
+        severityLevel: 'mild',
+        firstReportedDate: '',
+        ongoing: true,
+        priorSimilarInjury: false,
+        notes: '',
+      });
+      await loadInjuries();
+    } catch (e) {
+      setInjuriesError(e.message || 'Failed to create injury');
+    } finally {
+      setInjurySaving(false);
+    }
+  };
+
+  const deleteInjury = async (id) => {
+    if (!token || !caseIdNum) return;
+    if (!window.confirm('Delete this injury?')) return;
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/injuries/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to delete injury');
+      await loadInjuries();
+    } catch (e) {
+      alert(e.message || 'Failed to delete');
+    }
+  };
+
+  const createPolicy = async (e) => {
+    e.preventDefault();
+    if (!token || !caseIdNum) return;
+    setPolicySaving(true);
+    setPoliciesError('');
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/insurance-policies`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(policyForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to create policy');
+      setPolicyForm({
+        policyType: 'bodily_injury',
+        carrierName: '',
+        policyNumber: '',
+        claimNumber: '',
+        adjusterName: '',
+        adjusterEmail: '',
+        adjusterPhone: '',
+        policyLimitPerPerson: '',
+        policyLimitPerOccurrence: '',
+      });
+      await loadPolicies();
+    } catch (e) {
+      setPoliciesError(e.message || 'Failed to create policy');
+    } finally {
+      setPolicySaving(false);
+    }
+  };
+
+  const deletePolicy = async (id) => {
+    if (!token || !caseIdNum) return;
+    if (!window.confirm('Delete this policy?')) return;
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/insurance-policies/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to delete policy');
+      await loadPolicies();
+    } catch (e) {
+      alert(e.message || 'Failed to delete');
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -560,7 +825,7 @@ export function PortalCaseDetail() {
       </div>
 
       <div className="border-b border-gray-200 mb-6">
-        <div className="flex gap-6 overflow-x-auto">
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
           {CASE_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -610,35 +875,207 @@ export function PortalCaseDetail() {
               ) : (
                 <p className="text-sm text-gray-600">No case found.</p>
               )}
+
+              {/* Overview should include the case record (admin parity) */}
+              <div className="mt-8">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Case record</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Same information your legal team sees for this matter. Update the narrative fields below as your
+                  situation changes.
+                </p>
+
+                {fullDetailLoading ? (
+                  <LoadingInline message="Loading case record…" />
+                ) : fullDetailError ? (
+                  <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    {fullDetailError}
+                  </p>
+                ) : fullDetail ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                        <p className="text-xs font-semibold text-gray-500 uppercase">AI viability</p>
+                        <p className="font-semibold text-gray-900 mt-1">
+                          {fullDetail.ai_viability_score != null ? `${fullDetail.ai_viability_score}/100` : '—'}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                        <p className="text-xs font-semibold text-gray-500 uppercase">Risk score</p>
+                        <p className="font-semibold text-gray-900 mt-1">
+                          {fullDetail.risk_score != null ? `${fullDetail.risk_score}/100` : '—'}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                        <p className="text-xs font-semibold text-gray-500 uppercase">Severity (est.)</p>
+                        <p className="font-semibold text-gray-900 mt-1">
+                          {fullDetail.estimated_severity_score != null ? `${fullDetail.estimated_severity_score}/100` : '—'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {fullDetail.ai_summary ? (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">AI summary</p>
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap border border-gray-100 rounded-xl p-3 bg-gray-50/80">
+                          {fullDetail.ai_summary}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <form onSubmit={handleSaveCaseInfo} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Liability / accident narrative</label>
+                        <textarea
+                          value={editLiability}
+                          onChange={(e) => setEditLiability(e.target.value)}
+                          rows={4}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Injury narrative</label>
+                        <textarea
+                          value={editInjury}
+                          onChange={(e) => setEditInjury(e.target.value)}
+                          rows={4}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Additional notes</label>
+                        <textarea
+                          value={editNotes}
+                          onChange={(e) => setEditNotes(e.target.value)}
+                          rows={3}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      {saveCaseError ? (
+                        <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{saveCaseError}</p>
+                      ) : null}
+                      {saveCaseOk ? (
+                        <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                          Saved. Your legal team can review updates.
+                        </p>
+                      ) : null}
+                      <button
+                        type="submit"
+                        disabled={savingCase}
+                        className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                      >
+                        {savingCase ? 'Saving…' : 'Save updates'}
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">No extended record available.</p>
+                )}
+              </div>
             </>
           ) : null}
 
           {activeTab === 'participants' ? (
             <div className="space-y-3">
-              {fullDetailLoading ? (
+              <form onSubmit={createParticipant} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Role</label>
+                    <select
+                      value={participantForm.role}
+                      onChange={(e) => setParticipantForm((p) => ({ ...p, role: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="claimant">Claimant</option>
+                      <option value="driver">Driver</option>
+                      <option value="passenger">Passenger</option>
+                      <option value="witness">Witness</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Full name</label>
+                    <input
+                      value={participantForm.fullName}
+                      onChange={(e) => setParticipantForm((p) => ({ ...p, fullName: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
+                    <input
+                      value={participantForm.phone}
+                      onChange={(e) => setParticipantForm((p) => ({ ...p, phone: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+                    <input
+                      value={participantForm.email}
+                      onChange={(e) => setParticipantForm((p) => ({ ...p, email: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Vehicle info</label>
+                    <input
+                      value={participantForm.vehicleInfo}
+                      onChange={(e) => setParticipantForm((p) => ({ ...p, vehicleInfo: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
+                  <textarea
+                    value={participantForm.notes}
+                    onChange={(e) => setParticipantForm((p) => ({ ...p, notes: e.target.value }))}
+                    rows={2}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+                {participantsError ? (
+                  <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{participantsError}</p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={participantSaving}
+                  className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {participantSaving ? 'Adding…' : 'Add participant'}
+                </button>
+              </form>
+
+              {participantsLoading ? (
                 <LoadingInline message="Loading participants…" />
-              ) : fullDetailError ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  {fullDetailError}
-                </p>
-              ) : (fullDetail?.participants || []).length === 0 ? (
+              ) : participantsList.length === 0 ? (
                 <p className="text-sm text-gray-600">No participants on file.</p>
               ) : (
                 <ul className="space-y-2">
-                  {fullDetail.participants.map((p) => (
-                    <li key={p.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {p.full_name || 'Participant'}{' '}
-                          <span className="text-xs font-semibold text-gray-500">
-                            {p.role ? `· ${String(p.role).replace(/_/g, ' ')}` : ''}
-                          </span>
-                        </p>
+                  {participantsList.map((p) => (
+                    <li key={p.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {p.full_name || 'Participant'}{' '}
+                            <span className="text-xs font-semibold text-gray-500">
+                              {p.role ? `· ${String(p.role).replace(/_/g, ' ')}` : ''}
+                            </span>
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">{[p.phone, p.email].filter(Boolean).join(' · ') || '—'}</p>
+                          {p.notes ? <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{p.notes}</p> : null}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => deleteParticipant(p.id)}
+                          className="text-xs font-semibold text-red-700 hover:underline"
+                        >
+                          Delete
+                        </button>
                       </div>
-                      <p className="text-xs text-gray-600 mt-1">
-                        {[p.phone, p.email].filter(Boolean).join(' · ') || '—'}
-                      </p>
-                      {p.notes ? <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{p.notes}</p> : null}
                     </li>
                   ))}
                 </ul>
@@ -648,25 +1085,107 @@ export function PortalCaseDetail() {
 
           {activeTab === 'injuries' ? (
             <div className="space-y-3">
-              {fullDetailLoading ? (
+              <form onSubmit={createInjury} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Body part</label>
+                    <input
+                      value={injuryForm.bodyPart}
+                      onChange={(e) => setInjuryForm((p) => ({ ...p, bodyPart: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Symptom</label>
+                    <input
+                      value={injuryForm.symptomType}
+                      onChange={(e) => setInjuryForm((p) => ({ ...p, symptomType: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Severity</label>
+                    <select
+                      value={injuryForm.severityLevel}
+                      onChange={(e) => setInjuryForm((p) => ({ ...p, severityLevel: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="mild">mild</option>
+                      <option value="moderate">moderate</option>
+                      <option value="severe">severe</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">First reported</label>
+                    <input
+                      type="date"
+                      value={injuryForm.firstReportedDate}
+                      onChange={(e) => setInjuryForm((p) => ({ ...p, firstReportedDate: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 mt-6">
+                    <input
+                      type="checkbox"
+                      checked={!!injuryForm.ongoing}
+                      onChange={(e) => setInjuryForm((p) => ({ ...p, ongoing: e.target.checked }))}
+                    />
+                    Ongoing
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 mt-6">
+                    <input
+                      type="checkbox"
+                      checked={!!injuryForm.priorSimilarInjury}
+                      onChange={(e) => setInjuryForm((p) => ({ ...p, priorSimilarInjury: e.target.checked }))}
+                    />
+                    Prior similar injury
+                  </label>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
+                  <textarea
+                    value={injuryForm.notes}
+                    onChange={(e) => setInjuryForm((p) => ({ ...p, notes: e.target.value }))}
+                    rows={2}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+                {injuriesError ? (
+                  <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{injuriesError}</p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={injurySaving}
+                  className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {injurySaving ? 'Adding…' : 'Add injury'}
+                </button>
+              </form>
+
+              {injuriesLoading ? (
                 <LoadingInline message="Loading injuries…" />
-              ) : fullDetailError ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  {fullDetailError}
-                </p>
-              ) : (fullDetail?.injuries || []).length === 0 ? (
+              ) : injuriesList.length === 0 ? (
                 <p className="text-sm text-gray-600">No injuries on file yet.</p>
               ) : (
                 <ul className="space-y-2">
-                  {fullDetail.injuries.map((inj) => (
-                    <li key={inj.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {[inj.body_part, inj.symptom_type].filter(Boolean).join(' · ') || 'Injury'}
-                      </p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        {[inj.severity_level, inj.first_reported_date].filter(Boolean).join(' · ') || '—'}
-                      </p>
-                      {inj.notes ? <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{inj.notes}</p> : null}
+                  {injuriesList.map((inj) => (
+                    <li key={inj.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {[inj.body_part, inj.symptom_type].filter(Boolean).join(' · ') || 'Injury'}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {[inj.severity_level, inj.first_reported_date].filter(Boolean).join(' · ') || '—'}
+                          </p>
+                          {inj.notes ? <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{inj.notes}</p> : null}
+                        </div>
+                        <button type="button" onClick={() => deleteInjury(inj.id)} className="text-xs font-semibold text-red-700 hover:underline">
+                          Delete
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -676,31 +1195,102 @@ export function PortalCaseDetail() {
 
           {activeTab === 'insurance' ? (
             <div className="space-y-3">
-              {fullDetailLoading ? (
+              <form onSubmit={createPolicy} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Policy type</label>
+                    <select
+                      value={policyForm.policyType}
+                      onChange={(e) => setPolicyForm((p) => ({ ...p, policyType: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="bodily_injury">Bodily Injury</option>
+                      <option value="property_damage">Property Damage</option>
+                      <option value="medpay">Med-Pay</option>
+                      <option value="uim_um">UIM / UM</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Carrier</label>
+                    <input
+                      value={policyForm.carrierName}
+                      onChange={(e) => setPolicyForm((p) => ({ ...p, carrierName: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Policy #</label>
+                    <input
+                      value={policyForm.policyNumber}
+                      onChange={(e) => setPolicyForm((p) => ({ ...p, policyNumber: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Claim #</label>
+                    <input
+                      value={policyForm.claimNumber}
+                      onChange={(e) => setPolicyForm((p) => ({ ...p, claimNumber: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Adjuster name</label>
+                    <input
+                      value={policyForm.adjusterName}
+                      onChange={(e) => setPolicyForm((p) => ({ ...p, adjusterName: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Adjuster email</label>
+                    <input
+                      value={policyForm.adjusterEmail}
+                      onChange={(e) => setPolicyForm((p) => ({ ...p, adjusterEmail: e.target.value }))}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+                {policiesError ? (
+                  <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{policiesError}</p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={policySaving}
+                  className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {policySaving ? 'Adding…' : 'Add policy'}
+                </button>
+              </form>
+
+              {policiesLoading ? (
                 <LoadingInline message="Loading insurance…" />
-              ) : fullDetailError ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  {fullDetailError}
-                </p>
-              ) : (fullDetail?.policies || []).length === 0 ? (
+              ) : policiesList.length === 0 ? (
                 <p className="text-sm text-gray-600">No insurance policies on file.</p>
               ) : (
                 <ul className="space-y-2">
-                  {fullDetail.policies.map((p) => (
-                    <li key={p.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {p.carrier_name || 'Policy'}{' '}
-                        {p.policy_type ? (
-                          <span className="text-xs font-semibold text-gray-500">
-                            · {String(p.policy_type).replace(/_/g, ' ')}
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        {[p.policy_number ? `#${p.policy_number}` : null, p.claim_number ? `Claim ${p.claim_number}` : null]
-                          .filter(Boolean)
-                          .join(' · ') || '—'}
-                      </p>
+                  {policiesList.map((p) => (
+                    <li key={p.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {p.carrier_name || 'Policy'}{' '}
+                            {p.policy_type ? (
+                              <span className="text-xs font-semibold text-gray-500">· {String(p.policy_type).replace(/_/g, ' ')}</span>
+                            ) : null}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {[p.policy_number ? `#${p.policy_number}` : null, p.claim_number ? `Claim ${p.claim_number}` : null]
+                              .filter(Boolean)
+                              .join(' · ') || '—'}
+                          </p>
+                        </div>
+                        <button type="button" onClick={() => deletePolicy(p.id)} className="text-xs font-semibold text-red-700 hover:underline">
+                          Delete
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -709,14 +1299,29 @@ export function PortalCaseDetail() {
           ) : null}
 
           {activeTab === 'treatment' ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="text-sm text-gray-600">
                 This is a suggested routing based on your documented injuries and insurance coverage.
               </div>
-              {/* existing Treatment Pathway card lives below; keep it visible by jumping the user */}
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
-                Scroll down to the <span className="font-semibold">Treatment Pathway</span> section below.
-              </div>
+
+              {pathwayLoading ? (
+                <LoadingInline message="Loading treatment pathway…" />
+              ) : pathwayError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">{pathwayError}</p>
+              ) : pathway ? (
+                <div className="space-y-4">
+                  {pathway.introText ? <div className="text-sm text-gray-900 whitespace-pre-wrap">{pathway.introText}</div> : null}
+                  {(pathway.suggestedProviderTypeList || []).map((t) => (
+                    <div key={t} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                      <div className="text-sm font-semibold text-gray-900">{providerTypeLabel(t)}</div>
+                      <div className="text-sm text-gray-700 mt-1">{pathway.providerDescriptions?.[t] || '—'}</div>
+                    </div>
+                  ))}
+                  {pathway.closingNote ? <div className="text-sm text-gray-900 whitespace-pre-wrap font-medium">{pathway.closingNote}</div> : null}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600">No pathway available.</p>
+              )}
             </div>
           ) : null}
 
@@ -786,8 +1391,91 @@ export function PortalCaseDetail() {
           ) : null}
 
           {activeTab === 'documents' ? (
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-800">
-              Scroll down to the <span className="font-semibold">My Documents</span> section below.
+            <div className="space-y-6">
+              <h3 className="text-lg font-bold text-gray-900">Documents</h3>
+
+              <form onSubmit={handleUpload} className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Document Type</label>
+                    <select
+                      value={uploadDocType}
+                      onChange={(e) => setUploadDocType(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {DOC_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      File <span className="text-gray-400">(max 25 MB)</span>
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.txt"
+                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      className="w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                  </div>
+                </div>
+
+                {uploadError && (
+                  <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{uploadError}</p>
+                )}
+                {uploadSuccess && (
+                  <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    {uploadSuccess}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={!uploadFile || uploading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploading ? 'Uploading…' : 'Upload Document'}
+                </button>
+              </form>
+
+              {docsLoading ? (
+                <LoadingInline message="Loading documents…" />
+              ) : docsError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{docsError}</p>
+              ) : docs.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No documents uploaded yet.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {docs.map((doc) => (
+                    <li key={doc.id} className="flex items-start justify-between gap-4 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{doc.file_name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {DOC_TYPES.find((t) => t.value === doc.document_type)?.label || doc.document_type}
+                          {' · '}
+                          {formatISODate(doc.uploaded_at)}
+                          {' · '}
+                          <span className={doc.uploaded_by === 'user' ? 'text-indigo-600 font-medium' : 'text-gray-400'}>
+                            {doc.uploaded_by === 'user' ? 'Uploaded by you' : 'Added by staff'}
+                          </span>
+                        </p>
+                        {doc.ai_summary && <p className="text-xs text-gray-600 mt-1 italic">{doc.ai_summary}</p>}
+                      </div>
+                      <span
+                        className={`flex-shrink-0 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                          STATUS_STYLES[doc.document_status] || 'bg-gray-100 text-gray-700 border-gray-200'
+                        }`}
+                      >
+                        {STATUS_LABELS[doc.document_status] || doc.document_status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ) : null}
 
@@ -922,279 +1610,7 @@ export function PortalCaseDetail() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Case record</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          Same information your legal team sees for this matter. Update the narrative fields below as your situation
-          changes.
-        </p>
-
-        {fullDetailLoading ? (
-          <LoadingInline message="Loading case record…" />
-        ) : fullDetailError ? (
-          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">{fullDetailError}</p>
-        ) : fullDetail ? (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase">AI viability</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {fullDetail.ai_viability_score != null ? `${fullDetail.ai_viability_score}/100` : '—'}
-                </p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase">Risk score</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {fullDetail.risk_score != null ? `${fullDetail.risk_score}/100` : '—'}
-                </p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase">Severity (est.)</p>
-                <p className="font-semibold text-gray-900 mt-1">
-                  {fullDetail.estimated_severity_score != null ? `${fullDetail.estimated_severity_score}/100` : '—'}
-                </p>
-              </div>
-            </div>
-
-            {fullDetail.ai_summary ? (
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-1">AI summary</p>
-                <p className="text-sm text-gray-800 whitespace-pre-wrap border border-gray-100 rounded-xl p-3 bg-gray-50/80">
-                  {fullDetail.ai_summary}
-                </p>
-              </div>
-            ) : null}
-
-            {Array.isArray(fullDetail.injuries) && fullDetail.injuries.length > 0 ? (
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Injuries on file</p>
-                <ul className="space-y-2">
-                  {fullDetail.injuries.map((inj) => (
-                    <li key={inj.id} className="text-sm border border-gray-100 rounded-lg p-3 bg-white">
-                      <span className="font-medium text-gray-900">
-                        {[inj.body_part, inj.symptom_type].filter(Boolean).join(' · ') || 'Injury'}
-                      </span>
-                      {inj.severity_level ? (
-                        <span className="text-gray-600"> · {String(inj.severity_level).replace(/_/g, ' ')}</span>
-                      ) : null}
-                      {inj.notes ? <p className="text-gray-600 mt-1 text-xs">{inj.notes}</p> : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {Array.isArray(fullDetail.policies) && fullDetail.policies.length > 0 ? (
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Insurance policies</p>
-                <ul className="space-y-2 text-sm text-gray-800">
-                  {fullDetail.policies.map((p) => (
-                    <li key={p.id} className="border border-gray-100 rounded-lg p-3">
-                      {p.carrier_name || 'Policy'} {p.policy_number ? `· #${p.policy_number}` : ''}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <form onSubmit={handleSaveCaseInfo} className="space-y-4 border-t border-gray-100 pt-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Liability / accident narrative</label>
-                <textarea
-                  value={editLiability}
-                  onChange={(e) => setEditLiability(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Injury narrative</label>
-                <textarea
-                  value={editInjury}
-                  onChange={(e) => setEditInjury(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Additional notes</label>
-                <textarea
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              {saveCaseError ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{saveCaseError}</p>
-              ) : null}
-              {saveCaseOk ? (
-                <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                  Saved. Your legal team can review updates.
-                </p>
-              ) : null}
-              <button
-                type="submit"
-                disabled={savingCase}
-                className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
-              >
-                {savingCase ? 'Saving…' : 'Save updates'}
-              </button>
-            </form>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No extended record available.</p>
-        )}
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Treatment Pathway</h2>
-            <p className="text-sm text-gray-600">Based on your documented injuries.</p>
-          </div>
-          {pathway?.urgencyLevel && pathway.urgencyLevel !== 'routine' && (
-            <span
-              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
-                pathway.urgencyLevel === 'urgent'
-                  ? 'bg-red-100 text-red-800 border-red-200'
-                  : 'bg-amber-100 text-amber-800 border-amber-200'
-              }`}
-            >
-              {String(pathway.urgencyLevel).toUpperCase()}
-            </span>
-          )}
-        </div>
-
-        {pathwayLoading && (
-          <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
-            <LoadingInline message="Loading treatment pathway…" />
-          </div>
-        )}
-        {pathwayError && (
-          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 mt-3">{pathwayError}</p>
-        )}
-
-        {!pathwayLoading && !pathwayError && pathway && (
-          <div className="mt-4 space-y-4">
-            {pathway.introText ? (
-              <>
-                <div className="text-sm text-gray-900 whitespace-pre-wrap">{pathway.introText}</div>
-                <div className="space-y-3">
-                  {(pathway.suggestedProviderTypeList || []).map((t) => (
-                    <div key={t} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                      <div className="text-sm font-semibold text-gray-900">{providerTypeLabel(t)}</div>
-                      <div className="text-sm text-gray-700 mt-1">
-                        {pathway.providerDescriptions?.[t] || '—'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {pathway.closingNote && (
-                  <div className="text-sm text-gray-900 whitespace-pre-wrap font-medium">{pathway.closingNote}</div>
-                )}
-              </>
-            ) : (
-              <div className="text-sm text-gray-900">
-                Suggested providers:{' '}
-                <span className="font-semibold">
-                  {(pathway.suggestedProviderTypeList || []).map(providerTypeLabel).join(', ') || '—'}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-1">My Documents</h2>
-        <p className="text-sm text-gray-600 mb-5">Upload documents related to your case. Staff will review them.</p>
-
-        <form onSubmit={handleUpload} className="space-y-3 mb-6">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Document Type</label>
-              <select
-                value={uploadDocType}
-                onChange={(e) => setUploadDocType(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {DOC_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex-1">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                File <span className="text-gray-400">(max 25 MB)</span>
-              </label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.txt"
-                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                className="w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
-              />
-            </div>
-          </div>
-
-          {uploadError && (
-            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{uploadError}</p>
-          )}
-          {uploadSuccess && (
-            <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-              {uploadSuccess}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={!uploadFile || uploading}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {uploading ? 'Uploading…' : 'Upload Document'}
-          </button>
-        </form>
-
-        {docsLoading ? (
-          <LoadingInline message="Loading documents…" />
-        ) : docsError ? (
-          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{docsError}</p>
-        ) : docs.length === 0 ? (
-          <p className="text-sm text-gray-500 italic">No documents uploaded yet.</p>
-        ) : (
-          <ul className="divide-y divide-gray-100">
-            {docs.map((doc) => (
-              <li key={doc.id} className="flex items-start justify-between gap-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{doc.file_name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {DOC_TYPES.find((t) => t.value === doc.document_type)?.label || doc.document_type}
-                    {' · '}
-                    {formatISODate(doc.uploaded_at)}
-                    {' · '}
-                    <span
-                      className={doc.uploaded_by === 'user' ? 'text-indigo-600 font-medium' : 'text-gray-400'}
-                    >
-                      {doc.uploaded_by === 'user' ? 'Uploaded by you' : 'Added by staff'}
-                    </span>
-                  </p>
-                  {doc.ai_summary && <p className="text-xs text-gray-600 mt-1 italic">{doc.ai_summary}</p>}
-                </div>
-                <span
-                  className={`flex-shrink-0 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-                    STATUS_STYLES[doc.document_status] || 'bg-gray-100 text-gray-700 border-gray-200'
-                  }`}
-                >
-                  {STATUS_LABELS[doc.document_status] || doc.document_status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {/* Note: Case record, Treatment Pathway, and Documents are now shown only inside their tabs. */}
 
       {closureAvailable ? (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">

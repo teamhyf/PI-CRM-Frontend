@@ -9,7 +9,7 @@ export function PortalLayout() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col">
       <header className="bg-white border-b shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-indigo-600">My Case</h1>
             <p className="text-sm text-gray-600">Case Status Portal</p>
@@ -26,7 +26,7 @@ export function PortalLayout() {
         </div>
       </header>
 
-      <nav className="max-w-5xl mx-auto w-full px-4 sm:px-6 py-4">
+      <nav className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-4">
         <div className="flex gap-3">
           <Link
             to="/portal/dashboard"
@@ -37,7 +37,7 @@ export function PortalLayout() {
         </div>
       </nav>
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 pb-10">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 pb-10">
         <Outlet />
       </main>
 
