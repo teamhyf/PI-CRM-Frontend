@@ -82,6 +82,7 @@ export function AICaseIntakeModal({ isOpen, onClose, onSuccess }) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [submitOutcome, setSubmitOutcome] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -187,9 +188,10 @@ export function AICaseIntakeModal({ isOpen, onClose, onSuccess }) {
             }
           : caseData;
 
-      await submitIntakeCase(nextCaseData);
+      const result = await submitIntakeCase(nextCaseData);
+      setSubmitOutcome(result);
       setSaveSuccess(true);
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess(result);
     } catch (err) {
       setSaveError(err.message || 'Save failed');
     } finally {
@@ -211,6 +213,7 @@ export function AICaseIntakeModal({ isOpen, onClose, onSuccess }) {
     setIsSaving(false);
     setSaveError('');
     setSaveSuccess(false);
+    setSubmitOutcome(null);
     onClose();
   };
 
@@ -1290,12 +1293,26 @@ export function AICaseIntakeModal({ isOpen, onClose, onSuccess }) {
 
         {saveSuccess ? (
           <div className="text-center py-4">
-            <p className="text-green-700 font-medium">
-              Case saved successfully!
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              A team member will review your case shortly.
-            </p>
+            {submitOutcome?.autoConverted ? (
+              <>
+                <p className="text-green-700 font-medium">
+                  Your case was created.
+                </p>
+                <p className="text-sm text-gray-600 mt-2 leading-relaxed max-w-md mx-auto">
+                  We sent an email to the address you provided with a link to the claimant
+                  portal and sign-in instructions. Check your inbox and spam folder.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-green-700 font-medium">
+                  Thank you — we received your submission.
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Our team will review your inquiry and contact you by phone or email.
+                </p>
+              </>
+            )}
             <button
               type="button"
               onClick={handleClose}

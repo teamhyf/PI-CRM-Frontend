@@ -48,14 +48,17 @@ const FEATURE_GROUPS = [
 export function Landing() {
   const { isAuthenticated } = useAuth();
   const [caseSubmitted, setCaseSubmitted] = useState(false);
+  const [intakeOutcome, setIntakeOutcome] = useState(null);
   const [intakeOpen, setIntakeOpen] = useState(false);
 
   const openAIIntake = () => {
     setCaseSubmitted(false);
+    setIntakeOutcome(null);
     setIntakeOpen(true);
   };
   const closeAIIntake = () => setIntakeOpen(false);
-  const handleIntakeSuccess = () => {
+  const handleIntakeSuccess = (result) => {
+    setIntakeOutcome(result ?? {});
     setCaseSubmitted(true);
     setIntakeOpen(false);
   };
@@ -179,8 +182,34 @@ export function Landing() {
             </div>
 
             {caseSubmitted && (
-              <div className="mt-12 max-w-lg mx-auto lg:mx-0 rounded-2xl border border-emerald-500/30 bg-emerald-950/40 px-6 py-4 text-center text-emerald-200 animate-fade-in">
-                Thank you for submitting your case. We will get back to you soon.
+              <div className="mt-12 max-w-lg mx-auto lg:mx-0 rounded-2xl border border-emerald-500/30 bg-emerald-950/40 px-6 py-5 text-center text-emerald-200 animate-fade-in space-y-3">
+                {intakeOutcome?.autoConverted ? (
+                  <>
+                    <p className="font-semibold text-emerald-100 text-base">
+                      Your case was created.
+                    </p>
+                    <p className="text-sm text-emerald-200/95 leading-relaxed">
+                      We sent an email to the address you provided with a link to the claimant
+                      portal and how to sign in. Check your inbox and spam folder for next
+                      steps.
+                    </p>
+                    <Link
+                      to="/portal/login"
+                      className="inline-flex items-center justify-center rounded-xl bg-emerald-500/20 border border-emerald-400/40 px-4 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/30 transition-colors"
+                    >
+                      Claimant portal login
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-emerald-100 text-base">
+                      Thank you — we received your submission.
+                    </p>
+                    <p className="text-sm text-emerald-200/95 leading-relaxed">
+                      Our team will review your inquiry and follow up by phone or email.
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </section>

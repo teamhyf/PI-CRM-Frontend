@@ -46,6 +46,6 @@ export async function submitIntakeCase(caseData) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Submit failed');
-  return data; // { success: true, caseId: number }
+  return data; // { success, caseLeadId, autoConverted?, caseId? }
 }
 

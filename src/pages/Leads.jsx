@@ -22,7 +22,7 @@ function badge(status) {
 
 export function Leads() {
   const { token } = useAuth();
-  const [filter, setFilter] = useState('new');
+  const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [leads, setLeads] = useState([]);
