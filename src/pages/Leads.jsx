@@ -96,7 +96,7 @@ export function Leads() {
       <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
         <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
           <div className="flex gap-2 flex-wrap">
-            {['new', 'under_review', 'converted', 'rejected', 'all'].map((s) => (
+            {['all', 'new', 'under_review', 'converted', 'rejected'].map((s) => (
               <button
                 key={s}
                 type="button"
