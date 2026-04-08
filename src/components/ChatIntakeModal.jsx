@@ -161,7 +161,7 @@ export function ChatIntakeModal({
 
   const handleSend = () => {
     const t = input.trim();
-    if (!t || sending) return;
+    if (!t || sending || uploadingAudio) return;
     setInput('');
     handleUserMessage(t);
   };
@@ -827,7 +827,7 @@ export function ChatIntakeModal({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      handleSend();
+                      if (!uploadingAudio) handleSend();
                     }
                     // Shift+Enter inserts newline (natural multiline behavior)
                   }}
@@ -835,16 +835,52 @@ export function ChatIntakeModal({
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={sending}
+                  disabled={sending || uploadingAudio}
                   className="btn-primary text-sm px-4 py-2 disabled:opacity-60"
                 >
-                  {sending ? 'Sending…' : 'Send'}
+                  {uploadingAudio
+                    ? 'Transcribing…'
+                    : sending
+                      ? 'Sending…'
+                      : 'Send'}
                 </button>
               </div>
               {uploadingAudio && (
-                <p className="text-[11px] text-blue-600 mt-0.5 animate-pulse">
-                  Transcribing audio with AI… this may take a few seconds.
-                </p>
+                <div
+                  className="mt-2 flex items-start gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <svg
+                    className="w-4 h-4 shrink-0 text-violet-600 animate-spin mt-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-90"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"
+                    />
+                  </svg>
+                  <div>
+                    <p className="text-xs font-semibold text-violet-950">
+                      Transcribing your audio…
+                    </p>
+                    <p className="text-[11px] text-violet-900/90 mt-0.5 leading-snug">
+                      Please wait — Send stays disabled until this finishes so you do
+                      not send duplicates.
+                    </p>
+                  </div>
+                </div>
               )}
               {audioError && (
                 <p className="text-[11px] text-red-500 mt-0.5">

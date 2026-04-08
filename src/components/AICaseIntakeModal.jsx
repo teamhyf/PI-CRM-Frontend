@@ -222,33 +222,99 @@ export function AICaseIntakeModal({ isOpen, onClose, onSuccess }) {
       </p>
 
       <textarea
-        className="w-full border border-gray-300 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 min-h-[120px]"
+        className="w-full border border-gray-300 rounded-xl p-3 text-sm text-gray-900 placeholder:text-gray-500 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 min-h-[120px]"
         placeholder="e.g. I was rear-ended on January 5th on the highway. The other driver ran a red light. I went to the ER the same day with neck and back pain..."
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
 
-      <div className="flex items-center gap-3">
+      {isTranscribing && (
+        <div
+          className="flex items-start gap-3 rounded-xl border-2 border-violet-300 bg-gradient-to-r from-violet-50 to-indigo-50 px-4 py-3 shadow-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <svg
+            className="w-5 h-5 shrink-0 text-violet-600 animate-spin mt-0.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-90"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"
+            />
+          </svg>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-violet-950">
+              Transcribing your audio…
+            </p>
+            <p className="text-xs text-violet-900/90 mt-1 leading-snug">
+              {
+                'Please wait — this usually takes a few seconds. "Analyze My Case" stays disabled until transcription finishes so you do not run analysis twice by accident.'
+              }
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isTranscribing}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+          className={
+            isTranscribing
+              ? 'inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-violet-400 text-sm font-semibold text-violet-900 bg-violet-100 cursor-wait shadow-sm'
+              : 'inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50'
+          }
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-            />
-          </svg>
-          {isTranscribing ? 'Transcribing...' : 'Upload Audio'}
+          {isTranscribing ? (
+            <svg
+              className="w-4 h-4 shrink-0 text-violet-600 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-90"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"
+              />
+            </svg>
+          ) : (
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+              />
+            </svg>
+          )}
+          {isTranscribing ? 'Transcribing…' : 'Upload Audio'}
         </button>
         <input
           ref={fileInputRef}
@@ -263,7 +329,17 @@ export function AICaseIntakeModal({ isOpen, onClose, onSuccess }) {
           onError={setTranscribeError}
           isLoading={isTranscribing}
         />
-        <span className="text-xs text-gray-500">or record a voice note</span>
+        <span
+          className={
+            isTranscribing
+              ? 'text-xs font-medium text-violet-800'
+              : 'text-xs text-gray-500'
+          }
+        >
+          {isTranscribing
+            ? 'Voice recording is paused while we transcribe.'
+            : 'or record a voice note'}
+        </span>
       </div>
 
       {transcribeError && (
@@ -280,8 +356,11 @@ export function AICaseIntakeModal({ isOpen, onClose, onSuccess }) {
         onClick={handleAnalyze}
         disabled={!description.trim() || isTranscribing}
         className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold text-sm shadow hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        aria-busy={isTranscribing}
       >
-        Analyze My Case
+        {isTranscribing
+          ? 'Transcribing audio — please wait…'
+          : 'Analyze My Case'}
       </button>
     </div>
   );
@@ -1256,7 +1335,7 @@ export function AICaseIntakeModal({ isOpen, onClose, onSuccess }) {
         aria-hidden="true"
       />
 
-      <div className="relative w-full sm:max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="relative w-full sm:max-w-2xl bg-white text-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2">
             <AISparklesIcon className="w-5 h-5 text-violet-600" />
