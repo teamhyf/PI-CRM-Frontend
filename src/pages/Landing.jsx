@@ -26,12 +26,33 @@ const FEATURE_GROUPS = [
   },
   {
     title: 'Claimant portal',
-    subtitle: 'Clients stay informed without calling the office',
+    subtitle:
+      'Full case visibility in one place. When a matter opens, clients get a secure login link by email—no extra signup on this site.',
     items: [
-      { title: 'Case status', desc: 'Real-time view of where the matter stands.' },
-      { title: 'Documents', desc: 'Upload police reports, bills, photos, and records securely.' },
-      { title: 'Treatment pathway', desc: 'Injury-based guidance on suggested care and next steps.' },
-      { title: 'Case closure', desc: 'Final summary when the case resolves.' },
+      {
+        title: 'Overview, injuries & insurance',
+        desc: 'Accident summary, documented injuries, participants, and policy details aligned with your case file.',
+      },
+      {
+        title: 'Documents',
+        desc: 'Upload police reports, bills, photos, and records securely; staff see the same document list.',
+      },
+      {
+        title: 'Treatment routing',
+        desc: 'Suggested referrals and injury-based pathway guidance—mirrors what your legal team sees.',
+      },
+      {
+        title: 'Timeline',
+        desc: 'Medical visits and treatment milestones so you can follow care in order.',
+      },
+      {
+        title: 'Red flags & documentation summary',
+        desc: 'Important alerts plus a clear view of what records or steps may still be outstanding.',
+      },
+      {
+        title: 'Settlement',
+        desc: 'Settlement-oriented details, resolution readiness, and closure information when the matter wraps up.',
+      },
     ],
   },
   {
