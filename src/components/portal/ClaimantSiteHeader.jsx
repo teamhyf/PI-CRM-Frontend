@@ -45,7 +45,7 @@ export function ClaimantSiteHeader({ variant = 'public', email, onLogout }) {
               to="/portal/dashboard"
               className={linkClass(path.startsWith('/portal/dashboard') || path.startsWith('/portal/case'))}
             >
-              My account
+              My Cases
             </Link>
           ) : (
             <Link to="/portal/login" className={linkClass(path.startsWith('/portal/login'))}>

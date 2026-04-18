@@ -114,6 +114,16 @@ export function Landing() {
               <AIBadge size="sm" />
             </Link>
             <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm">
+              <Link
+                to="/"
+                className={
+                  location.pathname === '/'
+                    ? 'text-white font-medium transition-colors'
+                    : 'text-slate-400 hover:text-white transition-colors'
+                }
+              >
+                Home
+              </Link>
               <a href="#features" className="text-slate-400 hover:text-white transition-colors">
                 Features
               </a>
@@ -161,7 +171,7 @@ export function Landing() {
                         : 'text-slate-400 hover:text-white transition-colors'
                     }
                   >
-                    My account
+                    My Cases
                   </Link>
                   {claimant?.email ? (
                     <span
