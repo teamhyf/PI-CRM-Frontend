@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { AIBadge } from '../AIIcon';
 
 /**
- * Shared marketing-style header for claimant portal (login + authenticated).
+ * Shared marketing-style header for claimant-facing pages (website chrome, not admin).
  * @param {'public' | 'authenticated'} variant
  * @param {string} [email] — shown when authenticated
  * @param {() => void} [onLogout]
@@ -24,9 +24,6 @@ export function ClaimantSiteHeader({ variant = 'public', email, onLogout }) {
             PI CRM
           </span>
           <AIBadge size="sm" />
-          <span className="hidden sm:inline text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Claimant
-          </span>
         </Link>
 
         <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm">
@@ -36,34 +33,25 @@ export function ClaimantSiteHeader({ variant = 'public', email, onLogout }) {
           <a href="/#features" className={linkClass(false)}>
             Features
           </a>
+          <Link
+            to={{ pathname: '/', search: '?intake=open' }}
+            className={linkClass(path === '/' && new URLSearchParams(location.search).get('intake') === 'open')}
+          >
+            AI intake
+          </Link>
 
           {variant === 'authenticated' ? (
-            <>
-              <Link
-                to="/portal/dashboard"
-                className={linkClass(path.startsWith('/portal/dashboard'))}
-              >
-                My cases
-              </Link>
-            </>
-          ) : (
             <Link
-              to="/portal/login"
-              className={linkClass(path.startsWith('/portal/login'))}
+              to="/portal/dashboard"
+              className={linkClass(path.startsWith('/portal/dashboard') || path.startsWith('/portal/case'))}
             >
-              Claimant portal
+              My account
+            </Link>
+          ) : (
+            <Link to="/portal/login" className={linkClass(path.startsWith('/portal/login'))}>
+              Login
             </Link>
           )}
-
-          <Link
-            to="/provider-portal/login"
-            className={linkClass(path.startsWith('/provider-portal'))}
-          >
-            Provider portal
-          </Link>
-          <Link to="/login" className={linkClass(path === '/login')}>
-            Staff login
-          </Link>
 
           {variant === 'authenticated' && email ? (
             <span className="hidden sm:inline text-slate-500 text-xs max-w-[12rem] truncate" title={email}>

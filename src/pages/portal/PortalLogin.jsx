@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useClaimantAuth } from '../../context/ClaimantAuthContext';
 import { AISparklesIcon, AIBadge } from '../../components/AIIcon';
 import { ClaimantSiteHeader } from '../../components/portal/ClaimantSiteHeader';
@@ -112,7 +112,7 @@ export function PortalLogin() {
               <AIBadge size="md" className="self-start mt-1" />
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
-              Claimant portal
+              User Login
             </h1>
             <p className="mt-3 text-slate-600 text-sm sm:text-base max-w-sm mx-auto leading-relaxed">
               Sign in to view your case status, documents, and treatment information.
@@ -264,13 +264,6 @@ export function PortalLogin() {
                   </button>
                 </form>
               ) : null}
-
-              <p className="mt-6 text-center text-sm text-slate-600">
-                Staff member?{' '}
-                <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
-                  Admin sign in
-                </Link>
-              </p>
             </div>
           </div>
         </div>

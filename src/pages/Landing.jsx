@@ -2,8 +2,8 @@
  * Landing Page — public marketing + AI intake entry points
  */
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AISparklesIcon, AIBadge } from '../components/AIIcon';
 import { AICaseIntakeModal } from '../components/AICaseIntakeModal';
@@ -68,9 +68,20 @@ const FEATURE_GROUPS = [
 
 export function Landing() {
   const { isAuthenticated } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [caseSubmitted, setCaseSubmitted] = useState(false);
   const [intakeOutcome, setIntakeOutcome] = useState(null);
   const [intakeOpen, setIntakeOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('intake') !== 'open') return;
+    setCaseSubmitted(false);
+    setIntakeOutcome(null);
+    setIntakeOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('intake');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const openAIIntake = () => {
     setCaseSubmitted(false);
@@ -103,34 +114,15 @@ export function Landing() {
               <a href="#features" className="text-slate-400 hover:text-white transition-colors">
                 Features
               </a>
-              <button
-                type="button"
-                onClick={openAIIntake}
+              <Link
+                to={{ pathname: '/', search: '?intake=open' }}
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 AI intake
-              </button>
+              </Link>
               <Link to="/portal/login" className="text-slate-400 hover:text-white transition-colors">
-                Claimant portal
+                Login
               </Link>
-              <Link to="/provider-portal/login" className="text-slate-400 hover:text-white transition-colors">
-                Provider portal
-              </Link>
-              {isAuthenticated ? (
-                <Link
-                  to="/dashboard"
-                  className="rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-2 font-semibold text-white shadow-lg shadow-indigo-500/20 hover:opacity-95"
-                >
-                  Dashboard
-                </Link>
-              ) : (
-                <Link
-                  to="/login"
-                  className="rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 px-4 py-2 font-semibold text-white shadow-lg shadow-indigo-500/20 hover:opacity-95"
-                >
-                  Staff login
-                </Link>
-              )}
             </nav>
           </div>
         </header>
@@ -218,7 +210,7 @@ export function Landing() {
                       to="/portal/login"
                       className="inline-flex items-center justify-center rounded-xl bg-emerald-500/20 border border-emerald-400/40 px-4 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-500/30 transition-colors"
                     >
-                      Claimant portal login
+                      Client login
                     </Link>
                   </>
                 ) : (
@@ -297,8 +289,25 @@ export function Landing() {
             </div>
           </section>
 
-          <footer className="border-t border-white/10 py-8 text-center text-sm text-slate-500">
+          <footer className="border-t border-white/10 py-10 text-center text-sm text-slate-500 space-y-4">
             <p>© {new Date().getFullYear()} AI Personal Injury CRM. Case management tooling—not legal advice.</p>
+            <p className="flex flex-wrap justify-center items-center gap-x-3 gap-y-2 text-slate-400">
+              <Link to="/provider-portal/login" className="hover:text-slate-200 hover:underline">
+                Provider portal
+              </Link>
+              <span className="opacity-40 select-none" aria-hidden>
+                |
+              </span>
+              {isAuthenticated ? (
+                <Link to="/dashboard" className="hover:text-slate-200 hover:underline">
+                  Staff dashboard
+                </Link>
+              ) : (
+                <Link to="/login" className="hover:text-slate-200 hover:underline">
+                  Staff login
+                </Link>
+              )}
+            </p>
           </footer>
         </main>
       </div>
