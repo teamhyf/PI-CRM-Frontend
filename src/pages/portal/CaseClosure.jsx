@@ -42,89 +42,95 @@ export function CaseClosure() {
   }, [token]);
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-start justify-between gap-4">
+    <div className="space-y-10">
+      <header className="border-b border-slate-200 pb-8">
+        <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Case closure</p>
+        <div className="mt-2 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Case Closure Summary</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              {claimant?.fullName ? `${claimant.fullName} · ` : ''}final case organization record
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">Closure summary</h1>
+            <p className="mt-2 text-slate-600 max-w-2xl leading-relaxed">
+              {claimant?.fullName ? (
+                <>
+                  Record for <span className="font-medium text-slate-800">{claimant.fullName}</span>.
+                </>
+              ) : (
+                'Final organization record for your matter.'
+              )}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col sm:items-end gap-2 shrink-0">
             {claimant?.id ? (
               <Link
                 to={`/portal/case/${claimant.id}`}
-                className="text-sm font-semibold text-indigo-700 hover:underline"
+                className="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
               >
-                Back to case
+                ← Back to case
               </Link>
             ) : null}
-            <Link to="/portal/dashboard" className="text-sm font-semibold text-gray-600 hover:underline">
-              All my cases
+            <Link to="/portal/dashboard" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+              My cases
             </Link>
           </div>
         </div>
-      </div>
+      </header>
 
       {loading ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 sm:p-10">
           <LoadingInline message="Loading closure summary…" />
         </div>
       ) : null}
-      {error ? <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div> : null}
+      {error ? (
+        <div className="text-sm text-red-800 bg-red-50 border border-red-100 rounded-xl p-4">{error}</div>
+      ) : null}
 
       {!loading && !error && closure ? (
-        <>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900">Closure Narrative</h3>
-            <div className="mt-3 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+        <div className="space-y-8 max-w-3xl">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-slate-900">Closure narrative</h2>
+            <div className="mt-4 text-slate-700 whitespace-pre-wrap leading-relaxed">
               {closure.closureSummary || '—'}
             </div>
-          </div>
+          </section>
 
           {Array.isArray(closure.keyHighlights) && closure.keyHighlights.length ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-900">Key Highlights</h3>
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+              <h2 className="text-lg font-semibold text-slate-900">Key highlights</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
                 {closure.keyHighlights.map((x, idx) => (
-                  <div key={`${x}-${idx}`} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                    <p className="text-sm text-gray-800">{x}</p>
+                  <div key={`${x}-${idx}`} className="border border-slate-100 rounded-xl p-4 bg-slate-50/80">
+                    <p className="text-sm text-slate-800 leading-relaxed">{x}</p>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           ) : null}
 
           {closure.financialSummary ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-900">Financial Summary</h3>
-              <div className="mt-3 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-                {closure.financialSummary}
-              </div>
-            </div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+              <h2 className="text-lg font-semibold text-slate-900">Financial summary</h2>
+              <div className="mt-4 text-slate-700 whitespace-pre-wrap leading-relaxed">{closure.financialSummary}</div>
+            </section>
           ) : null}
 
           {Array.isArray(closure.nextSteps) && closure.nextSteps.length ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-900">Next Steps</h3>
-              <ul className="list-disc ml-5 mt-3 text-sm text-gray-800 space-y-1">
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+              <h2 className="text-lg font-semibold text-slate-900">Next steps</h2>
+              <ul className="list-disc ml-5 mt-4 text-slate-700 space-y-2 leading-relaxed">
                 {closure.nextSteps.map((x, idx) => (
                   <li key={`${x}-${idx}`}>{x}</li>
                 ))}
               </ul>
-            </div>
+            </section>
           ) : null}
 
-          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6">
-            <h3 className="text-lg font-bold text-indigo-900">Compliance Disclaimer</h3>
-            <div className="mt-3 text-sm text-indigo-900/90 whitespace-pre-wrap leading-relaxed">
+          <section className="rounded-2xl border border-indigo-100 bg-indigo-50/80 p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-indigo-950">Compliance disclaimer</h2>
+            <div className="mt-3 text-sm text-indigo-950/90 whitespace-pre-wrap leading-relaxed">
               {closure.complianceDisclaimer || ''}
             </div>
-          </div>
-        </>
+          </section>
+        </div>
       ) : null}
     </div>
   );
 }
-

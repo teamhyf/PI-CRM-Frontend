@@ -925,7 +925,7 @@ export function PortalCaseDetail() {
   if (syncError) {
     return (
       <div className="space-y-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-6">
+        <div className="bg-white rounded-2xl border border-red-200 p-6 sm:p-8">
           <p className="text-sm text-red-800 font-medium">{syncError}</p>
           <Link
             to="/portal/dashboard"
@@ -940,7 +940,7 @@ export function PortalCaseDetail() {
 
   if (syncing || authLoading || !claimant || claimant.id !== targetClaimantId) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-10">
         <LoadingBlock message="Loading case…" />
       </div>
     );
@@ -951,67 +951,65 @@ export function PortalCaseDetail() {
     activeCaseRow?.caseId != null ? `Case #${activeCaseRow.caseId}` : 'Case details';
 
   return (
-    <div className="pb-2">
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <Link
-                to="/portal/dashboard"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-700 hover:underline w-fit"
-              >
-                <span aria-hidden>←</span> My cases
-              </Link>
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 mt-2">
+    <div className="pb-10">
+      <header className="border-b border-slate-200 pb-8 mb-0">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+          <div className="min-w-0">
+            <Link
+              to="/portal/dashboard"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 w-fit"
+            >
+              <span aria-hidden>←</span> My cases
+            </Link>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 mt-3">
               {caseIdNum ? `Case #${caseIdNum}` : activeCaseLabel}
             </h1>
-            <p className="text-gray-600 mt-1">
-              {caseData?.accidentType || '—'} | {caseData?.dateOfLoss ? formatISODate(caseData.dateOfLoss) : 'No date'}
+            <p className="text-slate-600 mt-2 text-lg">
+              {caseData?.accidentType || '—'} <span className="text-slate-400">|</span>{' '}
+              {caseData?.dateOfLoss ? formatISODate(caseData.dateOfLoss) : 'No date of loss'}
             </p>
-            <div className="mt-3 flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-1.5 text-gray-700">
-                <span className="font-medium">{claimant?.fullName || '—'}</span>
-              </div>
-              {claimant?.email ? <div className="text-gray-600">{claimant.email}</div> : null}
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+              <span className="font-medium text-slate-800">{claimant?.fullName || '—'}</span>
+              {claimant?.email ? <span>{claimant.email}</span> : null}
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-            <label className="text-xs font-medium text-gray-500">Case status</label>
+          <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
+            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Case status</span>
             <div
-              className={`min-w-[12rem] rounded-lg border px-3 py-2 text-sm font-semibold shadow-sm ${normalizedCaseStatus === 'accepted'
-                  ? 'bg-green-100 text-green-800 border-green-200'
+              className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
+                normalizedCaseStatus === 'accepted'
+                  ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
                   : 'bg-slate-100 text-slate-800 border-slate-200'
-                }`}
+              }`}
             >
               {String(normalizedCaseStatus).replace(/_/g, ' ').toUpperCase()}
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="sticky top-[72px] z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-gray-200 bg-white/80 backdrop-blur mb-6">
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
+      <div className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-1 border-b border-slate-200 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80 mb-8 mt-0">
+        <nav className="flex gap-1 overflow-x-auto pb-0 -mb-px" aria-label="Case sections">
           {CASE_TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 font-medium border-b-2 transition-all whitespace-nowrap ${
+              className={`shrink-0 px-3 sm:px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-indigo-600 text-indigo-700'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
               }`}
               type="button"
             >
               {tab.label}
             </button>
           ))}
-        </div>
+        </nav>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
-        <div className="p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white">
+        <div className="p-6 sm:p-8">
           {activeTab === 'overview' ? (
             <>
               {loading ? (
