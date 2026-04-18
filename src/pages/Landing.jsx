@@ -3,8 +3,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useClaimantAuth } from '../context/ClaimantAuthContext';
 import { AISparklesIcon, AIBadge } from '../components/AIIcon';
 import { AICaseIntakeModal } from '../components/AICaseIntakeModal';
 
@@ -67,7 +68,9 @@ const FEATURE_GROUPS = [
 ];
 
 export function Landing() {
-  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const { isAuthenticated: staffAuth, user, logout: staffLogout } = useAuth();
+  const { isAuthenticated: claimantAuth, claimant, logout: claimantLogout } = useClaimantAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [caseSubmitted, setCaseSubmitted] = useState(false);
   const [intakeOutcome, setIntakeOutcome] = useState(null);
@@ -120,9 +123,74 @@ export function Landing() {
               >
                 AI intake
               </Link>
-              <Link to="/portal/login" className="text-slate-400 hover:text-white transition-colors">
-                Login
-              </Link>
+              {staffAuth ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className={
+                      location.pathname.startsWith('/dashboard')
+                        ? 'text-white font-medium transition-colors'
+                        : 'text-slate-400 hover:text-white transition-colors'
+                    }
+                  >
+                    Dashboard
+                  </Link>
+                  {user?.email ? (
+                    <span
+                      className="hidden sm:inline text-xs text-slate-500 max-w-[12rem] truncate"
+                      title={user.email}
+                    >
+                      {user.email}
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => staffLogout()}
+                    className="rounded-lg bg-white/10 hover:bg-white/15 px-3 py-1.5 text-sm font-semibold text-white border border-white/10"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : claimantAuth ? (
+                <>
+                  <Link
+                    to="/portal/dashboard"
+                    className={
+                      location.pathname.startsWith('/portal')
+                        ? 'text-white font-medium transition-colors'
+                        : 'text-slate-400 hover:text-white transition-colors'
+                    }
+                  >
+                    My account
+                  </Link>
+                  {claimant?.email ? (
+                    <span
+                      className="hidden sm:inline text-xs text-slate-500 max-w-[12rem] truncate"
+                      title={claimant.email}
+                    >
+                      {claimant.email}
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => claimantLogout()}
+                    className="rounded-lg bg-white/10 hover:bg-white/15 px-3 py-1.5 text-sm font-semibold text-white border border-white/10"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/portal/login"
+                  className={
+                    location.pathname.startsWith('/portal/login')
+                      ? 'text-white font-medium transition-colors'
+                      : 'text-slate-400 hover:text-white transition-colors'
+                  }
+                >
+                  Login
+                </Link>
+              )}
             </nav>
           </div>
         </header>
@@ -277,7 +345,7 @@ export function Landing() {
                 >
                   Start AI case intake
                 </button>
-                {!isAuthenticated && (
+                {!staffAuth && (
                   <Link
                     to="/login"
                     className="rounded-xl border border-white/20 px-8 py-3 font-semibold text-white hover:bg-white/5"
@@ -298,7 +366,7 @@ export function Landing() {
               <span className="opacity-40 select-none" aria-hidden>
                 |
               </span>
-              {isAuthenticated ? (
+              {staffAuth ? (
                 <Link to="/dashboard" className="hover:text-slate-200 hover:underline">
                   Staff dashboard
                 </Link>

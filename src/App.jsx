@@ -75,14 +75,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route
-        path="/portal/*"
-        element={
-          <ClaimantAuthProvider>
-            <PortalRoutes />
-          </ClaimantAuthProvider>
-        }
-      />
+      <Route path="/portal/*" element={<PortalRoutes />} />
       <Route
         path="/provider-portal/*"
         element={
@@ -203,7 +196,9 @@ function App() {
       <ToastProvider>
         <IntakeProvider>
           <Router>
-            <AppRoutes />
+            <ClaimantAuthProvider>
+              <AppRoutes />
+            </ClaimantAuthProvider>
           </Router>
         </IntakeProvider>
       </ToastProvider>
