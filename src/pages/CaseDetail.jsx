@@ -384,68 +384,69 @@ export default function CaseDetail() {
         </div>
       </div>
 
-      <div className="border-b border-gray-200 mb-6">
-        <div className="flex gap-6 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 font-medium border-b-2 transition-all whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+        <aside className="w-full shrink-0 lg:w-56 xl:w-60 lg:sticky lg:top-4 lg:z-10 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+          <nav className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm" aria-label="Case sections">
+            <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+              Navigate
+            </p>
+            <ul className="space-y-0.5 pb-1">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <li key={tab.id}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-900 ring-1 ring-blue-200/80'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        </aside>
 
-      <div className="bg-white rounded-lg shadow">
-        {activeTab === 'overview' && <CaseOverviewTab data={caseData} token={token} />}
-        {activeTab === 'participants' && (
-          <CaseParticipantsTab
-            caseId={caseData.id}
-            participants={caseData.participants || []}
-            onChanged={fetchCaseDetail}
-          />
-        )}
-        {activeTab === 'injuries' && (
-          <CaseInjuriesTab
-            caseId={caseData.id}
-            injuries={caseData.injuries || []}
-            onChanged={fetchCaseDetail}
-          />
-        )}
-        {activeTab === 'insurance' && (
-          <CaseInsuranceTab
-            caseId={caseData.id}
-            policies={caseData.policies || []}
-            onChanged={fetchCaseDetail}
-          />
-        )}
-        {activeTab === 'treatment-routing' && (
-          <ReferralPanel caseId={caseData.id} injuries={caseData.injuries || []} />
-        )}
-        {activeTab === 'timeline' && (
-          <CaseTimelineTab caseId={caseData.id} />
-        )}
-        {activeTab === 'documents' && (
-          <CaseDocumentsTab
-            caseId={caseData.id}
-          />
-        )}
-        {activeTab === 'red-flags' && (
-          <CaseRedFlagsTab
-            caseId={caseData.id}
-            flags={caseData.redFlags || []}
-          />
-        )}
-        {activeTab === 'documentation-summary' && (
-          <ClaimDocumentBuilder caseId={caseData.id} />
-        )}
-        {activeTab === 'settlement' && <SettlementTab caseId={caseData.id} />}
+        <div className="min-w-0 flex-1 rounded-lg bg-white shadow">
+          {activeTab === 'overview' && <CaseOverviewTab data={caseData} token={token} />}
+          {activeTab === 'participants' && (
+            <CaseParticipantsTab
+              caseId={caseData.id}
+              participants={caseData.participants || []}
+              onChanged={fetchCaseDetail}
+            />
+          )}
+          {activeTab === 'injuries' && (
+            <CaseInjuriesTab
+              caseId={caseData.id}
+              injuries={caseData.injuries || []}
+              onChanged={fetchCaseDetail}
+            />
+          )}
+          {activeTab === 'insurance' && (
+            <CaseInsuranceTab
+              caseId={caseData.id}
+              policies={caseData.policies || []}
+              onChanged={fetchCaseDetail}
+            />
+          )}
+          {activeTab === 'treatment-routing' && (
+            <ReferralPanel caseId={caseData.id} injuries={caseData.injuries || []} />
+          )}
+          {activeTab === 'timeline' && <CaseTimelineTab caseId={caseData.id} />}
+          {activeTab === 'documents' && <CaseDocumentsTab caseId={caseData.id} />}
+          {activeTab === 'red-flags' && (
+            <CaseRedFlagsTab caseId={caseData.id} flags={caseData.redFlags || []} />
+          )}
+          {activeTab === 'documentation-summary' && <ClaimDocumentBuilder caseId={caseData.id} />}
+          {activeTab === 'settlement' && <SettlementTab caseId={caseData.id} />}
+        </div>
       </div>
     </div>
   );

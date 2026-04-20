@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const ClaimantAuthContext = createContext();
 
@@ -18,6 +18,7 @@ function parseStoredClaimant() {
       id: o.id,
       email: o.email,
       fullName: o.fullName || '',
+      phone: o.phone != null ? String(o.phone) : '',
       cases: Array.isArray(o.cases) ? o.cases : [],
     };
   } catch {
@@ -45,6 +46,22 @@ export function ClaimantAuthProvider({ children }) {
       localStorage.removeItem('claimantUser');
     }
   };
+
+  /** Merge profile / session updates (e.g. after saving My Profile or email change + new token). */
+  const updateSession = useCallback((partial) => {
+    if (partial?.token) {
+      setToken(partial.token);
+      localStorage.setItem('claimantToken', partial.token);
+    }
+    if (partial?.claimant) {
+      setClaimant((c) => {
+        const next = { ...c, ...partial.claimant };
+        if (next.cases == null && c?.cases) next.cases = c.cases;
+        localStorage.setItem('claimantUser', JSON.stringify(next));
+        return next;
+      });
+    }
+  }, []);
 
   const login = async (email, password) => {
     const base = getBaseUrl();
@@ -137,9 +154,10 @@ export function ClaimantAuthProvider({ children }) {
       login,
       logout,
       switchCase,
+      updateSession,
       isAuthenticated: !!token,
     }),
-    [token, claimant, loading]
+    [token, claimant, loading, updateSession]
   );
 
   return (

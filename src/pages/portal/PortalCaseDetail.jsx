@@ -83,22 +83,6 @@ const CASE_TABS = [
   { id: 'settlement', label: 'Settlement' },
 ];
 
-function TabButton({ active, onClick, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`whitespace-nowrap px-3 py-2 text-sm font-semibold border-b-2 transition-colors ${
-        active
-          ? 'border-indigo-600 text-indigo-700'
-          : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-200'
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
 function statutePlanningReference(dateOfLoss) {
   if (!dateOfLoss) return null;
   const d = new Date(dateOfLoss);
@@ -989,27 +973,40 @@ export function PortalCaseDetail() {
         </div>
       </header>
 
-      <div className="sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-1 border-b border-slate-200 bg-slate-50/95 backdrop-blur supports-[backdrop-filter]:bg-slate-50/80 mb-8 mt-0">
-        <nav className="flex gap-1 overflow-x-auto pb-0 -mb-px" aria-label="Case sections">
-          {CASE_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 px-3 sm:px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-indigo-600 text-indigo-700'
-                  : 'border-transparent text-slate-600 hover:text-slate-900'
-              }`}
-              type="button"
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+        <aside className="w-full shrink-0 lg:w-56 xl:w-60 lg:sticky lg:top-16 lg:z-10 lg:max-h-[calc(100vh-4.5rem)] lg:overflow-y-auto">
+          <nav
+            className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
+            aria-label="Case sections"
+          >
+            <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Navigate
+            </p>
+            <ul className="space-y-0.5 pb-1">
+              {CASE_TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <li key={tab.id}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-indigo-50 text-indigo-900 ring-1 ring-indigo-200/80'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        </aside>
 
-      <div className="rounded-2xl border border-slate-200 bg-white">
-        <div className="p-6 sm:p-8">
+        <div className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white">
+          <div className="p-6 sm:p-8">
           {activeTab === 'overview' ? (
             <>
               {loading ? (
@@ -1790,6 +1787,7 @@ export function PortalCaseDetail() {
           {activeTab === 'settlement' ? (
             <SettlementTab caseId={caseIdNum} apiPrefix="/api/portal" token={token} readOnly />
           ) : null}
+          </div>
         </div>
       </div>
 

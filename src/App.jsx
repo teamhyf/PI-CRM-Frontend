@@ -23,6 +23,7 @@ import { ProviderPortalLayout } from './components/ProviderPortalLayout';
 import { PortalLogin } from './pages/portal/PortalLogin';
 import { PortalDashboard } from './pages/portal/PortalDashboard';
 import { PortalCaseDetail } from './pages/portal/PortalCaseDetail';
+import { PortalProfile } from './pages/portal/PortalProfile';
 import { CaseClosure } from './pages/portal/CaseClosure';
 import { ProtectedClaimantRoute } from './components/ProtectedClaimantRoute';
 import { ProviderLogin } from './pages/provider-portal/ProviderLogin';
@@ -42,6 +43,7 @@ function PortalRoutes() {
         }
       >
         <Route path="dashboard" element={<PortalDashboard />} />
+        <Route path="profile" element={<PortalProfile />} />
         <Route path="case/:claimantId" element={<PortalCaseDetail />} />
         <Route path="case-closure" element={<CaseClosure />} />
       </Route>
