@@ -91,8 +91,8 @@ export default function CaseRedFlagsTab({
   const riskStyle = getRiskBarStyle(normalizedRiskScore);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+    <div className="p-4 sm:p-5 space-y-4">
+      <div className="bg-slate-50/85 rounded-xl p-3.5">
         <div className="flex items-center justify-between mb-2">
           <div className="text-sm font-semibold text-gray-900">Risk Score</div>
           <div className={`text-sm font-bold ${riskStyle.labelClass}`}>{normalizedRiskScore}/200</div>
@@ -106,7 +106,7 @@ export default function CaseRedFlagsTab({
       </div>
 
       {error && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">
+        <div className="text-sm text-red-600 bg-red-50 rounded px-4 py-2 ring-1 ring-red-200/70">
           {error}
         </div>
       )}
@@ -136,7 +136,7 @@ export default function CaseRedFlagsTab({
                   {list.map((flag) => (
                     <div
                       key={flag.id}
-                      className="border border-gray-200 rounded-xl p-4 bg-white flex flex-col gap-3"
+                      className="rounded-xl p-3.5 bg-white flex flex-col gap-3 shadow-sm ring-1 ring-slate-100/90"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>

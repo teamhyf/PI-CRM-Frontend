@@ -345,21 +345,21 @@ export default function VisitsTimeline({
   const openGaps = timeline?.openGaps || 0;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-5 space-y-4">
       {(timelineLoading || loading) && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-3">
+        <div className="rounded-lg bg-slate-50/85 px-3 py-2.5">
           <LoadingInline message="Loading timeline…" />
         </div>
       )}
       {(error || timelineError) && (
-        <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        <div className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 ring-1 ring-red-200/70">
           {error || timelineError}
         </div>
       )}
 
       {/* Treatment summary */}
       {timeline?.treatmentSummary && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
+        <div className="bg-slate-50/85 rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between gap-4">
             <div className="text-sm font-semibold text-gray-900">Treatment Timeline Summary</div>
             {openGaps > 0 && (
@@ -377,7 +377,7 @@ export default function VisitsTimeline({
 
       {/* Gap alert */}
       {gapEntry?.description && openGaps > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-blue-50 rounded-lg p-3 ring-1 ring-blue-200/70">
           <div className="text-sm font-semibold text-blue-900">Treatment Gap Alert</div>
           <div className="text-sm text-blue-800 mt-1">{gapEntry.description}</div>
         </div>
@@ -385,7 +385,7 @@ export default function VisitsTimeline({
 
       {/* Timeline entries */}
       {timelineEntriesSorted.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg overflow-hidden shadow-sm ring-1 ring-slate-100/90">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-4">
             <div>
               <div className="text-sm font-semibold text-gray-900">Timeline</div>
@@ -436,7 +436,7 @@ export default function VisitsTimeline({
       )}
 
       {/* Visits table (always shown) */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg overflow-hidden shadow-sm ring-1 ring-slate-100/90">
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-4">
           <div>
             <div className="text-sm font-semibold text-gray-900">Visits</div>
@@ -535,14 +535,14 @@ export default function VisitsTimeline({
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg border border-gray-200 p-5">
+          <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg ring-1 ring-slate-200/70 p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">
                   {modalMode === 'edit' ? 'Edit Medical Visit' : 'Add Medical Visit'}
                 </h3>
                 {autoDetectedBanner ? (
-                  <div className="mt-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <div className="mt-2 text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2 ring-1 ring-amber-200/70">
                     {autoDetectedBanner}
                   </div>
                 ) : null}
@@ -564,7 +564,7 @@ export default function VisitsTimeline({
                     type="date"
                     value={form.visit_date}
                     onChange={(e) => setForm((p) => ({ ...p, visit_date: e.target.value }))}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="mt-1 block w-full rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                   />
                 </div>
                 <div>
@@ -572,7 +572,7 @@ export default function VisitsTimeline({
                   <select
                     value={form.visit_type}
                     onChange={(e) => setForm((p) => ({ ...p, visit_type: e.target.value }))}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="mt-1 block w-full rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                   >
                     {VISIT_TYPE_OPTIONS.map((t) => (
                       <option key={t.value} value={t.value}>
@@ -591,7 +591,7 @@ export default function VisitsTimeline({
                   <select
                     value={form.provider_id}
                     onChange={(e) => setForm((p) => ({ ...p, provider_id: e.target.value }))}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="mt-1 block w-full rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                     disabled={providersLoading}
                   >
                     <option value="">-- Select provider --</option>
@@ -613,7 +613,7 @@ export default function VisitsTimeline({
                   <input
                     value={form.provider_name_override}
                     onChange={(e) => setForm((p) => ({ ...p, provider_name_override: e.target.value }))}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="mt-1 block w-full rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                     placeholder="e.g. ABC Clinic"
                   />
                 </div>
@@ -624,7 +624,7 @@ export default function VisitsTimeline({
                 <textarea
                   value={form.diagnosis_summary}
                   onChange={(e) => setForm((p) => ({ ...p, diagnosis_summary: e.target.value }))}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className="mt-1 block w-full rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                   rows={3}
                 />
               </div>
@@ -636,7 +636,7 @@ export default function VisitsTimeline({
                     type="number"
                     value={form.billed_amount}
                     onChange={(e) => setForm((p) => ({ ...p, billed_amount: e.target.value }))}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="mt-1 block w-full rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                     placeholder="e.g. 150.00"
                   />
                 </div>
@@ -667,7 +667,7 @@ export default function VisitsTimeline({
                 <textarea
                   value={form.notes}
                   onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className="mt-1 block w-full rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                   rows={3}
                 />
               </div>
@@ -676,7 +676,7 @@ export default function VisitsTimeline({
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+                  className="rounded-lg bg-slate-50 px-4 py-2 text-sm font-semibold text-gray-800 ring-1 ring-slate-200/80 hover:bg-slate-100"
                 >
                   Cancel
                 </button>

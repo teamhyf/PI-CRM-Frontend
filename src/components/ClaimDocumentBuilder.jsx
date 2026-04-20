@@ -97,10 +97,10 @@ export default function ClaimDocumentBuilder({
   };
 
   if (loading) {
-    return <LoadingBlock message="Loading claim documentation…" className="p-6" minHeight />;
+    return <LoadingBlock message="Loading claim documentation…" className="p-4 sm:p-5" minHeight />;
   }
-  if (error) return <div className="p-6 text-red-700 text-sm bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>;
-  if (!data) return <div className="p-6 text-sm text-gray-600">No data found.</div>;
+  if (error) return <div className="p-4 sm:p-5 text-red-700 text-sm bg-red-50 rounded-lg ring-1 ring-red-200/70">{error}</div>;
+  if (!data) return <div className="p-4 sm:p-5 text-sm text-gray-600">No data found.</div>;
 
   const accidentSummary = data.accidentSummary || {};
   const treatmentTimeline = data.treatmentTimeline || {};
@@ -109,7 +109,7 @@ export default function ClaimDocumentBuilder({
   const sections = documentationIndex.documentationIndex || documentationIndex.sections || [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-5 space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Claim Documentation Summary</h2>
@@ -122,7 +122,7 @@ export default function ClaimDocumentBuilder({
           <button
             type="button"
             onClick={copyAll}
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+            className="rounded-lg bg-slate-50 px-4 py-2 text-sm font-semibold text-gray-800 ring-1 ring-slate-200/80 hover:bg-slate-100"
           >
             Copy All
           </button>
@@ -137,7 +137,7 @@ export default function ClaimDocumentBuilder({
       </div>
 
       {documentationIndex.missingCriticalItems?.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-red-50 rounded-lg p-4 ring-1 ring-red-200/70">
           <div className="text-sm font-semibold text-red-800">Missing critical items</div>
           <div className="text-sm text-red-700 mt-2">
             {documentationIndex.missingCriticalItems.join(', ')}
@@ -146,10 +146,10 @@ export default function ClaimDocumentBuilder({
       )}
 
       {/* Accident Summary */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
+      <div className="bg-white rounded-xl p-4 shadow-sm ring-1 ring-slate-100/90">
         <h3 className="text-lg font-bold text-gray-900">Accident Summary</h3>
         {accidentSummary.keyFacts?.length > 0 && (
-          <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <div className="mt-3 bg-slate-50/85 rounded-lg p-3">
             <div className="text-sm font-semibold text-gray-800">Key Facts</div>
             <ul className="mt-2 list-disc list-inside text-sm text-gray-700">
               {accidentSummary.keyFacts.map((f, idx) => (
@@ -168,7 +168,7 @@ export default function ClaimDocumentBuilder({
       </div>
 
       {/* Treatment Timeline */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
+      <div className="bg-white rounded-xl p-4 shadow-sm ring-1 ring-slate-100/90">
         <h3 className="text-lg font-bold text-gray-900">Treatment Timeline</h3>
         <div className="mt-2 text-sm text-gray-700">
           Total billed: ${Number(treatmentTimeline.totalBilled || 0).toLocaleString()} • Total received:{' '}
@@ -204,7 +204,7 @@ export default function ClaimDocumentBuilder({
       </div>
 
       {/* Documentation Index */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
+      <div className="bg-white rounded-xl p-4 shadow-sm ring-1 ring-slate-100/90">
         <h3 className="text-lg font-bold text-gray-900">Documentation Index</h3>
         <div className="mt-2 text-sm text-gray-700">
           Completeness Score: {documentationIndex.completenessScore != null ? `${documentationIndex.completenessScore}%` : '—'}
@@ -215,7 +215,7 @@ export default function ClaimDocumentBuilder({
 
         <div className="mt-4 space-y-6">
           {sections.map((s) => (
-            <div key={s.category} className="border border-gray-200 rounded-lg p-4">
+            <div key={s.category} className="rounded-lg p-3.5 bg-slate-50/85">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-semibold text-gray-900">{s.category}</div>
               </div>

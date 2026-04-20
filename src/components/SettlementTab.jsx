@@ -243,14 +243,14 @@ export default function SettlementTab({
       </div>
 
       {loading ? (
-        <div className="rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-3">
+        <div className="rounded-lg bg-slate-50/85 px-4 py-3">
           <LoadingInline message="Loading settlement…" />
         </div>
       ) : null}
-      {loadError ? <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{loadError}</div> : null}
+      {loadError ? <div className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 ring-1 ring-red-200/70">{loadError}</div> : null}
 
       {!loading && !tracker ? (
-        <div className="border border-gray-200 rounded-xl p-4 bg-white">
+        <div className="rounded-xl p-4 bg-white shadow-sm ring-1 ring-slate-100/90">
           <p className="text-sm font-semibold text-gray-900">Settlement tracker not created</p>
           <p className="text-sm text-gray-600 mt-1">
             {readOnly
@@ -270,7 +270,7 @@ export default function SettlementTab({
       ) : null}
 
       {readiness ? (
-        <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-4">
+        <div className="rounded-xl p-4 bg-white space-y-4 shadow-sm ring-1 ring-slate-100/90">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-gray-900">Resolution Readiness Checklist</p>
@@ -286,7 +286,7 @@ export default function SettlementTab({
           </div>
 
           {Array.isArray(readiness.blockers) && readiness.blockers.length ? (
-            <div className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className="text-sm text-red-800 bg-red-50 rounded-lg p-3 ring-1 ring-red-200/70">
               <p className="font-semibold text-red-900 mb-1">Blockers</p>
               <ul className="list-disc ml-5">
                 {readiness.blockers.map((b, idx) => (
@@ -296,29 +296,29 @@ export default function SettlementTab({
             </div>
           ) : null}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 flex items-center justify-between gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="rounded-xl p-3 bg-slate-50/85 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900">Documents Complete</p>
                 <p className="text-xs text-gray-600">Completeness: {checklist.documentCompleteness ?? '—'}%</p>
               </div>
               <StatusCheck ok={!!checklist.documentsComplete} />
             </div>
-            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 flex items-center justify-between gap-3">
+            <div className="rounded-xl p-3 bg-slate-50/85 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900">Red Flags Resolved</p>
                 <p className="text-xs text-gray-600">Open high flags: {checklist.openHighFlags ?? '—'}</p>
               </div>
               <StatusCheck ok={!!checklist.redFlagsResolved} />
             </div>
-            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 flex items-center justify-between gap-3">
+            <div className="rounded-xl p-3 bg-slate-50/85 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900">Medical Visits Recorded</p>
                 <p className="text-xs text-gray-600">Visits count: {checklist.medicalVisitsCount ?? '—'}</p>
               </div>
               <StatusCheck ok={!!checklist.medicalVisitsRecorded} />
             </div>
-            <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 flex items-center justify-between gap-3">
+            <div className="rounded-xl p-3 bg-slate-50/85 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900">Settlement Tracker Created</p>
                 <p className="text-xs text-gray-600">Setup status: {tracker ? 'Created' : 'Missing'}</p>
@@ -331,7 +331,7 @@ export default function SettlementTab({
 
       {tracker?.id ? (
         <>
-          <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-4">
+          <div className="rounded-xl p-4 bg-white space-y-4 shadow-sm ring-1 ring-slate-100/90">
             <div>
               <p className="text-sm font-semibold text-gray-900">Settlement Status</p>
               <p className="text-xs text-gray-500 mt-1">
@@ -341,45 +341,45 @@ export default function SettlementTab({
 
             {readOnly ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                <div className="rounded-xl p-3 bg-slate-50/85">
                   <p className="text-xs font-semibold text-gray-600">Demand Status</p>
                   <p className="text-sm font-semibold text-gray-900 mt-1">
                     {String(form.demand_status || '—').replace(/_/g, ' ')}
                   </p>
                 </div>
-                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                <div className="rounded-xl p-3 bg-slate-50/85">
                   <p className="text-xs font-semibold text-gray-600">Treatment Days</p>
                   <p className="text-sm font-semibold text-gray-900 mt-1">
                     {Number.isFinite(treatmentDays) ? `${treatmentDays} days` : '—'}
                   </p>
                 </div>
 
-                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                <div className="rounded-xl p-3 bg-slate-50/85">
                   <p className="text-xs font-semibold text-gray-600">Demand Amount</p>
                   <p className="text-sm font-semibold text-gray-900 mt-1">
                     {form.demand_amount !== '' ? `$${Number(form.demand_amount).toLocaleString()}` : '—'}
                   </p>
                 </div>
-                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                <div className="rounded-xl p-3 bg-slate-50/85">
                   <p className="text-xs font-semibold text-gray-600">Claimed Medicals</p>
                   <p className="text-sm font-semibold text-gray-900 mt-1">
                     {form.claimed_medicals !== '' ? `$${Number(form.claimed_medicals).toLocaleString()}` : '—'}
                   </p>
                 </div>
-                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                <div className="rounded-xl p-3 bg-slate-50/85">
                   <p className="text-xs font-semibold text-gray-600">Negotiated Medicals</p>
                   <p className="text-sm font-semibold text-gray-900 mt-1">
                     {form.negotiated_medicals !== '' ? `$${Number(form.negotiated_medicals).toLocaleString()}` : '—'}
                   </p>
                 </div>
-                <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                <div className="rounded-xl p-3 bg-slate-50/85">
                   <p className="text-xs font-semibold text-gray-600">Final Settlement</p>
                   <p className="text-sm font-semibold text-gray-900 mt-1">
                     {form.final_settlement !== '' ? `$${Number(form.final_settlement).toLocaleString()}` : '—'}
                   </p>
                 </div>
 
-                <div className="md:col-span-2 border border-gray-200 rounded-xl p-3 bg-gray-50">
+                <div className="md:col-span-2 rounded-xl p-3 bg-slate-50/85">
                   <p className="text-xs font-semibold text-gray-600">Net to Client</p>
                   <p className="text-sm font-semibold text-gray-900 mt-1">
                     {netToClient != null && Number.isFinite(netToClient)
@@ -391,7 +391,7 @@ export default function SettlementTab({
 
                 <div className="md:col-span-2">
                   <p className="text-xs font-semibold text-gray-600">Notes</p>
-                  <div className="mt-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap">
+                  <div className="mt-1 rounded-xl bg-white px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap shadow-sm ring-1 ring-slate-100/90">
                     {form.notes ? form.notes : '—'}
                   </div>
                 </div>
@@ -402,7 +402,7 @@ export default function SettlementTab({
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Demand Status</label>
                     <select
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
+                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                       value={form.demand_status}
                       disabled={patchingStatus}
                       onChange={(e) => patchDemandStatus(e.target.value)}
@@ -416,7 +416,7 @@ export default function SettlementTab({
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Treatment Days</label>
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-800">
+                    <div className="rounded-lg bg-slate-50/85 px-3 py-2 text-sm font-semibold text-gray-800">
                       {Number.isFinite(treatmentDays) ? treatmentDays : '—'} days
                     </div>
                   </div>
@@ -428,7 +428,7 @@ export default function SettlementTab({
                       step="0.01"
                       value={form.demand_amount}
                       onChange={(e) => setForm((f) => ({ ...f, demand_amount: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
+                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                     />
                   </div>
                   <div>
@@ -438,7 +438,7 @@ export default function SettlementTab({
                       step="0.01"
                       value={form.claimed_medicals}
                       onChange={(e) => setForm((f) => ({ ...f, claimed_medicals: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
+                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                     />
                   </div>
                   <div>
@@ -448,7 +448,7 @@ export default function SettlementTab({
                       step="0.01"
                       value={form.negotiated_medicals}
                       onChange={(e) => setForm((f) => ({ ...f, negotiated_medicals: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
+                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                     />
                   </div>
                   <div>
@@ -458,13 +458,13 @@ export default function SettlementTab({
                       step="0.01"
                       value={form.final_settlement}
                       onChange={(e) => setForm((f) => ({ ...f, final_settlement: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
+                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                     />
                   </div>
 
                   <div className="md:col-span-2">
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Net to Client</label>
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-800">
+                    <div className="rounded-lg bg-slate-50/85 px-3 py-2 text-sm font-semibold text-gray-800">
                       {netToClient != null && Number.isFinite(netToClient)
                         ? `$${Number(netToClient).toLocaleString()}`
                         : '—'}
@@ -479,7 +479,7 @@ export default function SettlementTab({
                     rows={4}
                     value={form.notes}
                     onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
+                    className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                   />
                 </div>
               </>
@@ -499,7 +499,7 @@ export default function SettlementTab({
           </div>
 
           {negotiation?.negotiationSummary ? (
-            <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-2">
+            <div className="rounded-xl p-4 bg-white space-y-2 shadow-sm ring-1 ring-slate-100/90">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Offer Negotiation Summary</p>
@@ -511,13 +511,13 @@ export default function SettlementTab({
                   </span>
                 ) : null}
               </div>
-              <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border border-gray-100 rounded-lg bg-gray-50 p-3">
+              <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed rounded-lg bg-slate-50/85 p-3">
                 {negotiation.negotiationSummary}
               </div>
             </div>
           ) : null}
 
-          <div className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
+          <div className="rounded-xl p-4 bg-white space-y-3 shadow-sm ring-1 ring-slate-100/90">
             <div>
               <p className="text-sm font-semibold text-gray-900">Offer History</p>
               <p className="text-xs text-gray-500 mt-1">If present, shows prior settlement demand rounds.</p>
@@ -525,7 +525,7 @@ export default function SettlementTab({
             {offerHistory.length ? (
               <div className="space-y-3">
                 {offerHistory.map((o, idx) => (
-                  <div key={`${o.offer_number || 'offer'}-${idx}`} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                  <div key={`${o.offer_number || 'offer'}-${idx}`} className="rounded-xl p-3 bg-slate-50/85">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-gray-900">
                         Offer #{o.offer_number ?? idx + 1}

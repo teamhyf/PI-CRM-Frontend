@@ -199,13 +199,13 @@ export default function CaseDocumentsTab({
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-5 space-y-4">
       {/* Completeness bar */}
       <CompletenessBar score={completenessScore} />
 
       {/* Next action prompt (LLM-generated) */}
       {nextActionPrompt && (
-        <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-900">
+        <div className="flex items-start gap-2 bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-900 ring-1 ring-blue-200/70">
           <span className="text-blue-500 mt-0.5">💡</span>
           <span>{nextActionPrompt}</span>
         </div>
@@ -213,7 +213,7 @@ export default function CaseDocumentsTab({
 
       {/* Missing docs alert */}
       {missing.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+        <div className="bg-red-50 rounded-lg px-4 py-3 ring-1 ring-red-200/70">
           <div className="text-sm font-semibold text-red-800 mb-1">Missing required documents</div>
           <ul className="list-disc list-inside text-sm text-red-700 space-y-0.5">
             {missing.map((m) => (
@@ -225,7 +225,7 @@ export default function CaseDocumentsTab({
 
       {/* AI-suggested values banner */}
       {suggestedValues && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+        <div className="bg-amber-50 rounded-lg px-4 py-3 ring-1 ring-amber-200/70">
           <div className="text-sm font-semibold text-amber-800 mb-1">
             AI extracted the following from your document (confidence {suggestedValues.confidence}%)
           </div>
@@ -278,7 +278,7 @@ export default function CaseDocumentsTab({
           <select
             value={selectedDocType}
             onChange={(e) => setSelectedDocType(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="text-sm rounded-lg px-3 py-2 bg-white ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
           >
             {VALID_DOC_TYPES.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
@@ -312,7 +312,7 @@ export default function CaseDocumentsTab({
         </div>
 
         {uploadError && (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-3 py-2">
+          <div className="text-sm text-red-600 bg-red-50 rounded px-3 py-2 ring-1 ring-red-200/70">
             {uploadError}
           </div>
         )}
@@ -320,7 +320,7 @@ export default function CaseDocumentsTab({
 
       {/* Errors */}
       {error && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded px-3 py-2">
+        <div className="text-sm text-red-600 bg-red-50 rounded px-3 py-2 ring-1 ring-red-200/70">
           {error}
         </div>
       )}
@@ -348,7 +348,7 @@ export default function CaseDocumentsTab({
 
       {/* LLM checklist */}
       {checklist?.requiredDocuments?.length > 0 && (
-        <div className="border border-gray-200 rounded-xl p-4 space-y-2">
+        <div className="rounded-xl bg-white p-3.5 space-y-2 shadow-sm ring-1 ring-slate-100/90">
           <div className="text-sm font-semibold text-gray-900 mb-2">Recommended Documents</div>
           {checklist.requiredDocuments
             .filter((d) => !d.alreadyUploaded)

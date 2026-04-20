@@ -254,6 +254,62 @@ function IconEnvelope({ className = metaIconCls }) {
   );
 }
 
+function ParticipantSectionIcon({ role }) {
+  const iconClass = 'h-5 w-5 shrink-0 text-lime-700';
+  if (role === 'adverse_driver' || role === 'other_vehicle') {
+    return (
+      <svg className={iconClass} fill="none" viewBox="0 0 24 24" strokeWidth={2.1} stroke="currentColor" aria-hidden>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3.75 13.5l1.2-3.6A2.25 2.25 0 017.08 8.25h9.84a2.25 2.25 0 012.13 1.65l1.2 3.6M4.5 16.5h15m-13.5 0V18a.75.75 0 00.75.75h.75A.75.75 0 008.25 18v-1.5m7.5 0V18a.75.75 0 00.75.75h.75A.75.75 0 0018 18v-1.5M6.75 12h.008v.008H6.75V12zm10.5 0h.008v.008h-.008V12z"
+        />
+      </svg>
+    );
+  }
+  if (role === 'passenger') {
+    return (
+      <svg className={iconClass} fill="none" viewBox="0 0 24 24" strokeWidth={2.1} stroke="currentColor" aria-hidden>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM3.75 19.5a8.25 8.25 0 0116.5 0"
+        />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 12.75a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+      </svg>
+    );
+  }
+  if (role === 'witness') {
+    return (
+      <svg className={iconClass} fill="none" viewBox="0 0 24 24" strokeWidth={2.1} stroke="currentColor" aria-hidden>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M2.25 12s3.75-6 9.75-6 9.75 6 9.75 6-3.75 6-9.75 6-9.75-6-9.75-6z"
+        />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14.25a2.25 2.25 0 100-4.5 2.25 2.25 0 000 4.5z" />
+      </svg>
+    );
+  }
+  if (role === 'police_emergency') {
+    return (
+      <svg className={iconClass} fill="none" viewBox="0 0 24 24" strokeWidth={2.1} stroke="currentColor" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l6.75 3v5.25c0 4.07-2.75 7.73-6.75 8.75-4-1.02-6.75-4.68-6.75-8.75V6L12 3z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8.25v6m-3-3h6" />
+      </svg>
+    );
+  }
+  return (
+    <svg className={iconClass} fill="none" viewBox="0 0 24 24" strokeWidth={2.1} stroke="currentColor" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275"
+      />
+    </svg>
+  );
+}
+
 export function PortalCaseDetail() {
   const { claimantId: claimantIdParam } = useParams();
   const targetClaimantId = Number(claimantIdParam);
@@ -1223,7 +1279,15 @@ export function PortalCaseDetail() {
         </aside>
 
         <div className="min-w-0 flex-1 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/55">
-          <div className={activeTab === 'participants' ? 'p-3 sm:p-4' : 'p-6 sm:p-8'}>
+          <div
+            className={
+              activeTab === 'participants'
+                ? 'p-3 sm:p-4'
+                : activeTab === 'overview'
+                  ? 'p-6 sm:p-8'
+                  : 'p-4 sm:p-5'
+            }
+          >
           {activeTab === 'overview' ? (
             <>
               {loading ? (
@@ -1348,28 +1412,33 @@ export function PortalCaseDetail() {
                     return (
                       <section
                         key={section.id}
-                        className="overflow-hidden rounded-xl bg-slate-50/80 shadow-sm ring-1 ring-slate-200/55"
+                        className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/70"
                       >
-                        <div className="flex items-start justify-between gap-2 border-b border-slate-200/60 bg-slate-50/90 px-3 py-2">
+                        <div className="flex items-start justify-between gap-2 border-b border-slate-200/70 bg-gradient-to-r from-slate-50 to-slate-100/70 px-4 py-3">
                           <div className="min-w-0">
-                            <h3 className="text-base font-bold tracking-tight text-slate-900">{section.title}</h3>
+                            <h3 className="flex items-center gap-2.5 text-base font-bold tracking-tight text-slate-900">
+                              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-lime-100 ring-1 ring-lime-200/80">
+                                <ParticipantSectionIcon role={section.role} />
+                              </span>
+                              <span>{section.title}</span>
+                            </h3>
                             <p className="text-xs text-slate-600 mt-0.5">{section.subtitle}</p>
                           </div>
                           <button
                             type="button"
                             onClick={() => openParticipantModal('create', section.role)}
-                            className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold text-lime-900 hover:bg-lime-400/30"
+                            className="shrink-0 rounded-full bg-lime-400 px-3.5 py-1.5 text-xs font-bold text-slate-900 shadow-sm shadow-lime-400/35 transition hover:bg-lime-300 focus:outline-none focus:ring-2 focus:ring-lime-500/45"
                           >
                             + Add New
                           </button>
                         </div>
 
                         {inSection.length === 0 ? (
-                          <p className="px-3 py-2 text-sm text-slate-500">No entries yet.</p>
+                          <p className="px-4 py-3 text-sm text-slate-500">No entries yet.</p>
                         ) : (
                           <ul className="divide-y divide-slate-100 bg-white">
                             {inSection.map((p) => (
-                              <li key={p.id} className="px-3 py-2.5">
+                              <li key={p.id} className="px-4 py-3 transition-colors hover:bg-slate-50/70">
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">
                                     <p className="text-sm font-semibold text-slate-900">{p.full_name || '—'}</p>
@@ -1396,14 +1465,14 @@ export function PortalCaseDetail() {
                                     <button
                                       type="button"
                                       onClick={() => openParticipantModal('edit', section.role, p.id)}
-                                      className="text-xs font-semibold text-lime-800 hover:underline"
+                                      className="rounded-full bg-lime-50 px-2.5 py-1 text-xs font-semibold text-lime-900 ring-1 ring-lime-200/70 hover:bg-lime-100"
                                     >
                                       Edit
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => deleteParticipant(p.id)}
-                                      className="text-xs font-semibold text-red-700 hover:underline"
+                                      className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-200/70 hover:bg-red-100"
                                     >
                                       Delete
                                     </button>
@@ -1420,9 +1489,14 @@ export function PortalCaseDetail() {
                   {participantsList.some(
                     (p) => !PORTAL_SECTION_ROLE_SET.has(String(p.role)) && String(p.role) !== 'claimant'
                   ) ? (
-                    <section className="overflow-hidden rounded-xl bg-amber-50/40 ring-1 ring-amber-200/50">
-                      <div className="border-b border-amber-200/50 px-3 py-2">
-                        <h3 className="text-base font-bold tracking-tight text-slate-900">Other contacts on file</h3>
+                    <section className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-amber-200/70">
+                      <div className="border-b border-amber-200/60 bg-gradient-to-r from-amber-50/85 to-amber-100/60 px-4 py-3">
+                        <h3 className="flex items-center gap-2.5 text-base font-bold tracking-tight text-slate-900">
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 ring-1 ring-amber-200/80">
+                            <ParticipantSectionIcon role="other" />
+                          </span>
+                          <span>Other contacts on file</span>
+                        </h3>
                         <p className="text-xs text-slate-600 mt-0.5">
                           From your legal team or an older form. Edit or remove duplicates here.
                         </p>
@@ -1434,7 +1508,7 @@ export function PortalCaseDetail() {
                               !PORTAL_SECTION_ROLE_SET.has(String(p.role)) && String(p.role) !== 'claimant'
                           )
                           .map((p) => (
-                            <li key={p.id} className="px-3 py-2.5">
+                            <li key={p.id} className="px-4 py-3 transition-colors hover:bg-amber-50/30">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <p className="text-sm font-semibold text-slate-900">
@@ -1454,14 +1528,14 @@ export function PortalCaseDetail() {
                                   <button
                                     type="button"
                                     onClick={() => openParticipantModal('edit', String(p.role), p.id)}
-                                    className="text-xs font-semibold text-lime-800 hover:underline"
+                                    className="rounded-full bg-lime-50 px-2.5 py-1 text-xs font-semibold text-lime-900 ring-1 ring-lime-200/70 hover:bg-lime-100"
                                   >
                                     Edit
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => deleteParticipant(p.id)}
-                                    className="text-xs font-semibold text-red-700 hover:underline"
+                                    className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 ring-1 ring-red-200/70 hover:bg-red-100"
                                   >
                                     Delete
                                   </button>
@@ -1639,7 +1713,7 @@ export function PortalCaseDetail() {
 
           {activeTab === 'injuries' ? (
             <div className="space-y-3">
-              <form onSubmit={createInjury} className="rounded-xl bg-slate-50/80 p-4 sm:p-5 space-y-4">
+              <form onSubmit={createInjury} className="rounded-xl bg-slate-50/80 p-3 sm:p-4 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Body Part</label>
@@ -1748,20 +1822,20 @@ export function PortalCaseDetail() {
               ) : injuriesList.length === 0 ? (
                 <p className="text-sm text-gray-600">No injuries on file yet.</p>
               ) : (
-                <div className="rounded-xl bg-white overflow-hidden shadow-sm ring-1 ring-slate-100">
-                  <div className="px-4 py-3 border-b border-slate-100/90">
+                <div className="rounded-xl bg-white overflow-hidden shadow-sm">
+                  <div className="px-3 py-2.5 border-b border-slate-100/90">
                     <h3 className="text-sm font-semibold text-gray-900">Injuries</h3>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                          <th className="px-4 py-3">Body Part</th>
-                          <th className="px-4 py-3">Symptom</th>
-                          <th className="px-4 py-3">Severity</th>
-                          <th className="px-4 py-3">First Reported</th>
-                          <th className="px-4 py-3">Status</th>
-                          <th className="px-4 py-3 text-right">Action</th>
+                          <th className="px-3 py-2.5">Body Part</th>
+                          <th className="px-3 py-2.5">Symptom</th>
+                          <th className="px-3 py-2.5">Severity</th>
+                          <th className="px-3 py-2.5">First Reported</th>
+                          <th className="px-3 py-2.5">Status</th>
+                          <th className="px-3 py-2.5 text-right">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -1770,12 +1844,12 @@ export function PortalCaseDetail() {
                           const first = inj.first_reported_date ? String(inj.first_reported_date).slice(0, 10) : '';
                           return (
                             <tr key={inj.id} className="hover:bg-gray-50/60">
-                              <td className="px-4 py-3 text-gray-900">{inj.body_part || '—'}</td>
-                              <td className="px-4 py-3 text-gray-700">{inj.symptom_type || '—'}</td>
-                              <td className="px-4 py-3 text-gray-700">{inj.severity_level ? String(inj.severity_level).replace(/_/g, ' ') : '—'}</td>
-                              <td className="px-4 py-3 text-gray-700">{first || '—'}</td>
-                              <td className="px-4 py-3 text-gray-700">{status}</td>
-                              <td className="px-4 py-3 text-right">
+                              <td className="px-3 py-2.5 text-gray-900">{inj.body_part || '—'}</td>
+                              <td className="px-3 py-2.5 text-gray-700">{inj.symptom_type || '—'}</td>
+                              <td className="px-3 py-2.5 text-gray-700">{inj.severity_level ? String(inj.severity_level).replace(/_/g, ' ') : '—'}</td>
+                              <td className="px-3 py-2.5 text-gray-700">{first || '—'}</td>
+                              <td className="px-3 py-2.5 text-gray-700">{status}</td>
+                              <td className="px-3 py-2.5 text-right">
                                 <button
                                   type="button"
                                   onClick={() => deleteInjury(inj.id)}
@@ -1797,7 +1871,7 @@ export function PortalCaseDetail() {
 
           {activeTab === 'insurance' ? (
             <div className="space-y-3">
-              <div className="rounded-xl bg-slate-50/85 p-4 sm:p-5 space-y-3">
+              <div className="rounded-xl bg-slate-50/85 p-3 sm:p-4 space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-sm font-semibold text-gray-900">Primary BI Coverage</div>
@@ -1869,7 +1943,7 @@ export function PortalCaseDetail() {
                   {policiesList.map((p) => {
                     const band = p.policy_band || insuranceSummary?.primaryBodyilyInjury?.policy_band || 'unknown';
                     return (
-                      <div key={p.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                      <div key={p.id} className="rounded-xl bg-white p-3 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
@@ -1940,7 +2014,7 @@ export function PortalCaseDetail() {
               {policyModalOpen ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                   <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl ring-1 ring-slate-200/70">
-                    <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                    <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                       <div className="text-lg font-bold text-gray-900">
                         {policyModalMode === 'edit' ? 'Edit Policy' : 'Add Policy'}
                       </div>
@@ -1953,7 +2027,7 @@ export function PortalCaseDetail() {
                       </button>
                     </div>
 
-                    <form onSubmit={savePolicyModal} className="p-5 space-y-4">
+                    <form onSubmit={savePolicyModal} className="p-4 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-semibold text-gray-600 mb-1">Policy type</label>
@@ -2059,12 +2133,12 @@ export function PortalCaseDetail() {
 
           {activeTab === 'treatment' ? (
             <div className="space-y-4">
-              <div className="rounded-xl bg-slate-50/85 p-4 sm:p-5">
+              <div className="rounded-xl bg-slate-50/85 p-3 sm:p-4">
                 <h2 className="text-lg font-bold text-gray-900 mb-1">Suggested Referrals</h2>
                 <p className="text-sm text-gray-600">Auto-mapped based on documented injuries.</p>
 
                 {referralsLoading ? (
-                  <div className="mt-4 rounded-lg bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100">
+                  <div className="mt-4 rounded-lg bg-white px-3 py-2.5 shadow-sm">
                     <LoadingInline message="Loading referral data…" />
                   </div>
                 ) : referralsError ? (
@@ -2076,7 +2150,7 @@ export function PortalCaseDetail() {
                 ) : (
                   <div className="mt-4 space-y-3">
                     {suggestions.map((s) => (
-                      <div key={s.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                      <div key={s.id} className="rounded-xl bg-white p-3 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <div className="text-sm font-semibold text-gray-900">
@@ -2119,12 +2193,12 @@ export function PortalCaseDetail() {
                 )}
               </div>
 
-              <div className="rounded-xl bg-slate-50/85 p-4 sm:p-5">
+              <div className="rounded-xl bg-slate-50/85 p-3 sm:p-4">
                 <h2 className="text-lg font-bold text-gray-900 mb-1">Referral Status Tracker</h2>
                 <p className="text-sm text-gray-600">Track suggested → scheduled → completed referral outcomes.</p>
 
                 {referralsLoading ? (
-                  <div className="mt-4 rounded-lg bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100">
+                  <div className="mt-4 rounded-lg bg-white px-3 py-2.5 shadow-sm">
                     <LoadingInline message="Loading referrals…" />
                   </div>
                 ) : referrals.length === 0 ? (
@@ -2132,7 +2206,7 @@ export function PortalCaseDetail() {
                 ) : (
                   <div className="mt-4 space-y-3">
                     {referrals.map((r) => (
-                      <div key={r.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                      <div key={r.id} className="rounded-xl bg-white p-3 shadow-sm">
                         <div className="flex items-center justify-between gap-4">
                           <div>
                             <div className="text-sm font-semibold text-gray-900">
@@ -2220,7 +2294,7 @@ export function PortalCaseDetail() {
       {/* Note: Case record, Treatment Pathway, and Documents are now shown only inside their tabs. */}
 
       {closureAvailable ? (
-        <div className="bg-white rounded-2xl p-6 shadow-sm ring-1 ring-slate-200/55">
+        <div className="bg-white rounded-2xl p-5 shadow-sm ring-1 ring-slate-200/55">
           <h2 className="text-xl font-bold text-gray-900 mb-1">Case Closure Summary</h2>
           <p className="text-sm text-gray-600 mb-4">Your final case organization record is available for review.</p>
           <Link

@@ -69,27 +69,211 @@ const FEATURE_GROUPS = [
   },
 ];
 
-const CARD_ACCENTS = [
-  'bg-lime-100 text-lime-800 border border-lime-200/80',
-  'bg-indigo-50 text-indigo-700 border border-indigo-100',
-  'bg-violet-50 text-violet-700 border border-violet-100',
-];
+function FeatureCardIcon({ groupTitle, itemTitle }) {
+  const cls =
+    groupTitle === 'Firm workspace'
+      ? 'bg-lime-100 text-lime-800 border border-lime-200/80'
+      : groupTitle === 'Claimant portal'
+        ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+        : 'bg-violet-50 text-violet-700 border border-violet-100';
 
-function FeatureCardIcon({ index }) {
-  const cls = CARD_ACCENTS[index % CARD_ACCENTS.length];
+  const icon = (() => {
+    switch (itemTitle) {
+      case 'Dashboard & analytics':
+        return (
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3.75 3.75h16.5v16.5H3.75V3.75zm4.5 10.5v3m4.5-7.5v7.5m4.5-4.5v4.5"
+          />
+        );
+      case 'Cases & matter files':
+        return (
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4.5 6.75A2.25 2.25 0 016.75 4.5h4.086a2.25 2.25 0 011.591.659l1.914 1.914a2.25 2.25 0 001.591.659H17.25A2.25 2.25 0 0119.5 10.5v6.75A2.25 2.25 0 0117.25 19.5H6.75A2.25 2.25 0 014.5 17.25V6.75z"
+          />
+        );
+      case 'Leads & intake':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h9m-9 0l3-3m-3 3l3 3" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25h3.75v13.5h-3.75" />
+          </>
+        );
+      case 'AI-guided intake':
+        return (
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+          />
+        );
+      case 'Documents & completeness':
+        return (
+          <>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6.75 3.75h7.5l3 3v12a1.5 1.5 0 01-1.5 1.5h-9a1.5 1.5 0 01-1.5-1.5v-13.5a1.5 1.5 0 011.5-1.5z"
+            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75l2.25 2.25L15 11.25" />
+          </>
+        );
+      case 'Insurance & policies':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l6.75 3v5.25c0 4.07-2.75 7.73-6.75 8.75-4-1.02-6.75-4.68-6.75-8.75V6L12 3z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 12.75h4.5" />
+          </>
+        );
+      case 'Referrals & providers':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.118a7.5 7.5 0 0115 0" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.75 9.75h3m-1.5-1.5v3" />
+          </>
+        );
+      case 'Settlement & closure':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3.75h9m-9 3.75h5.25" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 5.25h15v13.5h-15V5.25z" />
+          </>
+        );
+      case 'Red flags & compliance':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5.25l8.25 13.5H3.75L12 5.25z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75v3.75m0 2.25h.008v.008H12v-.008z" />
+          </>
+        );
+      case 'Overview, injuries & insurance':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 6.75h15v10.5h-15V6.75z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 11.25h7.5m-7.5 3h4.5" />
+          </>
+        );
+      case 'Documents':
+        return (
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M6.75 3.75h7.5l3 3v12a1.5 1.5 0 01-1.5 1.5h-9a1.5 1.5 0 01-1.5-1.5v-13.5a1.5 1.5 0 011.5-1.5zM10.5 9.75h3"
+          />
+        );
+      case 'Treatment routing':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12h6m0 0l-2.25-2.25M10.5 12l-2.25 2.25" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6h6m0 0l-2.25-2.25M19.5 6l-2.25 2.25M13.5 18h6m0 0l-2.25-2.25M19.5 18l-2.25 2.25" />
+          </>
+        );
+      case 'Timeline':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.75h12M6 12h12M6 17.25h12" />
+            <circle cx="4.5" cy="6.75" r="0.75" />
+            <circle cx="4.5" cy="12" r="0.75" />
+            <circle cx="4.5" cy="17.25" r="0.75" />
+          </>
+        );
+      case 'Red flags & documentation summary':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.75l7.5 4.5v7.5l-7.5 4.5-7.5-4.5v-7.5l7.5-4.5z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0 2.25h.008v.008H12v-.008z" />
+          </>
+        );
+      case 'Settlement':
+        return (
+          <>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M8.25 6h7.5a1.5 1.5 0 011.5 1.5v9a1.5 1.5 0 01-1.5 1.5h-7.5a1.5 1.5 0 01-1.5-1.5v-9A1.5 1.5 0 018.25 6z"
+            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 10.5h4.5m-4.5 3h3" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 9H6a1.5 1.5 0 00-1.5 1.5v6A1.5 1.5 0 006 18h.75" />
+          </>
+        );
+      case 'Assigned cases':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.25h13.5v13.5H5.25V5.25z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9h7.5m-7.5 3h7.5" />
+          </>
+        );
+      case 'Medical uploads':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V7.5m0 0l-3 3m3-3l3 3" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 16.5v1.5A2.25 2.25 0 006.75 20.25h10.5A2.25 2.25 0 0019.5 18v-1.5" />
+          </>
+        );
+      case 'Secure notes':
+        return (
+          <>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3h6m-6 3h4.5" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 4.5h12a1.5 1.5 0 011.5 1.5v12L15 15h-9A1.5 1.5 0 014.5 13.5V6A1.5 1.5 0 016 4.5z" />
+          </>
+        );
+      default:
+        return (
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+          />
+        );
+    }
+  })();
   return (
     <div
       className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl ${cls}`}
       aria-hidden
     >
-      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+        {icon}
+      </svg>
+    </div>
+  );
+}
+
+function SectionHeadingIcon({ title }) {
+  const cls = 'h-6 w-6 shrink-0 text-slate-700';
+  if (title === 'Firm workspace') {
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden>
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
-          d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
+          d="M3.75 21h16.5M5.25 21V7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m4.5 0V4.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21"
         />
       </svg>
-    </div>
+    );
+  }
+  if (title === 'Claimant portal') {
+    return (
+      <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.118a7.5 7.5 0 0115 0A17.9 17.9 0 0112 21.75a17.9 17.9 0 01-7.5-1.632z"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 7.5h16.5M6.75 3v3m10.5-3v3M6 21h12a2.25 2.25 0 002.25-2.25V7.5a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 7.5v11.25A2.25 2.25 0 006 21zm3.75-8.25h4.5m-4.5 3h4.5"
+      />
+    </svg>
   );
 }
 
@@ -166,6 +350,16 @@ export function Landing() {
                   }
                 >
                   Home
+                </Link>
+                <Link
+                  to="/how-it-works"
+                  className={
+                    location.pathname.startsWith('/how-it-works')
+                      ? 'font-semibold text-slate-900'
+                      : 'text-slate-600 hover:text-slate-900 transition-colors'
+                  }
+                >
+                  How it Works
                 </Link>
                 <a href="/#features" className="text-slate-600 hover:text-slate-900 transition-colors">
                   Features
@@ -327,19 +521,22 @@ export function Landing() {
               </div>
 
               <div className="space-y-24 md:space-y-28">
-                {FEATURE_GROUPS.map((group, groupIndex) => (
+                {FEATURE_GROUPS.map((group) => (
                   <div key={group.title}>
                     <div className="mb-10 md:mb-12 text-center sm:text-left max-w-2xl">
-                      <h3 className="text-2xl font-bold text-slate-900">{group.title}</h3>
+                      <h3 className="flex items-center gap-2.5 text-2xl font-bold text-slate-900">
+                        <SectionHeadingIcon title={group.title} />
+                        <span>{group.title}</span>
+                      </h3>
                       <p className="text-slate-600 mt-2 leading-relaxed">{group.subtitle}</p>
                     </div>
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-                      {group.items.map((item, itemIndex) => (
+                      {group.items.map((item) => (
                           <div
                             key={item.title}
                             className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm hover:shadow-md hover:border-lime-200/70 transition-all duration-200"
                           >
-                            <FeatureCardIcon index={groupIndex * 20 + itemIndex} />
+                            <FeatureCardIcon groupTitle={group.title} itemTitle={item.title} />
                             <h4 className="font-semibold text-slate-900 leading-snug">{item.title}</h4>
                             <p className="text-sm text-slate-600 mt-2 leading-relaxed">{item.desc}</p>
                           </div>
@@ -368,10 +565,10 @@ export function Landing() {
                 </button>
                 {!staffAuth && (
                   <Link
-                    to="/login"
+                    to="/portal/login"
                     className="rounded-full border-2 border-white/25 bg-transparent px-8 py-3.5 font-semibold text-white hover:bg-white/10 transition-colors"
                   >
-                    Staff login
+                    User login
                   </Link>
                 )}
               </div>

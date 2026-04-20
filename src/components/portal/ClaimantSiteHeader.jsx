@@ -79,6 +79,9 @@ export function ClaimantSiteHeader({ variant = 'public', tone = 'dark', email, o
       <Link to="/" className={linkClass(path === '/')}>
         Home
       </Link>
+      <Link to="/how-it-works" className={linkClass(path.startsWith('/how-it-works'))}>
+        How it Works
+      </Link>
       <a href="/#features" className={linkClass(false)}>
         Features
       </a>

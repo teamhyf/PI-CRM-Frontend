@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { IntakeProvider } from './context/IntakeContext';
 import { ToastProvider } from './context/ToastContext';
 import { Landing } from './pages/Landing';
+import { HowItWorks } from './pages/HowItWorks';
 import { Dashboard } from './pages/Dashboard';
 import { Cases } from './pages/Cases';
 import CaseDetail from './pages/CaseDetail';
@@ -187,6 +188,7 @@ function AppRoutes() {
         }
       />
       <Route path="/" element={<Landing />} />
+      <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
