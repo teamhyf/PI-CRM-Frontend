@@ -59,6 +59,9 @@ export default function SettlementTab({
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [patchingStatus, setPatchingStatus] = useState(false);
+  const [generatingDemandPacket, setGeneratingDemandPacket] = useState(false);
+  const [demandPacketBlockers, setDemandPacketBlockers] = useState([]);
+  const [demandPacketMeta, setDemandPacketMeta] = useState(null);
 
   const [form, setForm] = useState({
     demand_status: 'not_started',
@@ -222,6 +225,55 @@ export default function SettlementTab({
     }
   };
 
+  const handleGenerateDemandPacket = async (force = false) => {
+    if (readOnly) return;
+    if (!authToken || !caseId) return;
+    if (apiPrefix !== '/api') {
+      error('Demand packet generation is only available for staff.');
+      return;
+    }
+    if (generatingDemandPacket) return;
+
+    setGeneratingDemandPacket(true);
+    setDemandPacketBlockers([]);
+    try {
+      const base = getBaseUrl();
+      const query = force ? '?force=1' : '';
+      const res = await fetch(`${base}${apiPrefix}/cases/${caseId}/demand-packet/generate${query}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 409) {
+        const blockers = Array.isArray(data.blockers) ? data.blockers : [];
+        setDemandPacketBlockers(blockers);
+        error('Demand packet generation blocked. Resolve blockers and try again.');
+        return;
+      }
+
+      if (!res.ok) throw new Error(data.error || 'Failed to generate demand packet');
+
+      setDemandPacketMeta(data.document || null);
+      if (data.duplicate) {
+        success('Demand packet already up to date', 'No significant case updates since the latest packet.');
+      } else if (data.generated) {
+        success('Demand packet generated', 'A new demand packet draft has been added to Documents.');
+      } else {
+        success('Demand packet request completed');
+      }
+
+      await fetchSettlement();
+      if (onChanged) await onChanged();
+    } catch (e) {
+      error(e.message || 'Failed to generate demand packet');
+    } finally {
+      setGeneratingDemandPacket(false);
+    }
+  };
+
   const checklist = readiness?.checklist || {};
 
   return (
@@ -285,6 +337,30 @@ export default function SettlementTab({
             </div>
           </div>
 
+          {!readOnly && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleGenerateDemandPacket(false)}
+                disabled={generatingDemandPacket}
+                className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generatingDemandPacket ? 'Generating…' : 'Generate Demand Packet'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGenerateDemandPacket(true)}
+                disabled={generatingDemandPacket}
+                className="inline-flex items-center rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Force Regenerate
+              </button>
+              <span className="text-xs text-gray-500">
+                Generates a draft `demand_packet` document and saves it under this case.
+              </span>
+            </div>
+          )}
+
           {Array.isArray(readiness.blockers) && readiness.blockers.length ? (
             <div className="text-sm text-red-800 bg-red-50 rounded-lg p-3 ring-1 ring-red-200/70">
               <p className="font-semibold text-red-900 mb-1">Blockers</p>
@@ -296,7 +372,24 @@ export default function SettlementTab({
             </div>
           ) : null}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {Array.isArray(demandPacketBlockers) && demandPacketBlockers.length > 0 ? (
+            <div className="text-sm text-red-800 bg-red-50 rounded-lg p-3 ring-1 ring-red-200/70">
+              <p className="font-semibold text-red-900 mb-1">Demand Packet Generation Blockers</p>
+              <ul className="list-disc ml-5 space-y-1">
+                {demandPacketBlockers.map((b, idx) => (
+                  <li key={`${b.code || 'blocker'}-${idx}`}>{b.message || 'Readiness blocker detected.'}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {demandPacketMeta?.id ? (
+            <div className="text-xs text-emerald-800 bg-emerald-50 rounded-lg px-3 py-2 ring-1 ring-emerald-200/70">
+              Latest generated packet: <span className="font-semibold">{demandPacketMeta.file_name}</span> (doc #{demandPacketMeta.id})
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="rounded-xl p-3 bg-slate-50/85 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900">Documents Complete</p>
