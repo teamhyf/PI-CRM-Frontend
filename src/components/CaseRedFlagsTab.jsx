@@ -55,8 +55,9 @@ export default function CaseRedFlagsTab({
   }, [caseId]);
 
   const flagsBySeverity = useMemo(() => {
+    const openFlags = flags.filter((f) => String(f.resolved_status || 'open') !== 'resolved');
     const grouped = { high: [], medium: [], low: [], other: [] };
-    for (const flag of flags) {
+    for (const flag of openFlags) {
       const severity = String(flag.severity || '').toLowerCase();
       if (severity === 'high') grouped.high.push(flag);
       else if (severity === 'medium') grouped.medium.push(flag);
@@ -65,6 +66,11 @@ export default function CaseRedFlagsTab({
     }
     return grouped;
   }, [flags]);
+
+  const resolvedFlags = useMemo(
+    () => flags.filter((f) => String(f.resolved_status || '').toLowerCase() === 'resolved'),
+    [flags]
+  );
 
   const handleResolve = async (flagId) => {
     try {
@@ -176,6 +182,36 @@ export default function CaseRedFlagsTab({
               </div>
             );
           })}
+
+          {resolvedFlags.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm font-semibold text-gray-900">Resolved</div>
+                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-700">
+                  {resolvedFlags.length}
+                </span>
+              </div>
+              <div className="space-y-3">
+                {resolvedFlags.map((flag) => (
+                  <div
+                    key={flag.id}
+                    className="rounded-xl p-3.5 bg-slate-50/70 flex flex-col gap-3 ring-1 ring-slate-200/70"
+                  >
+                    <div className="flex items-center gap-2">
+                      <RedFlagBadge severity={flag.severity} />
+                      <div className="text-sm font-semibold text-gray-900">{flag.flag_type}</div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {flag.detected_at ? new Date(flag.detected_at).toLocaleString() : '—'} • RESOLVED
+                    </div>
+                    {flag.explanation && (
+                      <div className="text-sm text-gray-700 whitespace-pre-wrap">{flag.explanation}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

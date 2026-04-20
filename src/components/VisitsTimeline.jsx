@@ -386,7 +386,7 @@ export default function VisitsTimeline({
       {/* Timeline entries */}
       {timelineEntriesSorted.length > 0 && (
         <div className="bg-white rounded-lg overflow-hidden shadow-sm ring-1 ring-slate-100/90">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-4">
+          <div className="px-3 py-2.5 border-b border-gray-100">
             <div>
               <div className="text-sm font-semibold text-gray-900">Timeline</div>
               <div className="text-xs text-gray-500 mt-1">
@@ -394,17 +394,10 @@ export default function VisitsTimeline({
                 {Number(totals.totalReceived || 0).toLocaleString()}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300"
-            >
-              + Add Visit
-            </button>
           </div>
           <div className="divide-y divide-gray-100">
             {timelineEntriesSorted.map((entry, idx) => (
-              <div key={`${entry.date}-${idx}`} className="px-4 py-3">
+              <div key={`${entry.date}-${idx}`} className="px-3 py-2.5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="text-xs text-gray-500">{formatISODate(entry.date)}</div>
@@ -437,7 +430,7 @@ export default function VisitsTimeline({
 
       {/* Visits table (always shown) */}
       <div className="bg-white rounded-lg overflow-hidden shadow-sm ring-1 ring-slate-100/90">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-4">
+        <div className="px-3 py-2.5 border-b border-gray-100 flex items-center justify-between gap-4">
           <div>
             <div className="text-sm font-semibold text-gray-900">Visits</div>
             <div className="text-xs text-gray-500 mt-1">Most recent first</div>
@@ -451,26 +444,15 @@ export default function VisitsTimeline({
           </button>
         </div>
         {visits.length === 0 ? (
-          <div className="px-4 py-6 text-sm text-gray-500">No visits recorded.</div>
+          <div className="px-3 py-6 text-sm text-gray-500">No visits recorded.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Date</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Type</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Provider</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Diagnosis</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Billed</th>
-                  <th className="px-4 py-2 text-left font-medium text-gray-700">Flags</th>
-                  <th className="px-4 py-2 text-right font-medium text-gray-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visits.map((v) => (
-                  <tr key={v.id} className="border-t">
-                    <td className="px-4 py-2">{formatISODate(v.visit_date)}</td>
-                    <td className="px-4 py-2">
+          <div className="divide-y divide-gray-100">
+            {visits.map((v) => (
+              <div key={v.id} className="px-3 py-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="font-semibold text-gray-900">{formatISODate(v.visit_date)}</span>
                       <span
                         className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${badgeForVisitType(
                           v.visit_type
@@ -478,56 +460,57 @@ export default function VisitsTimeline({
                       >
                         {(VISIT_TYPE_OPTIONS.find((t) => t.value === v.visit_type)?.label || v.visit_type || 'other').replace('_', ' ')}
                       </span>
-                    </td>
-                    <td className="px-4 py-2">{v.provider_name || '—'}</td>
-                    <td className="px-4 py-2 text-gray-700 max-w-sm">{truncate(v.diagnosis_summary, 90)}</td>
-                    <td className="px-4 py-2">
+                    </div>
+                    <div className="text-sm text-gray-900">
+                      <span className="font-medium">Provider:</span> {v.provider_name || '—'}
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-medium">Diagnosis:</span> {truncate(v.diagnosis_summary, 140)}
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-medium">Billed:</span>{' '}
                       {v.billed_amount != null ? `$${Number(v.billed_amount).toLocaleString()}` : '—'}
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
-                            v.record_received ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-700'
-                          }`}
-                          onClick={() => updateRecordReceived(v.id, !v.record_received).catch((e) => alert(e.message))}
-                        >
-                          {v.record_received ? 'Record received' : 'Record not received'}
-                        </button>
-                        <button
-                          type="button"
-                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
-                            v.bill_received ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-700'
-                          }`}
-                          onClick={() => updateBillReceived(v.id, !v.bill_received).catch((e) => alert(e.message))}
-                        >
-                          {v.bill_received ? 'Bill received' : 'Bill not received'}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(v)}
-                          className="text-lime-900 hover:underline text-sm font-semibold"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteVisit(v.id)}
-                          className="text-red-600 hover:underline text-sm font-semibold"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                          v.record_received ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-700'
+                        }`}
+                        onClick={() => updateRecordReceived(v.id, !v.record_received).catch((e) => alert(e.message))}
+                      >
+                        {v.record_received ? 'Record received' : 'Record not received'}
+                      </button>
+                      <button
+                        type="button"
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                          v.bill_received ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-700'
+                        }`}
+                        onClick={() => updateBillReceived(v.id, !v.bill_received).catch((e) => alert(e.message))}
+                      >
+                        {v.bill_received ? 'Bill received' : 'Bill not received'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(v)}
+                      className="text-lime-900 hover:underline text-sm font-semibold"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteVisit(v.id)}
+                      className="text-red-600 hover:underline text-sm font-semibold"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

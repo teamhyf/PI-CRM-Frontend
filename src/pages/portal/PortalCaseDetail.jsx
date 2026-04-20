@@ -28,6 +28,14 @@ const providerTypeLabel = (t) =>
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
 
+const referralStatusLabel = (value) =>
+  String(value || '')
+    .replace(/_/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
 const EMPTY_INJURY_FORM = () => ({
   bodyPart: 'neck',
   symptomType: 'pain',
@@ -2325,7 +2333,7 @@ export function PortalCaseDetail() {
                                 r.referral_status
                               )}`}
                             >
-                              {String(r.referral_status || 'suggested').replace(/_/g, ' ')}
+                              {referralStatusLabel(r.referral_status || 'suggested')}
                             </span>
                             <select
                               value={r.referral_status || 'suggested'}
@@ -2341,7 +2349,7 @@ export function PortalCaseDetail() {
                             >
                               {['suggested', 'scheduled', 'completed', 'declined', 'no_response'].map((s) => (
                                 <option key={s} value={s}>
-                                  {s}
+                                  {referralStatusLabel(s)}
                                 </option>
                               ))}
                             </select>

@@ -35,7 +35,15 @@ function DocTypeIcon({ docType }) {
   return <span className="text-2xl">{icons[docType] || '📎'}</span>;
 }
 
-export function DocumentCard({ doc, onDelete, onStatusChange, showStatusDropdown = true }) {
+export function DocumentCard({
+  doc,
+  onDelete,
+  onStatusChange,
+  onView,
+  onDownload,
+  actionLoading = false,
+  showStatusDropdown = true,
+}) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
 
@@ -86,33 +94,51 @@ export function DocumentCard({ doc, onDelete, onStatusChange, showStatusDropdown
           <div className="text-xs text-gray-500"> </div>
         )}
 
-        {confirmDelete ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-600">Delete?</span>
-            <button
-              type="button"
-              onClick={() => onDelete(doc.id)}
-              className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              Yes
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(false)}
-              className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
-            >
-              No
-            </button>
-          </div>
-        ) : (
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setConfirmDelete(true)}
-            className="text-xs text-red-600 hover:underline"
+            disabled={actionLoading}
+            onClick={() => onView?.(doc)}
+            className="text-xs font-semibold text-slate-700 hover:underline disabled:opacity-50"
           >
-            Delete
+            View
           </button>
-        )}
+          <button
+            type="button"
+            disabled={actionLoading}
+            onClick={() => onDownload?.(doc)}
+            className="text-xs font-semibold text-lime-900 hover:underline disabled:opacity-50"
+          >
+            Download
+          </button>
+          {confirmDelete ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600">Delete?</span>
+              <button
+                type="button"
+                onClick={() => onDelete(doc.id)}
+                className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="text-xs px-2 py-1 border border-gray-300 rounded hover:bg-gray-100"
+              >
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="text-xs text-red-600 hover:underline"
+            >
+              Delete
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

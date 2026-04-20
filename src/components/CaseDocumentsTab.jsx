@@ -64,6 +64,7 @@ export default function CaseDocumentsTab({
   const [selectedDocType, setSelectedDocType] = useState('other');
   const [dragOver, setDragOver] = useState(false);
   const [suggestedValues, setSuggestedValues] = useState(null);
+  const [docActionLoadingId, setDocActionLoadingId] = useState(null);
   const fileInputRef = useRef(null);
 
   const fetchDocuments = useCallback(async () => {
@@ -195,6 +196,62 @@ export default function CaseDocumentsTab({
       await fetchDocuments();
     } catch (err) {
       alert(err.message || 'Failed to delete document');
+    }
+  };
+
+  const fetchDocumentBlob = async (docId, download = false) => {
+    const base = getBaseUrl();
+    const url = `${base}${apiPrefix}/documents/${docId}/file${download ? '?download=1' : ''}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to access document file');
+    }
+    const blob = await res.blob();
+    return blob;
+  };
+
+  const handleView = async (doc) => {
+    setDocActionLoadingId(doc.id);
+    try {
+      const blob = await fetchDocumentBlob(doc.id, false);
+      const blobUrl = URL.createObjectURL(blob);
+      const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (err) {
+      alert(err.message || 'Failed to open document');
+    } finally {
+      setDocActionLoadingId(null);
+    }
+  };
+
+  const handleDownload = async (doc) => {
+    setDocActionLoadingId(doc.id);
+    try {
+      const blob = await fetchDocumentBlob(doc.id, true);
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = doc.file_name || 'document';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert(err.message || 'Failed to download document');
+    } finally {
+      setDocActionLoadingId(null);
     }
   };
 
@@ -340,6 +397,9 @@ export default function CaseDocumentsTab({
               doc={doc}
               onDelete={handleDelete}
               onStatusChange={handleStatusChange}
+              onView={handleView}
+              onDownload={handleDownload}
+              actionLoading={docActionLoadingId === doc.id}
               showStatusDropdown={allowStatusChange}
             />
           ))}
