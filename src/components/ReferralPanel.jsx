@@ -262,12 +262,12 @@ export default function ReferralPanel({ caseId, injuries = [] }) {
                   value={providerSearch}
                   onChange={(e) => setProviderSearch(e.target.value)}
                   placeholder="Search by name or type..."
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                 />
                 <select
                   value={selectedProviderId || ''}
                   onChange={(e) => setSelectedProviderId(e.target.value ? Number(e.target.value) : null)}
-                  className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="mt-2 w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                 >
                   <option value="">Select a provider...</option>
                   {filteredProviders.map((p) => (
@@ -278,7 +278,7 @@ export default function ReferralPanel({ caseId, injuries = [] }) {
                 </select>
 
                 {selectedProvider?.lien_friendly && (
-                  <div className="mt-2 inline-flex items-center rounded-full bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-semibold text-indigo-700">
+                  <div className="mt-2 inline-flex items-center rounded-full bg-lime-50 border border-lime-200 px-3 py-1 text-xs font-semibold text-lime-900">
                     Lien-friendly
                   </div>
                 )}
@@ -290,7 +290,7 @@ export default function ReferralPanel({ caseId, injuries = [] }) {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add any scheduling preferences or internal notes..."
-                  className="w-full min-h-[92px] border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full min-h-[92px] border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                 />
               </div>
             </div>
@@ -309,7 +309,7 @@ export default function ReferralPanel({ caseId, injuries = [] }) {
                       <label
                         key={inj.id}
                         className={`flex items-start gap-3 border rounded-xl p-3 cursor-pointer ${
-                          checked ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-gray-200'
+                          checked ? 'bg-lime-50 border-lime-200' : 'bg-white border-gray-200'
                         }`}
                       >
                         <input
@@ -330,7 +330,7 @@ export default function ReferralPanel({ caseId, injuries = [] }) {
               <button
                 type="button"
                 onClick={handleCreateManualReferral}
-                className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                className="px-5 py-2 text-sm font-semibold bg-lime-400 text-slate-900 rounded-full shadow-md shadow-lime-400/25 hover:bg-lime-300"
               >
                 Create Referral
               </button>
@@ -371,7 +371,7 @@ export default function ReferralPanel({ caseId, injuries = [] }) {
                         <select
                           value={r.referral_status}
                           onChange={(e) => handleStatusDropdown(r.id, e.target.value)}
-                          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                         >
                           {Array.from(ALLOWED_REFERRAL_STATUSES).map((st) => (
                             <option key={st} value={st}>

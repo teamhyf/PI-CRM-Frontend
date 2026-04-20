@@ -92,15 +92,15 @@ export function PortalLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <ClaimantSiteHeader variant="public" />
+    <div className="min-h-screen bg-white flex flex-col">
+      <ClaimantSiteHeader variant="public" tone="light" />
 
       <main className="flex-1 flex flex-col items-center px-4 py-10 sm:py-14">
         <div className="w-full max-w-md animate-fade-in">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 mb-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-600 to-indigo-600 rounded-2xl shadow-lg shadow-indigo-500/20">
-                <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl border border-lime-200 bg-lime-100 shadow-sm">
+                <svg className="w-9 h-9 text-lime-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -136,7 +136,7 @@ export function PortalLogin() {
                   type="email"
                   autoComplete="email"
                   placeholder="you@example.com"
-                  className="input-field"
+                  className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition hover:border-slate-300 focus:border-lime-400 focus:ring-2 focus:ring-lime-400/40"
                   {...register('email')}
                 />
                 {errors.email ? <p className="mt-1 text-sm text-red-600">{errors.email.message}</p> : null}
@@ -151,7 +151,7 @@ export function PortalLogin() {
                   type="password"
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="input-field"
+                  className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition hover:border-slate-300 focus:border-lime-400 focus:ring-2 focus:ring-lime-400/40"
                   {...register('password')}
                 />
                 {errors.password ? (
@@ -161,12 +161,15 @@ export function PortalLogin() {
 
               <div className="flex items-center justify-between gap-2">
                 <label className="flex items-center">
-                  <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                  <input
+                    type="checkbox"
+                    className="rounded border-slate-300 text-lime-600 focus:ring-lime-500 focus:ring-offset-0"
+                  />
                   <span className="ml-2 text-sm text-slate-600">Remember me</span>
                 </label>
                 <a
                   href="#"
-                  className="text-sm text-indigo-600 hover:text-indigo-700 shrink-0"
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900 shrink-0"
                   onClick={(e) => {
                     e.preventDefault();
                   }}
@@ -179,12 +182,12 @@ export function PortalLogin() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full btn-primary py-3 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
+                className="w-full rounded-full bg-lime-400 py-3.5 text-base font-semibold text-slate-900 shadow-lg shadow-lime-400/25 transition-colors hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <span className="flex items-center justify-center">
                     <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-slate-900"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -207,10 +210,10 @@ export function PortalLogin() {
             <div className="mt-6 pt-6 border-t border-slate-100">
               <button
                 type="button"
-                className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-2"
+                className="text-sm font-semibold text-lime-900 hover:text-lime-950 flex items-center gap-2"
                 onClick={() => setSetupOpen((v) => !v)}
               >
-                <AISparklesIcon className="w-4 h-4 text-indigo-500" />
+                <AISparklesIcon className="w-4 h-4 text-lime-700" />
                 {setupOpen ? 'Hide first-time setup' : 'First time here? Set your password'}
               </button>
 
@@ -235,7 +238,7 @@ export function PortalLogin() {
                       Temp password (from staff)
                     </label>
                     <input
-                      className="input-field"
+                      className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition hover:border-slate-300 focus:border-lime-400 focus:ring-2 focus:ring-lime-400/40"
                       type="text"
                       value={tempPassword}
                       onChange={(e) => setTempPassword(e.target.value)}
@@ -246,7 +249,7 @@ export function PortalLogin() {
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">New password</label>
                     <input
-                      className="input-field"
+                      className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition hover:border-slate-300 focus:border-lime-400 focus:ring-2 focus:ring-lime-400/40"
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
@@ -257,7 +260,7 @@ export function PortalLogin() {
                   </div>
                   <button
                     type="submit"
-                    className="w-full btn-primary py-3 text-base font-semibold disabled:opacity-50 rounded-xl"
+                    className="w-full rounded-full bg-lime-400 py-3.5 text-base font-semibold text-slate-900 shadow-lg shadow-lime-400/25 transition-colors hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={setupBusy}
                   >
                     {setupBusy ? 'Saving…' : 'Set password'}
@@ -269,7 +272,7 @@ export function PortalLogin() {
         </div>
       </main>
 
-      <ClaimantSiteFooter tone="light" />
+      <ClaimantSiteFooter />
     </div>
   );
 }

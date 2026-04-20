@@ -21,7 +21,7 @@ export function PortalDashboard() {
   return (
     <div className="space-y-10">
       <header className="border-b border-slate-200/80 pb-8">
-        <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Your account</p>
+        <p className="text-xs font-bold text-lime-800 uppercase tracking-[0.15em]">Your account</p>
         <h1 className="mt-2 text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">My cases</h1>
         <p className="mt-3 text-slate-600 max-w-2xl leading-relaxed">
           {claimant?.fullName ? (
@@ -63,7 +63,7 @@ export function PortalDashboard() {
           <ul className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
             {cases.map((c) => (
               <li key={c.claimantId}>
-                <article className="group h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md hover:border-slate-300">
+                <article className="group h-full rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-lime-200/80">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Case</p>
@@ -88,7 +88,7 @@ export function PortalDashboard() {
                   <div className="mt-6 pt-5 border-t border-slate-100">
                     <Link
                       to={`/portal/case/${c.claimantId}`}
-                      className="inline-flex w-full sm:w-auto items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
+                      className="inline-flex w-full sm:w-auto items-center justify-center rounded-full bg-lime-400 px-6 py-2.5 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 transition-colors"
                     >
                       View case
                     </Link>

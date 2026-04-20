@@ -7,9 +7,10 @@ export function PortalLayout() {
   const { claimant, logout } = useClaimantAuth();
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <ClaimantSiteHeader
         variant="authenticated"
+        tone="light"
         email={claimant?.email}
         onLogout={logout}
       />
@@ -18,7 +19,7 @@ export function PortalLayout() {
         <Outlet />
       </main>
 
-      <ClaimantSiteFooter tone="light" />
+      <ClaimantSiteFooter />
     </div>
   );
 }

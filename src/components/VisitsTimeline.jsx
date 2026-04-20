@@ -37,7 +37,7 @@ function truncate(str, max = 120) {
 function badgeForVisitType(type) {
   const t = String(type || '');
   if (!t) return 'bg-gray-100 text-gray-700 border-gray-200';
-  if (t === 'imaging') return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+  if (t === 'imaging') return 'bg-lime-100 text-lime-900 border-lime-200';
   if (t === 'emergency') return 'bg-red-100 text-red-800 border-red-200';
   if (t === 'pain_management') return 'bg-amber-100 text-amber-800 border-amber-200';
   return 'bg-gray-100 text-gray-700 border-gray-200';
@@ -397,7 +397,7 @@ export default function VisitsTimeline({
             <button
               type="button"
               onClick={openCreateModal}
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+              className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300"
             >
               + Add Visit
             </button>
@@ -414,7 +414,7 @@ export default function VisitsTimeline({
                           entry.isGap || entry.eventType === 'gap'
                             ? 'bg-red-50 border-red-200 text-red-800'
                             : entry.eventType === 'document_received'
-                              ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
+                              ? 'bg-lime-50 border-lime-200 text-lime-950'
                               : 'bg-gray-50 border-gray-200 text-gray-800'
                         }`}
                       >
@@ -445,7 +445,7 @@ export default function VisitsTimeline({
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+            className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300"
           >
             + Add Visit
           </button>
@@ -511,7 +511,7 @@ export default function VisitsTimeline({
                         <button
                           type="button"
                           onClick={() => openEditModal(v)}
-                          className="text-indigo-700 hover:underline text-sm font-semibold"
+                          className="text-lime-900 hover:underline text-sm font-semibold"
                         >
                           Edit
                         </button>
@@ -682,7 +682,7 @@ export default function VisitsTimeline({
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700"
+                  className="inline-flex items-center px-5 py-2 bg-lime-400 text-slate-900 text-sm font-semibold rounded-full shadow-md shadow-lime-400/25 hover:bg-lime-300"
                 >
                   {modalMode === 'edit' ? 'Save Changes' : 'Save Visit'}
                 </button>

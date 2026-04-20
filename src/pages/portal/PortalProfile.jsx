@@ -120,7 +120,7 @@ export function PortalProfile() {
       <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800">
         {loadError}
         <div className="mt-4">
-          <Link to="/portal/dashboard" className="font-semibold text-indigo-700 hover:underline">
+          <Link to="/portal/dashboard" className="font-semibold text-lime-900 hover:underline">
             ← Back to my cases
           </Link>
         </div>
@@ -131,7 +131,7 @@ export function PortalProfile() {
   return (
     <div className="space-y-10">
       <header className="border-b border-slate-200/80 pb-8">
-        <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Account</p>
+        <p className="text-xs font-bold text-lime-800 uppercase tracking-[0.15em]">Account</p>
         <h1 className="mt-2 text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">My profile</h1>
         <p className="mt-3 text-slate-600 max-w-2xl leading-relaxed">
           Update how we reach you and manage your portal password.
@@ -154,7 +154,7 @@ export function PortalProfile() {
               autoComplete="name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-lime-400 focus:outline-none focus:ring-2 focus:ring-lime-400/40"
             />
           </div>
           <div>
@@ -167,7 +167,7 @@ export function PortalProfile() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-lime-400 focus:outline-none focus:ring-2 focus:ring-lime-400/40"
             />
           </div>
           <div>
@@ -181,7 +181,7 @@ export function PortalProfile() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Optional"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-lime-400 focus:outline-none focus:ring-2 focus:ring-lime-400/40"
             />
           </div>
         </div>
@@ -189,7 +189,7 @@ export function PortalProfile() {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
+            className="inline-flex items-center rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-60"
           >
             {saving ? 'Saving…' : 'Save changes'}
           </button>
@@ -218,7 +218,7 @@ export function PortalProfile() {
               autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-lime-400 focus:outline-none focus:ring-2 focus:ring-lime-400/40"
             />
           </div>
           <div>
@@ -231,7 +231,7 @@ export function PortalProfile() {
               autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-lime-400 focus:outline-none focus:ring-2 focus:ring-lime-400/40"
             />
           </div>
           <div>
@@ -244,14 +244,14 @@ export function PortalProfile() {
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-lime-400 focus:outline-none focus:ring-2 focus:ring-lime-400/40"
             />
           </div>
         </div>
         <button
           type="submit"
           disabled={pwdSaving || !currentPassword || !newPassword}
-          className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-60"
+          className="inline-flex items-center rounded-full border-2 border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 hover:border-slate-300 disabled:opacity-60"
         >
           {pwdSaving ? 'Updating…' : 'Update password'}
         </button>

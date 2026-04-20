@@ -385,26 +385,40 @@ export default function CaseDetail() {
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-        <aside className="w-full shrink-0 lg:w-56 xl:w-60 lg:sticky lg:top-4 lg:z-10 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
-          <nav className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm" aria-label="Case sections">
-            <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+        <aside className="w-full shrink-0 lg:w-72 xl:w-80 lg:sticky lg:top-4 lg:z-10 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto overflow-x-auto lg:overflow-x-hidden">
+          <nav
+            className="rounded-lg border border-white/10 bg-[#174049] p-2.5 shadow-lg shadow-black/20"
+            aria-label="Case sections"
+          >
+            <p className="px-3 pt-1.5 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Navigate
             </p>
-            <ul className="space-y-0.5 pb-1">
-              {tabs.map((tab) => {
+            <ul className="space-y-0.5 pb-0.5">
+              {tabs.map((tab, index) => {
                 const isActive = activeTab === tab.id;
+                const n = index + 1;
                 return (
                   <li key={tab.id}>
                     <button
                       type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                      className={`w-full rounded-lg px-2.5 py-2.5 text-left text-sm font-medium transition-colors ${
                         isActive
-                          ? 'bg-blue-50 text-blue-900 ring-1 ring-blue-200/80'
-                          : 'text-gray-700 hover:bg-gray-50'
+                          ? 'bg-sky-400 text-slate-900 shadow-md'
+                          : 'text-slate-200 hover:bg-white/10'
                       }`}
                     >
-                      {tab.label}
+                      <span className="flex w-full items-center gap-2">
+                        <span
+                          className={`w-7 shrink-0 text-right font-semibold tabular-nums ${
+                            isActive ? 'text-slate-900' : 'text-slate-500'
+                          }`}
+                          aria-hidden
+                        >
+                          {n}.
+                        </span>
+                        <span className="whitespace-nowrap">{tab.label}</span>
+                      </span>
                     </button>
                   </li>
                 );
@@ -413,7 +427,7 @@ export default function CaseDetail() {
           </nav>
         </aside>
 
-        <div className="min-w-0 flex-1 rounded-lg bg-white shadow">
+        <div className="min-w-0 flex-1 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/55">
           {activeTab === 'overview' && <CaseOverviewTab data={caseData} token={token} />}
           {activeTab === 'participants' && (
             <CaseParticipantsTab

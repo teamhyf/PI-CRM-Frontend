@@ -173,8 +173,11 @@ export default function CaseParticipantsTab({ caseId, participants, onChanged })
               <option value="claimant">Claimant</option>
               <option value="driver">Driver</option>
               <option value="passenger">Passenger</option>
-              <option value="adverse_driver">Adverse Driver</option>
+              <option value="adverse_driver">Adverse / other driver</option>
               <option value="witness">Witness</option>
+              <option value="police_emergency">Police / emergency</option>
+              <option value="other_vehicle">Other vehicle / party</option>
+              <option value="other">Other</option>
             </select>
           </div>
           <div>
@@ -281,7 +284,7 @@ export default function CaseParticipantsTab({ caseId, participants, onChanged })
               <tbody>
                 {participants.map((p) => (
                   <tr key={p.id} className="border-t">
-                    <td className="px-4 py-2 capitalize">{p.role.replace('_', ' ')}</td>
+                    <td className="px-4 py-2 capitalize">{String(p.role || '').replace(/_/g, ' ')}</td>
                     <td className="px-4 py-2">{p.full_name}</td>
                     <td className="px-4 py-2">
                       <div>{p.phone}</div>

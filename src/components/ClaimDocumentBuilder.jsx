@@ -22,7 +22,7 @@ function SectionProgress({ items }) {
         </span>
       </div>
       <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div className="h-2 bg-indigo-600" style={{ width: `${pct}%` }} />
+        <div className="h-2 bg-lime-500" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -129,7 +129,7 @@ export default function ClaimDocumentBuilder({
           <button
             type="button"
             onClick={downloadAsText}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+            className="rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300"
           >
             Download as Text
           </button>

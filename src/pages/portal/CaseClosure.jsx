@@ -44,7 +44,7 @@ export function CaseClosure() {
   return (
     <div className="space-y-10">
       <header className="border-b border-slate-200 pb-8">
-        <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Case closure</p>
+        <p className="text-xs font-bold text-lime-800 uppercase tracking-[0.15em]">Case closure</p>
         <div className="mt-2 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">Closure summary</h1>
@@ -62,7 +62,7 @@ export function CaseClosure() {
             {claimant?.id ? (
               <Link
                 to={`/portal/case/${claimant.id}`}
-                className="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+                className="text-sm font-semibold text-lime-800 hover:text-lime-950"
               >
                 ← Back to case
               </Link>
@@ -123,9 +123,9 @@ export function CaseClosure() {
             </section>
           ) : null}
 
-          <section className="rounded-2xl border border-indigo-100 bg-indigo-50/80 p-6 sm:p-8">
-            <h2 className="text-lg font-semibold text-indigo-950">Compliance disclaimer</h2>
-            <div className="mt-3 text-sm text-indigo-950/90 whitespace-pre-wrap leading-relaxed">
+          <section className="rounded-2xl border border-lime-200/80 bg-lime-50/90 p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-slate-900">Compliance disclaimer</h2>
+            <div className="mt-3 text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
               {closure.complianceDisclaimer || ''}
             </div>
           </section>

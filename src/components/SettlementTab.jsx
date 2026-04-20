@@ -261,7 +261,7 @@ export default function SettlementTab({
             <button
               onClick={createTracker}
               disabled={creating}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-3 inline-flex items-center gap-2 rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {creating ? 'Creating…' : 'Create Settlement Tracker'}
             </button>
@@ -402,7 +402,7 @@ export default function SettlementTab({
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Demand Status</label>
                     <select
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                       value={form.demand_status}
                       disabled={patchingStatus}
                       onChange={(e) => patchDemandStatus(e.target.value)}
@@ -428,7 +428,7 @@ export default function SettlementTab({
                       step="0.01"
                       value={form.demand_amount}
                       onChange={(e) => setForm((f) => ({ ...f, demand_amount: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                     />
                   </div>
                   <div>
@@ -438,7 +438,7 @@ export default function SettlementTab({
                       step="0.01"
                       value={form.claimed_medicals}
                       onChange={(e) => setForm((f) => ({ ...f, claimed_medicals: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                     />
                   </div>
                   <div>
@@ -448,7 +448,7 @@ export default function SettlementTab({
                       step="0.01"
                       value={form.negotiated_medicals}
                       onChange={(e) => setForm((f) => ({ ...f, negotiated_medicals: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                     />
                   </div>
                   <div>
@@ -458,7 +458,7 @@ export default function SettlementTab({
                       step="0.01"
                       value={form.final_settlement}
                       onChange={(e) => setForm((f) => ({ ...f, final_settlement: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                     />
                   </div>
 
@@ -479,7 +479,7 @@ export default function SettlementTab({
                     rows={4}
                     value={form.notes}
                     onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/50"
                   />
                 </div>
               </>
@@ -490,7 +490,7 @@ export default function SettlementTab({
                 <button
                   onClick={saveSettlement}
                   disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? 'Saving…' : 'Save Settlement Info'}
                 </button>
@@ -506,7 +506,7 @@ export default function SettlementTab({
                   <p className="text-xs text-gray-500 mt-1">Staff-only narrative generated when settlement is finalized.</p>
                 </div>
                 {typeof negotiation.offerCount === 'number' ? (
-                  <span className="text-xs font-semibold text-indigo-700">
+                  <span className="text-xs font-semibold text-lime-900">
                     {negotiation.offerCount} offer round{negotiation.offerCount === 1 ? '' : 's'}
                   </span>
                 ) : null}
@@ -530,7 +530,7 @@ export default function SettlementTab({
                       <p className="text-sm font-semibold text-gray-900">
                         Offer #{o.offer_number ?? idx + 1}
                       </p>
-                      <p className="text-sm font-semibold text-indigo-700">
+                      <p className="text-sm font-semibold text-lime-900">
                         {o.offer_amount != null ? `$${Number(o.offer_amount).toLocaleString()}` : '—'}
                       </p>
                     </div>

@@ -31,17 +31,17 @@ const providerTypeLabel = (t) =>
 const statusBadgeClasses = (status) => {
   switch (status) {
     case 'suggested':
-      return 'bg-gray-100 text-gray-800 border-gray-200';
+      return 'bg-gray-100 text-gray-800 ring-gray-200/90';
     case 'scheduled':
-      return 'bg-blue-100 text-blue-800 border-blue-200';
+      return 'bg-blue-100 text-blue-800 ring-blue-200/90';
     case 'completed':
-      return 'bg-green-100 text-green-800 border-green-200';
+      return 'bg-green-100 text-green-800 ring-green-200/90';
     case 'declined':
-      return 'bg-red-100 text-red-800 border-red-200';
+      return 'bg-red-100 text-red-800 ring-red-200/90';
     case 'no_response':
-      return 'bg-amber-100 text-amber-800 border-amber-200';
+      return 'bg-amber-100 text-amber-800 ring-amber-200/90';
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-200';
+      return 'bg-gray-100 text-gray-800 ring-gray-200/90';
   }
 };
 
@@ -59,9 +59,9 @@ const DOC_TYPES = [
 ];
 
 const STATUS_STYLES = {
-  pending_review: 'bg-amber-100 text-amber-800 border-amber-200',
-  reviewed: 'bg-green-100 text-green-800 border-green-200',
-  incomplete: 'bg-red-100 text-red-800 border-red-200',
+  pending_review: 'bg-amber-100 text-amber-800 ring-amber-200/90',
+  reviewed: 'bg-green-100 text-green-800 ring-green-200/90',
+  incomplete: 'bg-red-100 text-red-800 ring-red-200/90',
 };
 
 const STATUS_LABELS = {
@@ -69,6 +69,62 @@ const STATUS_LABELS = {
   reviewed: 'Reviewed',
   incomplete: 'Incomplete',
 };
+
+const EMPTY_PORTAL_PARTICIPANT_DRAFT = () => ({
+  fullName: '',
+  phone: '',
+  email: '',
+  insuranceCarrier: '',
+  policyNumber: '',
+  vehicleInfo: '',
+  notes: '',
+});
+
+/** Roles used by portal Participants subsections (each has its own add form). */
+const PORTAL_PARTICIPANT_SECTIONS = [
+  {
+    id: 'adverse_driver',
+    role: 'adverse_driver',
+    title: 'The Other Driver',
+    subtitle: 'Person who hit you',
+    nameLabel: 'Full name',
+    showInsurance: true,
+  },
+  {
+    id: 'passenger',
+    role: 'passenger',
+    title: 'People in Your Car',
+    subtitle: 'Passengers riding with you',
+    nameLabel: 'Full name',
+    showInsurance: false,
+  },
+  {
+    id: 'witness',
+    role: 'witness',
+    title: 'Witnesses',
+    subtitle: 'People who saw what happened',
+    nameLabel: 'Full name',
+    showInsurance: false,
+  },
+  {
+    id: 'police_emergency',
+    role: 'police_emergency',
+    title: 'Police / Emergency Response',
+    subtitle: 'If applicable — officer, agency, fire, or EMS',
+    nameLabel: 'Name or unit / badge #',
+    showInsurance: false,
+  },
+  {
+    id: 'other_vehicle',
+    role: 'other_vehicle',
+    title: 'Other Vehicles Involved',
+    subtitle: 'Additional vehicles or parties (description, plate if known)',
+    nameLabel: 'Vehicle or party description',
+    showInsurance: false,
+  },
+];
+
+const PORTAL_SECTION_ROLE_SET = new Set(PORTAL_PARTICIPANT_SECTIONS.map((s) => s.role));
 
 const CASE_TABS = [
   { id: 'overview', label: 'Overview' },
@@ -115,10 +171,10 @@ function summarizeInjuriesFromRecords(injuries) {
 }
 
 function getBandColor(band) {
-  if (band === '100k_plus') return 'bg-green-100 text-green-800 border-green-200';
-  if (band === '50k' || band === '25k') return 'bg-amber-100 text-amber-800 border-amber-200';
-  if (band === 'under_25k') return 'bg-red-100 text-red-800 border-red-200';
-  return 'bg-gray-100 text-gray-700 border-gray-200';
+  if (band === '100k_plus') return 'bg-green-100 text-green-800 ring-green-200/90';
+  if (band === '50k' || band === '25k') return 'bg-amber-100 text-amber-800 ring-amber-200/90';
+  if (band === 'under_25k') return 'bg-red-100 text-red-800 ring-red-200/90';
+  return 'bg-gray-100 text-gray-700 ring-gray-200/90';
 }
 
 function formatCurrency(n) {
@@ -184,17 +240,10 @@ export function PortalCaseDetail() {
   const [participantsList, setParticipantsList] = useState([]);
   const [participantsLoading, setParticipantsLoading] = useState(false);
   const [participantsError, setParticipantsError] = useState('');
-  const [participantForm, setParticipantForm] = useState({
-    role: 'claimant',
-    fullName: '',
-    phone: '',
-    email: '',
-    insuranceCarrier: '',
-    policyNumber: '',
-    vehicleInfo: '',
-    notes: '',
-  });
-  const [participantSaving, setParticipantSaving] = useState(false);
+  const [participantDrafts, setParticipantDrafts] = useState(() =>
+    Object.fromEntries(PORTAL_PARTICIPANT_SECTIONS.map((s) => [s.role, EMPTY_PORTAL_PARTICIPANT_DRAFT()]))
+  );
+  const [participantSavingRole, setParticipantSavingRole] = useState(null);
 
   const [injuriesList, setInjuriesList] = useState([]);
   const [injuriesLoading, setInjuriesLoading] = useState(false);
@@ -545,34 +594,46 @@ export function PortalCaseDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, caseIdNum]);
 
-  const createParticipant = async (e) => {
+  const updateParticipantDraft = (role, patch) => {
+    setParticipantsError('');
+    setParticipantDrafts((prev) => ({
+      ...prev,
+      [role]: { ...(prev[role] || EMPTY_PORTAL_PARTICIPANT_DRAFT()), ...patch },
+    }));
+  };
+
+  const createParticipantForRole = async (role, e) => {
     e.preventDefault();
     if (!token || !caseIdNum) return;
-    setParticipantSaving(true);
+    const draft = participantDrafts[role] || EMPTY_PORTAL_PARTICIPANT_DRAFT();
+    if (!String(draft.fullName || '').trim()) {
+      setParticipantsError('Please enter a name or description before adding.');
+      return;
+    }
+    setParticipantSavingRole(role);
     setParticipantsError('');
     try {
       const base = getBaseUrl();
       const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/participants`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(participantForm),
+        body: JSON.stringify({
+          role,
+          fullName: String(draft.fullName).trim(),
+          phone: String(draft.phone || '').trim(),
+          email: String(draft.email || '').trim(),
+          insuranceCarrier: String(draft.insuranceCarrier || '').trim(),
+          policyNumber: String(draft.policyNumber || '').trim(),
+          vehicleInfo: String(draft.vehicleInfo || '').trim(),
+          notes: String(draft.notes || '').trim(),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to create participant');
-      setParticipantForm({
-        role: 'claimant',
-        fullName: '',
-        phone: '',
-        email: '',
-        insuranceCarrier: '',
-        policyNumber: '',
-        vehicleInfo: '',
-        notes: '',
-      });
+      setParticipantDrafts((prev) => ({ ...prev, [role]: EMPTY_PORTAL_PARTICIPANT_DRAFT() }));
       await loadParticipants();
       await loadPolicies();
       await loadInjuries();
-      // refresh overview detail to keep parity
       const base2 = getBaseUrl();
       fetch(`${base2}/api/portal/full-detail`, { headers: { Authorization: `Bearer ${token}` } })
         .then((r) => r.json())
@@ -581,7 +642,7 @@ export function PortalCaseDetail() {
     } catch (err) {
       setParticipantsError(err.message || 'Failed to create participant');
     } finally {
-      setParticipantSaving(false);
+      setParticipantSavingRole(null);
     }
   };
 
@@ -909,11 +970,11 @@ export function PortalCaseDetail() {
   if (syncError) {
     return (
       <div className="space-y-4">
-        <div className="bg-white rounded-2xl border border-red-200 p-6 sm:p-8">
+        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm ring-1 ring-red-200/70">
           <p className="text-sm text-red-800 font-medium">{syncError}</p>
           <Link
             to="/portal/dashboard"
-            className="inline-block mt-4 text-sm font-semibold text-indigo-700 hover:underline"
+            className="inline-block mt-4 text-sm font-semibold text-lime-900 hover:underline"
           >
             ← Back to my cases
           </Link>
@@ -924,7 +985,7 @@ export function PortalCaseDetail() {
 
   if (syncing || authLoading || !claimant || claimant.id !== targetClaimantId) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-10">
+      <div className="bg-white rounded-2xl p-8 sm:p-10 shadow-sm ring-1 ring-slate-200/60">
         <LoadingBlock message="Loading case…" />
       </div>
     );
@@ -934,69 +995,94 @@ export function PortalCaseDetail() {
   const activeCaseLabel =
     activeCaseRow?.caseId != null ? `Case #${activeCaseRow.caseId}` : 'Case details';
 
+  const statusUpper = String(normalizedCaseStatus).replace(/_/g, ' ').toUpperCase();
+
   return (
     <div className="pb-10">
-      <header className="border-b border-slate-200 pb-8 mb-0">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
-          <div className="min-w-0">
-            <Link
-              to="/portal/dashboard"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 w-fit"
-            >
-              <span aria-hidden>←</span> My cases
-            </Link>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 mt-3">
+      <header className="pb-2">
+        <Link
+          to="/portal/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-lime-800"
+        >
+          <span aria-hidden className="text-base leading-none">
+            ←
+          </span>
+          My cases
+        </Link>
+
+        <div className="mt-5 sm:mt-6">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
               {caseIdNum ? `Case #${caseIdNum}` : activeCaseLabel}
             </h1>
-            <p className="text-slate-600 mt-2 text-lg">
-              {caseData?.accidentType || '—'} <span className="text-slate-400">|</span>{' '}
-              {caseData?.dateOfLoss ? formatISODate(caseData.dateOfLoss) : 'No date of loss'}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-              <span className="font-medium text-slate-800">{claimant?.fullName || '—'}</span>
-              {claimant?.email ? <span>{claimant.email}</span> : null}
-            </div>
-          </div>
-
-          <div className="flex flex-col items-start sm:items-end gap-1 shrink-0">
-            <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Case status</span>
-            <div
-              className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ${
                 normalizedCaseStatus === 'accepted'
-                  ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                  : 'bg-slate-100 text-slate-800 border-slate-200'
+                  ? 'bg-emerald-100 text-emerald-900'
+                  : 'bg-slate-200/90 text-slate-800'
               }`}
             >
-              {String(normalizedCaseStatus).replace(/_/g, ' ').toUpperCase()}
-            </div>
+              {statusUpper}
+            </span>
+          </div>
+
+          <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-[1.05rem]">
+            <span className="text-slate-800">{caseData?.accidentType || '—'}</span>
+            <span className="mx-2 text-slate-300" aria-hidden>
+              ·
+            </span>
+            <span>{caseData?.dateOfLoss ? formatISODate(caseData.dateOfLoss) : 'No date of loss'}</span>
+          </p>
+
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-slate-50/90 px-4 py-3 text-sm text-slate-600 sm:inline-flex sm:max-w-full">
+            <span className="font-semibold text-slate-900">{claimant?.fullName || '—'}</span>
+            {claimant?.email ? (
+              <>
+                <span className="hidden text-slate-300 sm:inline" aria-hidden>
+                  |
+                </span>
+                <span className="break-all sm:break-normal">{claimant.email}</span>
+              </>
+            ) : null}
           </div>
         </div>
       </header>
 
-      <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-        <aside className="w-full shrink-0 lg:w-56 xl:w-60 lg:sticky lg:top-16 lg:z-10 lg:max-h-[calc(100vh-4.5rem)] lg:overflow-y-auto">
+      <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8 sm:mt-8">
+        <aside className="w-full shrink-0 lg:w-72 xl:w-80 lg:sticky lg:top-16 lg:z-10 lg:max-h-[calc(100vh-4.5rem)] lg:overflow-y-auto overflow-x-auto lg:overflow-x-hidden">
           <nav
-            className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
+            className="rounded-2xl border border-white/10 bg-[#174049] p-2.5 shadow-lg shadow-black/20"
             aria-label="Case sections"
           >
-            <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <p className="px-3 pt-1.5 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Navigate
             </p>
-            <ul className="space-y-0.5 pb-1">
-              {CASE_TABS.map((tab) => {
+            <ul className="space-y-0.5 pb-0.5">
+              {CASE_TABS.map((tab, index) => {
                 const isActive = activeTab === tab.id;
+                const n = index + 1;
                 return (
                   <li key={tab.id}>
                     <button
                       type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                      className={`w-full rounded-lg px-2.5 py-2.5 text-left text-sm font-medium transition-colors ${
                         isActive
-                          ? 'bg-indigo-50 text-indigo-900 ring-1 ring-indigo-200/80'
-                          : 'text-slate-700 hover:bg-slate-50'
+                          ? 'bg-lime-400 text-slate-900 shadow-md'
+                          : 'text-slate-200 hover:bg-white/10'
                       }`}
                     >
-                      {tab.label}
+                      <span className="flex w-full items-center gap-2">
+                        <span
+                          className={`w-7 shrink-0 text-right font-semibold tabular-nums ${
+                            isActive ? 'text-slate-900' : 'text-slate-500'
+                          }`}
+                          aria-hidden
+                        >
+                          {n}.
+                        </span>
+                        <span className="whitespace-nowrap">{tab.label}</span>
+                      </span>
                     </button>
                   </li>
                 );
@@ -1005,14 +1091,14 @@ export function PortalCaseDetail() {
           </nav>
         </aside>
 
-        <div className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white">
+        <div className="min-w-0 flex-1 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/55">
           <div className="p-6 sm:p-8">
           {activeTab === 'overview' ? (
             <>
               {loading ? (
                 <LoadingInline message="Loading case details…" />
               ) : error ? (
-                <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div>
+                <div className="text-sm text-red-700 bg-red-50 rounded-xl p-3 ring-1 ring-red-200/70">{error}</div>
               ) : caseData ? (
                 (() => {
                   const statuteRefDate = !fullDetail?.statute_deadline
@@ -1040,7 +1126,7 @@ export function PortalCaseDetail() {
                             <div className="mt-1">
                               <p className="text-gray-600">Not set on file</p>
                               {statuteRefDate ? (
-                                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-950">
+                                <div className="mt-2 rounded-lg bg-amber-50/90 p-3 text-xs text-amber-950 ring-1 ring-amber-200/60">
                                   <span className="font-semibold">Planning reference only:</span>{' '}
                                   {statuteRefDate.toLocaleDateString()} (2 years after date of loss). Limitations law
                                   varies by state and claim type — confirm with counsel and save the official deadline on
@@ -1063,7 +1149,7 @@ export function PortalCaseDetail() {
 
                         <div className="md:col-span-2">
                           <label className="block text-sm font-medium text-gray-700">Insurance Coverage Note</label>
-                          <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                          <div className="mt-2 rounded-xl bg-slate-50/90 p-4">
                             {insuranceLoading ? (
                               <LoadingInline message="Loading coverage note…" className="py-2" />
                             ) : insuranceError ? (
@@ -1103,124 +1189,236 @@ export function PortalCaseDetail() {
           ) : null}
 
           {activeTab === 'participants' ? (
-            <div className="space-y-3">
-              <form onSubmit={createParticipant} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-                <div className="flex flex-col md:flex-row gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Role</label>
-                    <select
-                      value={participantForm.role}
-                      onChange={(e) => setParticipantForm((p) => ({ ...p, role: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="claimant">Claimant</option>
-                      <option value="driver">Driver</option>
-                      <option value="passenger">Passenger</option>
-                      <option value="witness">Witness</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Full name</label>
-                    <input
-                      value={participantForm.fullName}
-                      onChange={(e) => setParticipantForm((p) => ({ ...p, fullName: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
-                    <input
-                      value={participantForm.phone}
-                      onChange={(e) => setParticipantForm((p) => ({ ...p, phone: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
-                    <input
-                      value={participantForm.email}
-                      onChange={(e) => setParticipantForm((p) => ({ ...p, email: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Vehicle info</label>
-                    <input
-                      value={participantForm.vehicleInfo}
-                      onChange={(e) => setParticipantForm((p) => ({ ...p, vehicleInfo: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
-                  <textarea
-                    value={participantForm.notes}
-                    onChange={(e) => setParticipantForm((p) => ({ ...p, notes: e.target.value }))}
-                    rows={2}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
-                  />
-                </div>
-                {participantsError ? (
-                  <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{participantsError}</p>
-                ) : null}
-                <button
-                  type="submit"
-                  disabled={participantSaving}
-                  className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {participantSaving ? 'Adding…' : 'Add participant'}
-                </button>
-              </form>
+            <div className="space-y-8">
+              {participantsError ? (
+                <p className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 ring-1 ring-red-200/70">
+                  {participantsError}
+                </p>
+              ) : null}
 
               {participantsLoading ? (
                 <LoadingInline message="Loading participants…" />
-              ) : participantsList.length === 0 ? (
-                <p className="text-sm text-gray-600">No participants on file.</p>
               ) : (
-                <ul className="space-y-2">
-                  {participantsList.map((p) => (
-                    <li key={p.id} className="rounded-xl border border-gray-200 bg-white p-4">
-                      <div className="flex items-start justify-between gap-3">
+                <>
+                  {participantsList.some((p) => String(p.role) === 'claimant') ? (
+                    <div className="rounded-xl bg-emerald-50/90 px-4 py-3 text-sm text-emerald-950 ring-1 ring-emerald-200/60">
+                      <span className="font-semibold">Claimant on record: </span>
+                      {participantsList
+                        .filter((p) => String(p.role) === 'claimant')
+                        .map((p) => p.full_name)
+                        .filter(Boolean)
+                        .join(', ') || '—'}
+                    </div>
+                  ) : null}
+
+                  {PORTAL_PARTICIPANT_SECTIONS.map((section) => {
+                    const inSection = participantsList.filter((p) => String(p.role) === section.role);
+                    const draft = participantDrafts[section.role] || EMPTY_PORTAL_PARTICIPANT_DRAFT();
+                    const savingThis = participantSavingRole === section.role;
+                    const fieldClass =
+                      'w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45';
+
+                    return (
+                      <section
+                        key={section.id}
+                        className="rounded-2xl bg-slate-50/75 p-5 sm:p-6 space-y-4 shadow-sm ring-1 ring-slate-100/90"
+                      >
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {p.full_name || 'Participant'}{' '}
-                            <span className="text-xs font-semibold text-gray-500">
-                              {p.role ? `· ${String(p.role).replace(/_/g, ' ')}` : ''}
-                            </span>
-                          </p>
-                          <p className="text-xs text-gray-600 mt-1">{[p.phone, p.email].filter(Boolean).join(' · ') || '—'}</p>
-                          {p.notes ? <p className="text-xs text-gray-700 mt-2 whitespace-pre-wrap">{p.notes}</p> : null}
+                          <h3 className="text-lg font-bold tracking-tight text-slate-900">{section.title}</h3>
+                          <p className="text-sm text-slate-600 mt-1">{section.subtitle}</p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => deleteParticipant(p.id)}
-                          className="text-xs font-semibold text-red-700 hover:underline"
-                        >
-                          Delete
-                        </button>
+
+                        {inSection.length === 0 ? (
+                          <p className="text-sm text-slate-500">No entries yet — use the form below to add one.</p>
+                        ) : (
+                          <ul className="space-y-2">
+                            {inSection.map((p) => (
+                              <li key={p.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-slate-900">{p.full_name || '—'}</p>
+                                    <p className="text-xs text-slate-600 mt-1">
+                                      {[p.phone, p.email].filter(Boolean).join(' · ') || '—'}
+                                    </p>
+                                    {p.vehicle_info ? (
+                                      <p className="text-xs text-slate-700 mt-2">
+                                        <span className="font-semibold text-slate-600">Vehicle: </span>
+                                        {p.vehicle_info}
+                                      </p>
+                                    ) : null}
+                                    {p.insurance_carrier || p.policy_number ? (
+                                      <p className="text-xs text-slate-700 mt-1">
+                                        <span className="font-semibold text-slate-600">Insurance: </span>
+                                        {[p.insurance_carrier, p.policy_number].filter(Boolean).join(' · ') || '—'}
+                                      </p>
+                                    ) : null}
+                                    {p.notes ? (
+                                      <p className="text-xs text-slate-700 mt-2 whitespace-pre-wrap">{p.notes}</p>
+                                    ) : null}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteParticipant(p.id)}
+                                    className="shrink-0 text-xs font-semibold text-red-700 hover:underline"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        <form onSubmit={(e) => createParticipantForRole(section.role, e)} className="space-y-3 pt-1">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Add another</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">{section.nameLabel}</label>
+                              <input
+                                value={draft.fullName}
+                                onChange={(e) => updateParticipantDraft(section.role, { fullName: e.target.value })}
+                                className={fieldClass}
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Phone</label>
+                              <input
+                                value={draft.phone}
+                                onChange={(e) => updateParticipantDraft(section.role, { phone: e.target.value })}
+                                className={fieldClass}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Email</label>
+                              <input
+                                value={draft.email}
+                                onChange={(e) => updateParticipantDraft(section.role, { email: e.target.value })}
+                                className={fieldClass}
+                              />
+                            </div>
+                            {section.showInsurance ? (
+                              <>
+                                <div>
+                                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                    Insurance carrier
+                                  </label>
+                                  <input
+                                    value={draft.insuranceCarrier}
+                                    onChange={(e) =>
+                                      updateParticipantDraft(section.role, { insuranceCarrier: e.target.value })
+                                    }
+                                    className={fieldClass}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                    Policy number
+                                  </label>
+                                  <input
+                                    value={draft.policyNumber}
+                                    onChange={(e) =>
+                                      updateParticipantDraft(section.role, { policyNumber: e.target.value })
+                                    }
+                                    className={fieldClass}
+                                  />
+                                </div>
+                              </>
+                            ) : null}
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                {section.role === 'other_vehicle' ? 'Plate, color, or extra vehicle details' : 'Vehicle info'}
+                              </label>
+                              <input
+                                value={draft.vehicleInfo}
+                                onChange={(e) => updateParticipantDraft(section.role, { vehicleInfo: e.target.value })}
+                                className={fieldClass}
+                              />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Notes</label>
+                              <textarea
+                                value={draft.notes}
+                                onChange={(e) => updateParticipantDraft(section.role, { notes: e.target.value })}
+                                rows={2}
+                                className={fieldClass}
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={savingThis}
+                            className="inline-flex items-center rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-50"
+                          >
+                            {savingThis ? 'Adding…' : 'Add to this section'}
+                          </button>
+                        </form>
+                      </section>
+                    );
+                  })}
+
+                  {participantsList.some(
+                    (p) => !PORTAL_SECTION_ROLE_SET.has(String(p.role)) && String(p.role) !== 'claimant'
+                  ) ? (
+                    <section className="rounded-2xl bg-amber-50/50 p-5 sm:p-6 space-y-3 ring-1 ring-amber-200/50">
+                      <div>
+                        <h3 className="text-lg font-bold tracking-tight text-slate-900">Other contacts on file</h3>
+                        <p className="text-sm text-slate-600 mt-1">
+                          Entries from your legal team or an older form (e.g. driver, other). You can remove them here
+                          if they are duplicates.
+                        </p>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                      <ul className="space-y-2">
+                        {participantsList
+                          .filter(
+                            (p) =>
+                              !PORTAL_SECTION_ROLE_SET.has(String(p.role)) && String(p.role) !== 'claimant'
+                          )
+                          .map((p) => (
+                            <li key={p.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-slate-900">
+                                    {p.full_name || '—'}{' '}
+                                    <span className="text-xs font-semibold text-slate-500">
+                                      · {String(p.role || '').replace(/_/g, ' ')}
+                                    </span>
+                                  </p>
+                                  <p className="text-xs text-slate-600 mt-1">
+                                    {[p.phone, p.email].filter(Boolean).join(' · ') || '—'}
+                                  </p>
+                                  {p.notes ? (
+                                    <p className="text-xs text-slate-700 mt-2 whitespace-pre-wrap">{p.notes}</p>
+                                  ) : null}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteParticipant(p.id)}
+                                  className="shrink-0 text-xs font-semibold text-red-700 hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                      </ul>
+                    </section>
+                  ) : null}
+                </>
               )}
             </div>
           ) : null}
 
           {activeTab === 'injuries' ? (
             <div className="space-y-3">
-              <form onSubmit={createInjury} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+              <form onSubmit={createInjury} className="rounded-xl bg-slate-50/80 p-4 sm:p-5 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">Body Part</label>
                     <select
                       value={injuryForm.bodyPart}
                       onChange={(e) => setInjuryForm((p) => ({ ...p, bodyPart: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                     >
                       <option value="neck">Neck</option>
                       <option value="low_back">Low Back</option>
@@ -1239,7 +1437,7 @@ export function PortalCaseDetail() {
                     <select
                       value={injuryForm.symptomType}
                       onChange={(e) => setInjuryForm((p) => ({ ...p, symptomType: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                     >
                       <option value="pain">Pain</option>
                       <option value="numbness">Numbness</option>
@@ -1256,7 +1454,7 @@ export function PortalCaseDetail() {
                     <select
                       value={injuryForm.severityLevel}
                       onChange={(e) => setInjuryForm((p) => ({ ...p, severityLevel: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                     >
                       <option value="mild">Mild</option>
                       <option value="moderate">Moderate</option>
@@ -1269,7 +1467,7 @@ export function PortalCaseDetail() {
                       type="date"
                       value={injuryForm.firstReportedDate}
                       onChange={(e) => setInjuryForm((p) => ({ ...p, firstReportedDate: e.target.value }))}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                     />
                   </div>
                 </div>
@@ -1299,19 +1497,19 @@ export function PortalCaseDetail() {
                     value={injuryForm.notes}
                     onChange={(e) => setInjuryForm((p) => ({ ...p, notes: e.target.value }))}
                     rows={2}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                    className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                     placeholder="Optional"
                   />
                 </div>
 
                 {injuriesError ? (
-                  <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{injuriesError}</p>
+                  <p className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 ring-1 ring-red-200/70">{injuriesError}</p>
                 ) : null}
 
                 <button
                   type="submit"
                   disabled={injurySaving}
-                  className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                  className="inline-flex items-center rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-50"
                 >
                   {injurySaving ? 'Adding…' : 'Add Injury'}
                 </button>
@@ -1322,8 +1520,8 @@ export function PortalCaseDetail() {
               ) : injuriesList.length === 0 ? (
                 <p className="text-sm text-gray-600">No injuries on file yet.</p>
               ) : (
-                <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-100">
+                <div className="rounded-xl bg-white overflow-hidden shadow-sm ring-1 ring-slate-100">
+                  <div className="px-4 py-3 border-b border-slate-100/90">
                     <h3 className="text-sm font-semibold text-gray-900">Injuries</h3>
                   </div>
                   <div className="overflow-x-auto">
@@ -1371,7 +1569,7 @@ export function PortalCaseDetail() {
 
           {activeTab === 'insurance' ? (
             <div className="space-y-3">
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+              <div className="rounded-xl bg-slate-50/85 p-4 sm:p-5 space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-sm font-semibold text-gray-900">Primary BI Coverage</div>
@@ -1387,7 +1585,7 @@ export function PortalCaseDetail() {
                     </div>
                   </div>
                   <span
-                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getBandColor(
+                    className={`inline-flex items-center rounded-full ring-1 px-3 py-1 text-xs font-semibold ${getBandColor(
                       insuranceSummary?.primaryBodyilyInjury?.policy_band || 'unknown'
                     )}`}
                   >
@@ -1401,7 +1599,7 @@ export function PortalCaseDetail() {
                     const verified = Number(insuranceSummary?.verifiedCount || 0);
                     const pct = total > 0 ? Math.round((verified / total) * 100) : 0;
                     return (
-                      <div className="h-3 bg-indigo-600 transition-all" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+                      <div className="h-3 bg-lime-500 transition-all" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
                     );
                   })()}
                 </div>
@@ -1411,7 +1609,7 @@ export function PortalCaseDetail() {
                     <LoadingInline message="Loading coverage note…" />
                   </div>
                 ) : insuranceError ? (
-                  <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <div className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 ring-1 ring-red-200/70">
                     {insuranceError}
                   </div>
                 ) : insuranceSummary?.coverageNote ? (
@@ -1424,14 +1622,14 @@ export function PortalCaseDetail() {
                 <button
                   type="button"
                   onClick={openCreatePolicyModal}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+                  className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300"
                 >
                   + Add Policy
                 </button>
               </div>
 
               {policiesError ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{policiesError}</p>
+                <p className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 ring-1 ring-red-200/70">{policiesError}</p>
               ) : null}
 
               {policiesLoading ? (
@@ -1443,14 +1641,14 @@ export function PortalCaseDetail() {
                   {policiesList.map((p) => {
                     const band = p.policy_band || insuranceSummary?.primaryBodyilyInjury?.policy_band || 'unknown';
                     return (
-                      <div key={p.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                      <div key={p.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
                         <div className="flex items-start justify-between gap-4">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-gray-700 rounded-full border border-gray-200 px-2 py-0.5 bg-gray-50">
+                              <span className="text-xs font-semibold text-gray-700 rounded-full px-2 py-0.5 bg-slate-100 ring-1 ring-slate-200/70">
                                 {String(p.policy_type || 'policy').replace(/_/g, ' ')}
                               </span>
-                              <span className={`text-[10px] font-bold rounded-full border px-2 py-0.5 ${getBandColor(band)}`}>
+                              <span className={`text-[10px] font-bold rounded-full ring-1 px-2 py-0.5 ${getBandColor(band)}`}>
                                 {String(band).replace(/_/g, ' ').toUpperCase()}
                               </span>
                             </div>
@@ -1491,7 +1689,7 @@ export function PortalCaseDetail() {
                               <button
                                 type="button"
                                 onClick={() => openEditPolicyModal(p)}
-                                className="font-semibold text-indigo-700 hover:underline"
+                                className="font-semibold text-lime-900 hover:underline"
                               >
                                 Edit
                               </button>
@@ -1513,8 +1711,8 @@ export function PortalCaseDetail() {
 
               {policyModalOpen ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                  <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl border border-gray-200">
-                    <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                  <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl ring-1 ring-slate-200/70">
+                    <div className="p-5 border-b border-slate-100 flex items-center justify-between">
                       <div className="text-lg font-bold text-gray-900">
                         {policyModalMode === 'edit' ? 'Edit Policy' : 'Add Policy'}
                       </div>
@@ -1534,7 +1732,7 @@ export function PortalCaseDetail() {
                           <select
                             value={policyForm.policyType}
                             onChange={(e) => setPolicyForm((p) => ({ ...p, policyType: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                           >
                             <option value="bodily_injury">Bodily Injury</option>
                             <option value="property_damage">Property Damage</option>
@@ -1547,7 +1745,7 @@ export function PortalCaseDetail() {
                           <input
                             value={policyForm.carrierName}
                             onChange={(e) => setPolicyForm((p) => ({ ...p, carrierName: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                           />
                         </div>
                         <div>
@@ -1555,7 +1753,7 @@ export function PortalCaseDetail() {
                           <input
                             value={policyForm.policyNumber}
                             onChange={(e) => setPolicyForm((p) => ({ ...p, policyNumber: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                           />
                         </div>
                         <div>
@@ -1563,7 +1761,7 @@ export function PortalCaseDetail() {
                           <input
                             value={policyForm.claimNumber}
                             onChange={(e) => setPolicyForm((p) => ({ ...p, claimNumber: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                           />
                         </div>
                         <div>
@@ -1571,7 +1769,7 @@ export function PortalCaseDetail() {
                           <input
                             value={policyForm.adjusterName}
                             onChange={(e) => setPolicyForm((p) => ({ ...p, adjusterName: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                           />
                         </div>
                         <div>
@@ -1579,7 +1777,7 @@ export function PortalCaseDetail() {
                           <input
                             value={policyForm.adjusterEmail}
                             onChange={(e) => setPolicyForm((p) => ({ ...p, adjusterEmail: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                           />
                         </div>
                         <div>
@@ -1587,7 +1785,7 @@ export function PortalCaseDetail() {
                           <input
                             value={policyForm.policyLimitPerPerson}
                             onChange={(e) => setPolicyForm((p) => ({ ...p, policyLimitPerPerson: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                             inputMode="numeric"
                           />
                         </div>
@@ -1596,14 +1794,14 @@ export function PortalCaseDetail() {
                           <input
                             value={policyForm.policyLimitPerOccurrence}
                             onChange={(e) => setPolicyForm((p) => ({ ...p, policyLimitPerOccurrence: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                             inputMode="numeric"
                           />
                         </div>
                       </div>
 
                       {policyModalError ? (
-                        <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                        <p className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 ring-1 ring-red-200/70">
                           {policyModalError}
                         </p>
                       ) : null}
@@ -1612,14 +1810,14 @@ export function PortalCaseDetail() {
                         <button
                           type="button"
                           onClick={() => setPolicyModalOpen(false)}
-                          className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50"
+                          className="rounded-lg bg-slate-50 px-4 py-2 text-sm font-semibold text-gray-800 ring-1 ring-slate-200/80 hover:bg-slate-100"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
                           disabled={policySaving}
-                          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+                          className="inline-flex items-center justify-center rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-50"
                         >
                           {policySaving ? 'Saving…' : policyModalMode === 'edit' ? 'Save Changes' : 'Save Policy'}
                         </button>
@@ -1633,16 +1831,16 @@ export function PortalCaseDetail() {
 
           {activeTab === 'treatment' ? (
             <div className="space-y-4">
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <div className="rounded-xl bg-slate-50/85 p-4 sm:p-5">
                 <h2 className="text-lg font-bold text-gray-900 mb-1">Suggested Referrals</h2>
                 <p className="text-sm text-gray-600">Auto-mapped based on documented injuries.</p>
 
                 {referralsLoading ? (
-                  <div className="mt-4 rounded-lg border border-gray-200 bg-white px-4 py-3">
+                  <div className="mt-4 rounded-lg bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100">
                     <LoadingInline message="Loading referral data…" />
                   </div>
                 ) : referralsError ? (
-                  <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded px-4 py-2">
+                  <div className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2 ring-1 ring-red-200/60">
                     {referralsError}
                   </div>
                 ) : suggestions.length === 0 ? (
@@ -1650,7 +1848,7 @@ export function PortalCaseDetail() {
                 ) : (
                   <div className="mt-4 space-y-3">
                     {suggestions.map((s) => (
-                      <div key={s.id} className="border border-gray-200 rounded-xl p-4 bg-white">
+                      <div key={s.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <div className="text-sm font-semibold text-gray-900">
@@ -1693,12 +1891,12 @@ export function PortalCaseDetail() {
                 )}
               </div>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <div className="rounded-xl bg-slate-50/85 p-4 sm:p-5">
                 <h2 className="text-lg font-bold text-gray-900 mb-1">Referral Status Tracker</h2>
                 <p className="text-sm text-gray-600">Track suggested → scheduled → completed referral outcomes.</p>
 
                 {referralsLoading ? (
-                  <div className="mt-4 rounded-lg border border-gray-200 bg-white px-4 py-3">
+                  <div className="mt-4 rounded-lg bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100">
                     <LoadingInline message="Loading referrals…" />
                   </div>
                 ) : referrals.length === 0 ? (
@@ -1706,7 +1904,7 @@ export function PortalCaseDetail() {
                 ) : (
                   <div className="mt-4 space-y-3">
                     {referrals.map((r) => (
-                      <div key={r.id} className="border border-gray-200 rounded-xl p-4 bg-white">
+                      <div key={r.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
                         <div className="flex items-center justify-between gap-4">
                           <div>
                             <div className="text-sm font-semibold text-gray-900">
@@ -1734,7 +1932,7 @@ export function PortalCaseDetail() {
 
                           <div className="flex items-center gap-3">
                             <span
-                              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusBadgeClasses(
+                              className={`inline-flex items-center rounded-full ring-1 px-2.5 py-0.5 text-xs font-semibold ${statusBadgeClasses(
                                 r.referral_status
                               )}`}
                             >
@@ -1750,7 +1948,7 @@ export function PortalCaseDetail() {
                                   alert(err.message || 'Failed to update');
                                 }
                               }}
-                              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold"
+                              className="rounded-lg bg-white px-3 py-2 text-xs font-semibold ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
                             >
                               {['suggested', 'scheduled', 'completed', 'declined', 'no_response'].map((s) => (
                                 <option key={s} value={s}>
@@ -1794,12 +1992,12 @@ export function PortalCaseDetail() {
       {/* Note: Case record, Treatment Pathway, and Documents are now shown only inside their tabs. */}
 
       {closureAvailable ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm ring-1 ring-slate-200/55">
           <h2 className="text-xl font-bold text-gray-900 mb-1">Case Closure Summary</h2>
           <p className="text-sm text-gray-600 mb-4">Your final case organization record is available for review.</p>
           <Link
             to="/portal/case-closure"
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+            className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300"
           >
             View Closure Summary
           </Link>
