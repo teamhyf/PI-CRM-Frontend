@@ -28,6 +28,16 @@ const providerTypeLabel = (t) =>
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(' ');
 
+const EMPTY_INJURY_FORM = () => ({
+  bodyPart: 'neck',
+  symptomType: 'pain',
+  severityLevel: 'mild',
+  firstReportedDate: '',
+  ongoing: true,
+  priorSimilarInjury: false,
+  notes: '',
+});
+
 const statusBadgeClasses = (status) => {
   switch (status) {
     case 'suggested':
@@ -374,16 +384,10 @@ export function PortalCaseDetail() {
   const [injuriesList, setInjuriesList] = useState([]);
   const [injuriesLoading, setInjuriesLoading] = useState(false);
   const [injuriesError, setInjuriesError] = useState('');
-  const [injuryForm, setInjuryForm] = useState({
-    bodyPart: 'neck',
-    symptomType: 'pain',
-    severityLevel: 'mild',
-    firstReportedDate: '',
-    ongoing: true,
-    priorSimilarInjury: false,
-    notes: '',
-  });
+  const [injuryForm, setInjuryForm] = useState(EMPTY_INJURY_FORM());
   const [injurySaving, setInjurySaving] = useState(false);
+  const [editingInjuryId, setEditingInjuryId] = useState(null);
+  const [injuryModalOpen, setInjuryModalOpen] = useState(false);
 
   const [policiesList, setPoliciesList] = useState([]);
   const [policiesLoading, setPoliciesLoading] = useState(false);
@@ -827,28 +831,55 @@ export function PortalCaseDetail() {
     setInjuriesError('');
     try {
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/injuries`, {
-        method: 'POST',
+      const isEditing = Number.isFinite(Number(editingInjuryId));
+      const endpoint = isEditing
+        ? `${base}/api/portal/cases/${caseIdNum}/injuries/${editingInjuryId}`
+        : `${base}/api/portal/cases/${caseIdNum}/injuries`;
+      const res = await fetch(endpoint, {
+        method: isEditing ? 'PATCH' : 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(injuryForm),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Failed to create injury');
-      setInjuryForm({
-        bodyPart: 'neck',
-        symptomType: 'pain',
-        severityLevel: 'mild',
-        firstReportedDate: '',
-        ongoing: true,
-        priorSimilarInjury: false,
-        notes: '',
-      });
+      if (!res.ok) throw new Error(data.error || (isEditing ? 'Failed to update injury' : 'Failed to create injury'));
+      setInjuryForm(EMPTY_INJURY_FORM());
+      setEditingInjuryId(null);
+      setInjuryModalOpen(false);
       await loadInjuries();
     } catch (e) {
-      setInjuriesError(e.message || 'Failed to create injury');
+      setInjuriesError(e.message || (editingInjuryId ? 'Failed to update injury' : 'Failed to create injury'));
     } finally {
       setInjurySaving(false);
     }
+  };
+
+  const openCreateInjuryModal = () => {
+    setInjuriesError('');
+    setEditingInjuryId(null);
+    setInjuryForm(EMPTY_INJURY_FORM());
+    setInjuryModalOpen(true);
+  };
+
+  const beginEditInjury = (injury) => {
+    setInjuriesError('');
+    setEditingInjuryId(injury.id);
+    setInjuryForm({
+      bodyPart: injury.body_part || 'neck',
+      symptomType: injury.symptom_type || 'pain',
+      severityLevel: injury.severity_level || 'mild',
+      firstReportedDate: injury.first_reported_date ? String(injury.first_reported_date).slice(0, 10) : '',
+      ongoing: injury.ongoing === 1 || injury.ongoing === true,
+      priorSimilarInjury: injury.prior_similar_injury === 1 || injury.prior_similar_injury === true,
+      notes: injury.notes || '',
+    });
+    setInjuryModalOpen(true);
+  };
+
+  const cancelEditInjury = () => {
+    setEditingInjuryId(null);
+    setInjuryForm(EMPTY_INJURY_FORM());
+    setInjuryModalOpen(false);
+    setInjuriesError('');
   };
 
   const deleteInjury = async (id) => {
@@ -862,6 +893,9 @@ export function PortalCaseDetail() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to delete injury');
+      if (Number(editingInjuryId) === Number(id)) {
+        cancelEditInjury();
+      }
       await loadInjuries();
     } catch (e) {
       alert(e.message || 'Failed to delete');
@@ -1713,114 +1747,27 @@ export function PortalCaseDetail() {
 
           {activeTab === 'injuries' ? (
             <div className="space-y-3">
-              <form onSubmit={createInjury} className="rounded-xl bg-slate-50/80 p-3 sm:p-4 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Body Part</label>
-                    <select
-                      value={injuryForm.bodyPart}
-                      onChange={(e) => setInjuryForm((p) => ({ ...p, bodyPart: e.target.value }))}
-                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
-                    >
-                      <option value="neck">Neck</option>
-                      <option value="low_back">Low Back</option>
-                      <option value="mid_back">Mid Back</option>
-                      <option value="shoulder">Shoulder</option>
-                      <option value="knee">Knee</option>
-                      <option value="head">Head</option>
-                      <option value="wrist">Wrist</option>
-                      <option value="ankle">Ankle</option>
-                      <option value="hip">Hip</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Symptom</label>
-                    <select
-                      value={injuryForm.symptomType}
-                      onChange={(e) => setInjuryForm((p) => ({ ...p, symptomType: e.target.value }))}
-                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
-                    >
-                      <option value="pain">Pain</option>
-                      <option value="numbness">Numbness</option>
-                      <option value="tingling">Tingling</option>
-                      <option value="headaches">Headaches</option>
-                      <option value="weakness">Weakness</option>
-                      <option value="limited_motion">Limited Motion</option>
-                      <option value="loss_of_consciousness">Loss of Consciousness</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Severity</label>
-                    <select
-                      value={injuryForm.severityLevel}
-                      onChange={(e) => setInjuryForm((p) => ({ ...p, severityLevel: e.target.value }))}
-                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
-                    >
-                      <option value="mild">Mild</option>
-                      <option value="moderate">Moderate</option>
-                      <option value="severe">Severe</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">First Reported</label>
-                    <input
-                      type="date"
-                      value={injuryForm.firstReportedDate}
-                      onChange={(e) => setInjuryForm((p) => ({ ...p, firstReportedDate: e.target.value }))}
-                      className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-6">
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={!!injuryForm.ongoing}
-                      onChange={(e) => setInjuryForm((p) => ({ ...p, ongoing: e.target.checked }))}
-                    />
-                    Ongoing
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={!!injuryForm.priorSimilarInjury}
-                      onChange={(e) => setInjuryForm((p) => ({ ...p, priorSimilarInjury: e.target.checked }))}
-                    />
-                    Prior similar injury
-                  </label>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
-                  <textarea
-                    value={injuryForm.notes}
-                    onChange={(e) => setInjuryForm((p) => ({ ...p, notes: e.target.value }))}
-                    rows={2}
-                    className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
-                    placeholder="Optional"
-                  />
-                </div>
-
-                {injuriesError ? (
-                  <p className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 ring-1 ring-red-200/70">{injuriesError}</p>
-                ) : null}
-
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-900">Injuries</h3>
                 <button
-                  type="submit"
-                  disabled={injurySaving}
-                  className="inline-flex items-center rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-50"
+                  type="button"
+                  onClick={openCreateInjuryModal}
+                  className="inline-flex items-center rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300"
                 >
-                  {injurySaving ? 'Adding…' : 'Add Injury'}
+                  + Add New
                 </button>
-              </form>
+              </div>
+
+              {injuriesError ? (
+                <p className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 ring-1 ring-red-200/70">{injuriesError}</p>
+              ) : null}
 
               {injuriesLoading ? (
                 <LoadingInline message="Loading injuries…" />
               ) : injuriesList.length === 0 ? (
-                <p className="text-sm text-gray-600">No injuries on file yet.</p>
+                <div className="rounded-xl bg-white px-4 py-8 text-center text-sm text-gray-600 shadow-sm ring-1 ring-slate-100/90">
+                  No injuries found.
+                </div>
               ) : (
                 <div className="rounded-xl bg-white overflow-hidden shadow-sm">
                   <div className="px-3 py-2.5 border-b border-slate-100/90">
@@ -1844,12 +1791,19 @@ export function PortalCaseDetail() {
                           const first = inj.first_reported_date ? String(inj.first_reported_date).slice(0, 10) : '';
                           return (
                             <tr key={inj.id} className="hover:bg-gray-50/60">
-                              <td className="px-3 py-2.5 text-gray-900">{inj.body_part || '—'}</td>
-                              <td className="px-3 py-2.5 text-gray-700">{inj.symptom_type || '—'}</td>
-                              <td className="px-3 py-2.5 text-gray-700">{inj.severity_level ? String(inj.severity_level).replace(/_/g, ' ') : '—'}</td>
+                              <td className="px-3 py-2.5 text-gray-900">{inj.body_part ? providerTypeLabel(inj.body_part) : '—'}</td>
+                              <td className="px-3 py-2.5 text-gray-700">{inj.symptom_type ? providerTypeLabel(inj.symptom_type) : '—'}</td>
+                              <td className="px-3 py-2.5 text-gray-700">{inj.severity_level ? providerTypeLabel(inj.severity_level) : '—'}</td>
                               <td className="px-3 py-2.5 text-gray-700">{first || '—'}</td>
                               <td className="px-3 py-2.5 text-gray-700">{status}</td>
-                              <td className="px-3 py-2.5 text-right">
+                              <td className="px-3 py-2.5 text-right space-x-3">
+                                <button
+                                  type="button"
+                                  onClick={() => beginEditInjury(inj)}
+                                  className="text-xs font-semibold text-slate-700 hover:underline"
+                                >
+                                  Edit
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => deleteInjury(inj.id)}
@@ -1866,6 +1820,139 @@ export function PortalCaseDetail() {
                   </div>
                 </div>
               )}
+
+              {injuryModalOpen ? (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                  role="dialog"
+                  aria-modal="true"
+                >
+                  <div className="w-full max-w-3xl rounded-2xl bg-white shadow-xl ring-1 ring-slate-200/70">
+                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                      <h3 className="text-base font-semibold text-slate-900">
+                        {editingInjuryId ? 'Edit Injury' : 'Add Injury'}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={cancelEditInjury}
+                        className="rounded-md px-2 py-1 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                        aria-label="Close injury modal"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <form onSubmit={createInjury} className="space-y-3 p-4 sm:p-5">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Body Part</label>
+                          <select
+                            value={injuryForm.bodyPart}
+                            onChange={(e) => setInjuryForm((p) => ({ ...p, bodyPart: e.target.value }))}
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
+                          >
+                            <option value="neck">Neck</option>
+                            <option value="low_back">Low Back</option>
+                            <option value="mid_back">Mid Back</option>
+                            <option value="shoulder">Shoulder</option>
+                            <option value="knee">Knee</option>
+                            <option value="head">Head</option>
+                            <option value="wrist">Wrist</option>
+                            <option value="ankle">Ankle</option>
+                            <option value="hip">Hip</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Symptom</label>
+                          <select
+                            value={injuryForm.symptomType}
+                            onChange={(e) => setInjuryForm((p) => ({ ...p, symptomType: e.target.value }))}
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
+                          >
+                            <option value="pain">Pain</option>
+                            <option value="numbness">Numbness</option>
+                            <option value="tingling">Tingling</option>
+                            <option value="headaches">Headaches</option>
+                            <option value="weakness">Weakness</option>
+                            <option value="limited_motion">Limited Motion</option>
+                            <option value="loss_of_consciousness">Loss of Consciousness</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">Severity</label>
+                          <select
+                            value={injuryForm.severityLevel}
+                            onChange={(e) => setInjuryForm((p) => ({ ...p, severityLevel: e.target.value }))}
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
+                          >
+                            <option value="mild">Mild</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="severe">Severe</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">First Reported</label>
+                          <input
+                            type="date"
+                            value={injuryForm.firstReportedDate}
+                            onChange={(e) => setInjuryForm((p) => ({ ...p, firstReportedDate: e.target.value }))}
+                            className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-6">
+                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={!!injuryForm.ongoing}
+                            onChange={(e) => setInjuryForm((p) => ({ ...p, ongoing: e.target.checked }))}
+                          />
+                          Ongoing
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={!!injuryForm.priorSimilarInjury}
+                            onChange={(e) => setInjuryForm((p) => ({ ...p, priorSimilarInjury: e.target.checked }))}
+                          />
+                          Prior similar injury
+                        </label>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
+                        <textarea
+                          value={injuryForm.notes}
+                          onChange={(e) => setInjuryForm((p) => ({ ...p, notes: e.target.value }))}
+                          rows={2}
+                          className="w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
+                          placeholder="Optional"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+                        <button
+                          type="button"
+                          onClick={cancelEditInjury}
+                          className="rounded-lg bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200/80 hover:bg-slate-100"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={injurySaving}
+                          className="inline-flex items-center rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-50"
+                        >
+                          {injurySaving ? (editingInjuryId ? 'Saving…' : 'Adding…') : editingInjuryId ? 'Save Changes' : 'Add Injury'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
