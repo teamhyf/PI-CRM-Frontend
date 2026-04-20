@@ -126,6 +126,31 @@ const PORTAL_PARTICIPANT_SECTIONS = [
 
 const PORTAL_SECTION_ROLE_SET = new Set(PORTAL_PARTICIPANT_SECTIONS.map((s) => s.role));
 
+function getPortalParticipantSectionConfig(role) {
+  return (
+    PORTAL_PARTICIPANT_SECTIONS.find((s) => s.role === role) || {
+      id: String(role),
+      role,
+      title: 'Participant',
+      subtitle: '',
+      nameLabel: 'Full name',
+      showInsurance: false,
+    }
+  );
+}
+
+function participantRowToDraft(p) {
+  return {
+    fullName: p.full_name || '',
+    phone: p.phone != null ? String(p.phone) : '',
+    email: p.email != null ? String(p.email) : '',
+    insuranceCarrier: p.insurance_carrier != null ? String(p.insurance_carrier) : '',
+    policyNumber: p.policy_number != null ? String(p.policy_number) : '',
+    vehicleInfo: p.vehicle_info != null ? String(p.vehicle_info) : '',
+    notes: p.notes != null ? String(p.notes) : '',
+  };
+}
+
 const CASE_TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'participants', label: 'Participants' },
@@ -181,6 +206,52 @@ function formatCurrency(n) {
   const num = Number(n);
   if (!Number.isFinite(num)) return '—';
   return `$${num.toLocaleString()}`;
+}
+
+const metaIconCls = 'h-4 w-4 shrink-0 text-slate-400';
+
+function IconCaseIncident({ className = metaIconCls }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+    </svg>
+  );
+}
+
+function IconCalendar({ className = metaIconCls }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5a2.25 2.25 0 012.25 2.25v7.5"
+      />
+    </svg>
+  );
+}
+
+function IconUser({ className = metaIconCls }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+      />
+    </svg>
+  );
+}
+
+function IconEnvelope({ className = metaIconCls }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+      />
+    </svg>
+  );
 }
 
 export function PortalCaseDetail() {
@@ -240,10 +311,9 @@ export function PortalCaseDetail() {
   const [participantsList, setParticipantsList] = useState([]);
   const [participantsLoading, setParticipantsLoading] = useState(false);
   const [participantsError, setParticipantsError] = useState('');
-  const [participantDrafts, setParticipantDrafts] = useState(() =>
-    Object.fromEntries(PORTAL_PARTICIPANT_SECTIONS.map((s) => [s.role, EMPTY_PORTAL_PARTICIPANT_DRAFT()]))
-  );
-  const [participantSavingRole, setParticipantSavingRole] = useState(null);
+  const [participantModal, setParticipantModal] = useState(null);
+  const [participantModalDraft, setParticipantModalDraft] = useState(EMPTY_PORTAL_PARTICIPANT_DRAFT());
+  const [participantModalSaving, setParticipantModalSaving] = useState(false);
 
   const [injuriesList, setInjuriesList] = useState([]);
   const [injuriesLoading, setInjuriesLoading] = useState(false);
@@ -594,55 +664,83 @@ export function PortalCaseDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, caseIdNum]);
 
-  const updateParticipantDraft = (role, patch) => {
-    setParticipantsError('');
-    setParticipantDrafts((prev) => ({
-      ...prev,
-      [role]: { ...(prev[role] || EMPTY_PORTAL_PARTICIPANT_DRAFT()), ...patch },
-    }));
-  };
+  useEffect(() => {
+    if (activeTab !== 'participants') {
+      setParticipantModal(null);
+      setParticipantModalDraft(EMPTY_PORTAL_PARTICIPANT_DRAFT());
+      setParticipantModalSaving(false);
+    }
+  }, [activeTab]);
 
-  const createParticipantForRole = async (role, e) => {
-    e.preventDefault();
-    if (!token || !caseIdNum) return;
-    const draft = participantDrafts[role] || EMPTY_PORTAL_PARTICIPANT_DRAFT();
-    if (!String(draft.fullName || '').trim()) {
-      setParticipantsError('Please enter a name or description before adding.');
+  const openParticipantModal = (mode, role, id) => {
+    setParticipantsError('');
+    if (mode === 'create') {
+      setParticipantModal({ mode: 'create', role });
+      setParticipantModalDraft(EMPTY_PORTAL_PARTICIPANT_DRAFT());
       return;
     }
-    setParticipantSavingRole(role);
+    const p = participantsList.find((x) => Number(x.id) === Number(id));
+    if (!p) return;
+    setParticipantModal({ mode: 'edit', role: String(p.role), id: p.id });
+    setParticipantModalDraft(participantRowToDraft(p));
+  };
+
+  const closeParticipantModal = () => {
+    setParticipantModal(null);
+    setParticipantModalDraft(EMPTY_PORTAL_PARTICIPANT_DRAFT());
+    setParticipantModalSaving(false);
+  };
+
+  const submitParticipantModal = async (e) => {
+    e.preventDefault();
+    if (!participantModal || !token || !caseIdNum) return;
+    const draft = participantModalDraft;
+    if (!String(draft.fullName || '').trim()) {
+      setParticipantsError('Please enter a name or description.');
+      return;
+    }
+    setParticipantModalSaving(true);
     setParticipantsError('');
     try {
       const base = getBaseUrl();
-      const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/participants`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role,
-          fullName: String(draft.fullName).trim(),
-          phone: String(draft.phone || '').trim(),
-          email: String(draft.email || '').trim(),
-          insuranceCarrier: String(draft.insuranceCarrier || '').trim(),
-          policyNumber: String(draft.policyNumber || '').trim(),
-          vehicleInfo: String(draft.vehicleInfo || '').trim(),
-          notes: String(draft.notes || '').trim(),
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Failed to create participant');
-      setParticipantDrafts((prev) => ({ ...prev, [role]: EMPTY_PORTAL_PARTICIPANT_DRAFT() }));
+      const body = {
+        fullName: String(draft.fullName).trim(),
+        phone: String(draft.phone || '').trim(),
+        email: String(draft.email || '').trim(),
+        insuranceCarrier: String(draft.insuranceCarrier || '').trim(),
+        policyNumber: String(draft.policyNumber || '').trim(),
+        vehicleInfo: String(draft.vehicleInfo || '').trim(),
+        notes: String(draft.notes || '').trim(),
+      };
+      if (participantModal.mode === 'create') {
+        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/participants`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: participantModal.role, ...body }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to create participant');
+      } else {
+        const res = await fetch(`${base}/api/portal/cases/${caseIdNum}/participants/${participantModal.id}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to update participant');
+      }
+      closeParticipantModal();
       await loadParticipants();
       await loadPolicies();
       await loadInjuries();
-      const base2 = getBaseUrl();
-      fetch(`${base2}/api/portal/full-detail`, { headers: { Authorization: `Bearer ${token}` } })
+      fetch(`${getBaseUrl()}/api/portal/full-detail`, { headers: { Authorization: `Bearer ${token}` } })
         .then((r) => r.json())
         .then((j) => setFullDetail(j))
         .catch(() => {});
     } catch (err) {
-      setParticipantsError(err.message || 'Failed to create participant');
+      setParticipantsError(err.message || 'Something went wrong');
     } finally {
-      setParticipantSavingRole(null);
+      setParticipantModalSaving(false);
     }
   };
 
@@ -657,6 +755,9 @@ export function PortalCaseDetail() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to delete participant');
+      if (participantModal?.mode === 'edit' && Number(participantModal.id) === Number(id)) {
+        closeParticipantModal();
+      }
       await loadParticipants();
     } catch (e) {
       alert(e.message || 'Failed to delete');
@@ -999,7 +1100,7 @@ export function PortalCaseDetail() {
 
   return (
     <div className="pb-10">
-      <header className="pb-2">
+      <header className="pb-1">
         <Link
           to="/portal/dashboard"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-lime-800"
@@ -1010,45 +1111,75 @@ export function PortalCaseDetail() {
           My cases
         </Link>
 
-        <div className="mt-5 sm:mt-6">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              {caseIdNum ? `Case #${caseIdNum}` : activeCaseLabel}
-            </h1>
-            <span
-              className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ${
-                normalizedCaseStatus === 'accepted'
-                  ? 'bg-emerald-100 text-emerald-900'
-                  : 'bg-slate-200/90 text-slate-800'
-              }`}
+        <div className="mt-2.5 rounded-2xl bg-gradient-to-br from-slate-50 via-slate-50/90 to-slate-100/60 px-4 py-3.5 shadow-sm ring-1 ring-slate-200/60 sm:px-5 sm:py-4 lg:mt-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-5">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 border-b border-slate-200/70 pb-3 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-5 lg:shrink-0">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                {caseIdNum ? `Case #${caseIdNum}` : activeCaseLabel}
+              </h1>
+              <span
+                className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:px-3 sm:py-1 sm:text-[11px] ${
+                  normalizedCaseStatus === 'accepted'
+                    ? 'bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200/70'
+                    : 'bg-white/80 text-slate-800 ring-1 ring-slate-200/80'
+                }`}
+              >
+                {statusUpper}
+              </span>
+            </div>
+
+            <div
+              className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2 text-sm text-slate-700 sm:gap-x-3 sm:text-base lg:gap-x-4"
+              title={
+                caseData?.accidentType || caseData?.dateOfLoss || claimant?.fullName || claimant?.email
+                  ? [
+                      caseData?.accidentType,
+                      caseData?.dateOfLoss ? formatISODate(caseData.dateOfLoss) : null,
+                      claimant?.fullName,
+                      claimant?.email,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : undefined
+              }
             >
-              {statusUpper}
-            </span>
-          </div>
-
-          <p className="mt-2 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-[1.05rem]">
-            <span className="text-slate-800">{caseData?.accidentType || '—'}</span>
-            <span className="mx-2 text-slate-300" aria-hidden>
-              ·
-            </span>
-            <span>{caseData?.dateOfLoss ? formatISODate(caseData.dateOfLoss) : 'No date of loss'}</span>
-          </p>
-
-          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-slate-50/90 px-4 py-3 text-sm text-slate-600 sm:inline-flex sm:max-w-full">
-            <span className="font-semibold text-slate-900">{claimant?.fullName || '—'}</span>
-            {claimant?.email ? (
-              <>
-                <span className="hidden text-slate-300 sm:inline" aria-hidden>
-                  |
+              <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 sm:max-w-[min(100%,20rem)] lg:max-w-[14rem] xl:max-w-xs">
+                <IconCaseIncident />
+                <span className="truncate font-medium text-slate-900">{caseData?.accidentType || '—'}</span>
+              </span>
+              <span className="hidden text-slate-300 sm:inline" aria-hidden>
+                ·
+              </span>
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <IconCalendar />
+                <span className="text-slate-800">
+                  {caseData?.dateOfLoss ? formatISODate(caseData.dateOfLoss) : 'No date of loss'}
                 </span>
-                <span className="break-all sm:break-normal">{claimant.email}</span>
-              </>
-            ) : null}
+              </span>
+              <span className="hidden text-slate-300 sm:inline" aria-hidden>
+                ·
+              </span>
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                <IconUser />
+                <span className="shrink-0 font-semibold text-slate-900">{claimant?.fullName || '—'}</span>
+              </span>
+              {claimant?.email ? (
+                <>
+                  <span className="hidden text-slate-300 lg:inline" aria-hidden>
+                    ·
+                  </span>
+                  <span className="inline-flex min-w-0 max-w-full flex-1 items-center gap-1.5 lg:min-w-[8rem]">
+                    <IconEnvelope />
+                    <span className="min-w-0 break-all text-slate-700 lg:truncate">{claimant.email}</span>
+                  </span>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8 sm:mt-8">
+      <div className="mt-5 flex flex-col gap-6 sm:mt-6 lg:flex-row lg:items-start lg:gap-8">
         <aside className="w-full shrink-0 lg:w-72 xl:w-80 lg:sticky lg:top-16 lg:z-10 lg:max-h-[calc(100vh-4.5rem)] lg:overflow-y-auto overflow-x-auto lg:overflow-x-hidden">
           <nav
             className="rounded-2xl border border-white/10 bg-[#174049] p-2.5 shadow-lg shadow-black/20"
@@ -1092,7 +1223,7 @@ export function PortalCaseDetail() {
         </aside>
 
         <div className="min-w-0 flex-1 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/55">
-          <div className="p-6 sm:p-8">
+          <div className={activeTab === 'participants' ? 'p-3 sm:p-4' : 'p-6 sm:p-8'}>
           {activeTab === 'overview' ? (
             <>
               {loading ? (
@@ -1189,7 +1320,7 @@ export function PortalCaseDetail() {
           ) : null}
 
           {activeTab === 'participants' ? (
-            <div className="space-y-8">
+            <div className="space-y-4">
               {participantsError ? (
                 <p className="text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 ring-1 ring-red-200/70">
                   {participantsError}
@@ -1201,7 +1332,7 @@ export function PortalCaseDetail() {
               ) : (
                 <>
                   {participantsList.some((p) => String(p.role) === 'claimant') ? (
-                    <div className="rounded-xl bg-emerald-50/90 px-4 py-3 text-sm text-emerald-950 ring-1 ring-emerald-200/60">
+                    <div className="rounded-lg bg-emerald-50/90 px-3 py-2 text-sm text-emerald-950 ring-1 ring-emerald-200/60">
                       <span className="font-semibold">Claimant on record: </span>
                       {participantsList
                         .filter((p) => String(p.role) === 'claimant')
@@ -1213,146 +1344,75 @@ export function PortalCaseDetail() {
 
                   {PORTAL_PARTICIPANT_SECTIONS.map((section) => {
                     const inSection = participantsList.filter((p) => String(p.role) === section.role);
-                    const draft = participantDrafts[section.role] || EMPTY_PORTAL_PARTICIPANT_DRAFT();
-                    const savingThis = participantSavingRole === section.role;
-                    const fieldClass =
-                      'w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45';
 
                     return (
                       <section
                         key={section.id}
-                        className="rounded-2xl bg-slate-50/75 p-5 sm:p-6 space-y-4 shadow-sm ring-1 ring-slate-100/90"
+                        className="overflow-hidden rounded-xl bg-slate-50/80 shadow-sm ring-1 ring-slate-200/55"
                       >
-                        <div>
-                          <h3 className="text-lg font-bold tracking-tight text-slate-900">{section.title}</h3>
-                          <p className="text-sm text-slate-600 mt-1">{section.subtitle}</p>
+                        <div className="flex items-start justify-between gap-2 border-b border-slate-200/60 bg-slate-50/90 px-3 py-2">
+                          <div className="min-w-0">
+                            <h3 className="text-base font-bold tracking-tight text-slate-900">{section.title}</h3>
+                            <p className="text-xs text-slate-600 mt-0.5">{section.subtitle}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openParticipantModal('create', section.role)}
+                            className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold text-lime-900 hover:bg-lime-400/30"
+                          >
+                            + Add New
+                          </button>
                         </div>
 
                         {inSection.length === 0 ? (
-                          <p className="text-sm text-slate-500">No entries yet — use the form below to add one.</p>
+                          <p className="px-3 py-2 text-sm text-slate-500">No entries yet.</p>
                         ) : (
-                          <ul className="space-y-2">
+                          <ul className="divide-y divide-slate-100 bg-white">
                             {inSection.map((p) => (
-                              <li key={p.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                              <li key={p.id} className="px-3 py-2.5">
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">
                                     <p className="text-sm font-semibold text-slate-900">{p.full_name || '—'}</p>
-                                    <p className="text-xs text-slate-600 mt-1">
+                                    <p className="text-xs text-slate-600 mt-0.5">
                                       {[p.phone, p.email].filter(Boolean).join(' · ') || '—'}
                                     </p>
                                     {p.vehicle_info ? (
-                                      <p className="text-xs text-slate-700 mt-2">
+                                      <p className="text-xs text-slate-700 mt-1.5">
                                         <span className="font-semibold text-slate-600">Vehicle: </span>
                                         {p.vehicle_info}
                                       </p>
                                     ) : null}
                                     {p.insurance_carrier || p.policy_number ? (
-                                      <p className="text-xs text-slate-700 mt-1">
+                                      <p className="text-xs text-slate-700 mt-0.5">
                                         <span className="font-semibold text-slate-600">Insurance: </span>
                                         {[p.insurance_carrier, p.policy_number].filter(Boolean).join(' · ') || '—'}
                                       </p>
                                     ) : null}
                                     {p.notes ? (
-                                      <p className="text-xs text-slate-700 mt-2 whitespace-pre-wrap">{p.notes}</p>
+                                      <p className="text-xs text-slate-700 mt-1.5 whitespace-pre-wrap">{p.notes}</p>
                                     ) : null}
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => deleteParticipant(p.id)}
-                                    className="shrink-0 text-xs font-semibold text-red-700 hover:underline"
-                                  >
-                                    Delete
-                                  </button>
+                                  <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => openParticipantModal('edit', section.role, p.id)}
+                                      className="text-xs font-semibold text-lime-800 hover:underline"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteParticipant(p.id)}
+                                      className="text-xs font-semibold text-red-700 hover:underline"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
                                 </div>
                               </li>
                             ))}
                           </ul>
                         )}
-
-                        <form onSubmit={(e) => createParticipantForRole(section.role, e)} className="space-y-3 pt-1">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Add another</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="md:col-span-2">
-                              <label className="block text-xs font-semibold text-slate-600 mb-1">{section.nameLabel}</label>
-                              <input
-                                value={draft.fullName}
-                                onChange={(e) => updateParticipantDraft(section.role, { fullName: e.target.value })}
-                                className={fieldClass}
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-semibold text-slate-600 mb-1">Phone</label>
-                              <input
-                                value={draft.phone}
-                                onChange={(e) => updateParticipantDraft(section.role, { phone: e.target.value })}
-                                className={fieldClass}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-semibold text-slate-600 mb-1">Email</label>
-                              <input
-                                value={draft.email}
-                                onChange={(e) => updateParticipantDraft(section.role, { email: e.target.value })}
-                                className={fieldClass}
-                              />
-                            </div>
-                            {section.showInsurance ? (
-                              <>
-                                <div>
-                                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                                    Insurance carrier
-                                  </label>
-                                  <input
-                                    value={draft.insuranceCarrier}
-                                    onChange={(e) =>
-                                      updateParticipantDraft(section.role, { insuranceCarrier: e.target.value })
-                                    }
-                                    className={fieldClass}
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-semibold text-slate-600 mb-1">
-                                    Policy number
-                                  </label>
-                                  <input
-                                    value={draft.policyNumber}
-                                    onChange={(e) =>
-                                      updateParticipantDraft(section.role, { policyNumber: e.target.value })
-                                    }
-                                    className={fieldClass}
-                                  />
-                                </div>
-                              </>
-                            ) : null}
-                            <div className="md:col-span-2">
-                              <label className="block text-xs font-semibold text-slate-600 mb-1">
-                                {section.role === 'other_vehicle' ? 'Plate, color, or extra vehicle details' : 'Vehicle info'}
-                              </label>
-                              <input
-                                value={draft.vehicleInfo}
-                                onChange={(e) => updateParticipantDraft(section.role, { vehicleInfo: e.target.value })}
-                                className={fieldClass}
-                              />
-                            </div>
-                            <div className="md:col-span-2">
-                              <label className="block text-xs font-semibold text-slate-600 mb-1">Notes</label>
-                              <textarea
-                                value={draft.notes}
-                                onChange={(e) => updateParticipantDraft(section.role, { notes: e.target.value })}
-                                rows={2}
-                                className={fieldClass}
-                              />
-                            </div>
-                          </div>
-                          <button
-                            type="submit"
-                            disabled={savingThis}
-                            className="inline-flex items-center rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-50"
-                          >
-                            {savingThis ? 'Adding…' : 'Add to this section'}
-                          </button>
-                        </form>
                       </section>
                     );
                   })}
@@ -1360,22 +1420,21 @@ export function PortalCaseDetail() {
                   {participantsList.some(
                     (p) => !PORTAL_SECTION_ROLE_SET.has(String(p.role)) && String(p.role) !== 'claimant'
                   ) ? (
-                    <section className="rounded-2xl bg-amber-50/50 p-5 sm:p-6 space-y-3 ring-1 ring-amber-200/50">
-                      <div>
-                        <h3 className="text-lg font-bold tracking-tight text-slate-900">Other contacts on file</h3>
-                        <p className="text-sm text-slate-600 mt-1">
-                          Entries from your legal team or an older form (e.g. driver, other). You can remove them here
-                          if they are duplicates.
+                    <section className="overflow-hidden rounded-xl bg-amber-50/40 ring-1 ring-amber-200/50">
+                      <div className="border-b border-amber-200/50 px-3 py-2">
+                        <h3 className="text-base font-bold tracking-tight text-slate-900">Other contacts on file</h3>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          From your legal team or an older form. Edit or remove duplicates here.
                         </p>
                       </div>
-                      <ul className="space-y-2">
+                      <ul className="divide-y divide-amber-100/80 bg-white">
                         {participantsList
                           .filter(
                             (p) =>
                               !PORTAL_SECTION_ROLE_SET.has(String(p.role)) && String(p.role) !== 'claimant'
                           )
                           .map((p) => (
-                            <li key={p.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                            <li key={p.id} className="px-3 py-2.5">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <p className="text-sm font-semibold text-slate-900">
@@ -1384,25 +1443,194 @@ export function PortalCaseDetail() {
                                       · {String(p.role || '').replace(/_/g, ' ')}
                                     </span>
                                   </p>
-                                  <p className="text-xs text-slate-600 mt-1">
+                                  <p className="text-xs text-slate-600 mt-0.5">
                                     {[p.phone, p.email].filter(Boolean).join(' · ') || '—'}
                                   </p>
                                   {p.notes ? (
-                                    <p className="text-xs text-slate-700 mt-2 whitespace-pre-wrap">{p.notes}</p>
+                                    <p className="text-xs text-slate-700 mt-1.5 whitespace-pre-wrap">{p.notes}</p>
                                   ) : null}
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => deleteParticipant(p.id)}
-                                  className="shrink-0 text-xs font-semibold text-red-700 hover:underline"
-                                >
-                                  Delete
-                                </button>
+                                <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openParticipantModal('edit', String(p.role), p.id)}
+                                    className="text-xs font-semibold text-lime-800 hover:underline"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteParticipant(p.id)}
+                                    className="text-xs font-semibold text-red-700 hover:underline"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </div>
                             </li>
                           ))}
                       </ul>
                     </section>
+                  ) : null}
+
+                  {participantModal && caseIdNum ? (
+                    <div
+                      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                      role="presentation"
+                      onClick={(e) => {
+                        if (e.target === e.currentTarget) closeParticipantModal();
+                      }}
+                    >
+                      <div
+                        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl ring-1 ring-slate-200/70"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="participant-modal-title"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {(() => {
+                          const modalSection = getPortalParticipantSectionConfig(participantModal.role);
+                          const fieldClass =
+                            'w-full rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45';
+                          const draft = participantModalDraft;
+                          return (
+                            <>
+                              <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                                <h2 id="participant-modal-title" className="text-lg font-bold text-slate-900">
+                                  {participantModal.mode === 'create' ? 'Add' : 'Edit'} — {modalSection.title}
+                                </h2>
+                                <button
+                                  type="button"
+                                  onClick={closeParticipantModal}
+                                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                                  aria-label="Close"
+                                >
+                                  <span className="text-xl leading-none" aria-hidden>
+                                    ×
+                                  </span>
+                                </button>
+                              </div>
+                              <form onSubmit={submitParticipantModal} className="space-y-3 p-4">
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                  <div className="md:col-span-2">
+                                    <label className="mb-1 block text-xs font-semibold text-slate-600">
+                                      {modalSection.nameLabel}
+                                    </label>
+                                    <input
+                                      value={draft.fullName}
+                                      onChange={(e) =>
+                                        setParticipantModalDraft((d) => ({ ...d, fullName: e.target.value }))
+                                      }
+                                      className={fieldClass}
+                                      required
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-600">Phone</label>
+                                    <input
+                                      value={draft.phone}
+                                      onChange={(e) =>
+                                        setParticipantModalDraft((d) => ({ ...d, phone: e.target.value }))
+                                      }
+                                      className={fieldClass}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-600">Email</label>
+                                    <input
+                                      value={draft.email}
+                                      onChange={(e) =>
+                                        setParticipantModalDraft((d) => ({ ...d, email: e.target.value }))
+                                      }
+                                      className={fieldClass}
+                                    />
+                                  </div>
+                                  {modalSection.showInsurance ? (
+                                    <>
+                                      <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-600">
+                                          Insurance carrier
+                                        </label>
+                                        <input
+                                          value={draft.insuranceCarrier}
+                                          onChange={(e) =>
+                                            setParticipantModalDraft((d) => ({
+                                              ...d,
+                                              insuranceCarrier: e.target.value,
+                                            }))
+                                          }
+                                          className={fieldClass}
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-600">
+                                          Policy number
+                                        </label>
+                                        <input
+                                          value={draft.policyNumber}
+                                          onChange={(e) =>
+                                            setParticipantModalDraft((d) => ({
+                                              ...d,
+                                              policyNumber: e.target.value,
+                                            }))
+                                          }
+                                          className={fieldClass}
+                                        />
+                                      </div>
+                                    </>
+                                  ) : null}
+                                  <div className="md:col-span-2">
+                                    <label className="mb-1 block text-xs font-semibold text-slate-600">
+                                      {modalSection.role === 'other_vehicle'
+                                        ? 'Plate, color, or extra vehicle details'
+                                        : 'Vehicle info'}
+                                    </label>
+                                    <input
+                                      value={draft.vehicleInfo}
+                                      onChange={(e) =>
+                                        setParticipantModalDraft((d) => ({ ...d, vehicleInfo: e.target.value }))
+                                      }
+                                      className={fieldClass}
+                                    />
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <label className="mb-1 block text-xs font-semibold text-slate-600">Notes</label>
+                                    <textarea
+                                      value={draft.notes}
+                                      onChange={(e) =>
+                                        setParticipantModalDraft((d) => ({ ...d, notes: e.target.value }))
+                                      }
+                                      rows={2}
+                                      className={fieldClass}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
+                                  <button
+                                    type="button"
+                                    onClick={closeParticipantModal}
+                                    className="rounded-lg bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-slate-200/80 hover:bg-slate-100"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    disabled={participantModalSaving}
+                                    className="inline-flex items-center rounded-full bg-lime-400 px-5 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/25 hover:bg-lime-300 disabled:opacity-50"
+                                  >
+                                    {participantModalSaving
+                                      ? 'Saving…'
+                                      : participantModal.mode === 'create'
+                                        ? 'Add'
+                                        : 'Save changes'}
+                                  </button>
+                                </div>
+                              </form>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   ) : null}
                 </>
               )}

@@ -56,8 +56,8 @@ export function ClaimantSiteHeader({ variant = 'public', tone = 'dark', email, o
     : 'text-xl font-bold bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent';
 
   const userBtnClass = isLight
-    ? 'flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-lime-400/80'
-    : 'flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-slate-200 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400/80';
+    ? 'flex h-10 w-10 items-center justify-center rounded-full border border-lime-600/20 bg-lime-400 text-slate-900 transition hover:bg-lime-300 hover:border-lime-700/25 focus:outline-none focus:ring-2 focus:ring-lime-500/45'
+    : 'flex h-10 w-10 items-center justify-center rounded-full border border-lime-400/40 bg-lime-400 text-slate-900 transition hover:bg-lime-300 hover:border-lime-300 focus:outline-none focus:ring-2 focus:ring-lime-400/60';
 
   const dropdownClass = isLight
     ? 'min-w-[12rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl shadow-slate-900/10'
