@@ -130,6 +130,7 @@ export default function CaseInjuriesTab({ caseId, injuries, onChanged }) {
               <option value="headaches">Headaches</option>
               <option value="weakness">Weakness</option>
               <option value="limited_motion">Limited Motion</option>
+              <option value="loss_of_consciousness">Loss of Consciousness</option>
               <option value="other">Other</option>
             </select>
           </div>
