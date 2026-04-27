@@ -7,6 +7,7 @@ import CaseDocumentsTab from '../../components/CaseDocumentsTab';
 import CaseRedFlagsTab from '../../components/CaseRedFlagsTab';
 import ClaimDocumentBuilder from '../../components/ClaimDocumentBuilder';
 import SettlementTab from '../../components/SettlementTab';
+import { parseQuickInjuryInput } from '../../utils/injuryQuickCapture';
 
 const getBaseUrl = () => {
   const url = import.meta.env.VITE_API_BASE_URL;
@@ -396,6 +397,9 @@ export function PortalCaseDetail() {
   const [injurySaving, setInjurySaving] = useState(false);
   const [editingInjuryId, setEditingInjuryId] = useState(null);
   const [injuryModalOpen, setInjuryModalOpen] = useState(false);
+  const [injuryQuickInput, setInjuryQuickInput] = useState('');
+  const [injuryQuickListening, setInjuryQuickListening] = useState(false);
+  const injuryRecognitionRef = useRef(null);
 
   const [policiesList, setPoliciesList] = useState([]);
   const [policiesLoading, setPoliciesLoading] = useState(false);
@@ -888,6 +892,65 @@ export function PortalCaseDetail() {
     setInjuryForm(EMPTY_INJURY_FORM());
     setInjuryModalOpen(false);
     setInjuriesError('');
+    setInjuryQuickInput('');
+    if (injuryRecognitionRef.current) {
+      try {
+        injuryRecognitionRef.current.stop();
+      } catch (_) {
+        // no-op
+      }
+      injuryRecognitionRef.current = null;
+    }
+    setInjuryQuickListening(false);
+  };
+
+  const applyQuickInjuryInput = () => {
+    const parsed = parseQuickInjuryInput(injuryQuickInput, injuryForm);
+    if (!parsed) return;
+    setInjuryForm(parsed);
+  };
+
+  const toggleInjuryMic = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setInjuriesError('Voice input is not supported in this browser.');
+      return;
+    }
+
+    if (injuryRecognitionRef.current) {
+      try {
+        injuryRecognitionRef.current.stop();
+      } catch (_) {
+        // no-op
+      }
+      injuryRecognitionRef.current = null;
+      setInjuryQuickListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    injuryRecognitionRef.current = recognition;
+    setInjuryQuickListening(true);
+
+    recognition.onresult = (event) => {
+      const transcript = String(event?.results?.[0]?.[0]?.transcript || '').trim();
+      if (!transcript) return;
+      setInjuryQuickInput(transcript);
+      const parsed = parseQuickInjuryInput(transcript, injuryForm);
+      if (parsed) setInjuryForm(parsed);
+    };
+    recognition.onerror = () => {
+      setInjuriesError('Voice capture failed. Please type your injury note instead.');
+    };
+    recognition.onend = () => {
+      injuryRecognitionRef.current = null;
+      setInjuryQuickListening(false);
+    };
+
+    recognition.start();
   };
 
   const deleteInjury = async (id) => {
@@ -1851,6 +1914,40 @@ export function PortalCaseDetail() {
                     </div>
 
                     <form onSubmit={createInjury} className="space-y-3 p-4 sm:p-5">
+                      <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3">
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Quick injury capture</label>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <input
+                            type="text"
+                            value={injuryQuickInput}
+                            onChange={(e) => setInjuryQuickInput(e.target.value)}
+                            placeholder='e.g. "Document C4-C5 herniation and flag as injury"'
+                            className="flex-1 rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-200/90 focus:outline-none focus:ring-2 focus:ring-lime-400/45"
+                          />
+                          <button
+                            type="button"
+                            onClick={applyQuickInjuryInput}
+                            className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                          >
+                            Apply
+                          </button>
+                          <button
+                            type="button"
+                            onClick={toggleInjuryMic}
+                            className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+                              injuryQuickListening
+                                ? 'bg-red-600 text-white hover:bg-red-700'
+                                : 'bg-slate-200 text-slate-800 hover:bg-slate-300'
+                            }`}
+                          >
+                            {injuryQuickListening ? 'Stop Mic' : 'Use Mic'}
+                          </button>
+                        </div>
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          Parses body part, symptom, severity and notes from your quick text/voice input.
+                        </p>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div>
                           <label className="block text-xs font-semibold text-gray-600 mb-1">Body Part</label>
