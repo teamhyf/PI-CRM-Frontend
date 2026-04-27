@@ -263,7 +263,12 @@ export default function SettlementTab({
       if (data.duplicate) {
         success('Demand packet already up to date', 'No significant case updates since the latest packet.');
       } else if (data.generated) {
-        success('Demand packet generated', 'A new demand packet draft has been added to Documents.');
+        const additionalCount = Array.isArray(data.additionalDocuments) ? data.additionalDocuments.length : 0;
+        const details =
+          additionalCount > 0
+            ? `A new PDF demand document and ${additionalCount} additional editable copy were added to Documents.`
+            : 'A new PDF demand document was added to Documents.';
+        success('Demand document generated', details);
       } else {
         success('Demand packet request completed');
       }
