@@ -2368,7 +2368,7 @@ export function PortalCaseDetail() {
           ) : null}
 
           {activeTab === 'documents' ? (
-            <CaseDocumentsTab caseId={caseIdNum} apiPrefix="/api/portal" token={token} allowStatusChange={false} />
+            <CaseDocumentsTab caseId={caseIdNum} apiPrefix="/api/portal" token={token} allowStatusChange />
           ) : null}
 
           {activeTab === 'red_flags' ? (
