@@ -30,6 +30,7 @@ export function PortalLogin() {
   const [setupError, setSetupError] = useState('');
   const [setupSuccess, setSetupSuccess] = useState('');
   const [setupBusy, setSetupBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -146,14 +147,46 @@ export function PortalLogin() {
                 <label htmlFor="portal-password" className="block text-sm font-medium text-slate-700 mb-2">
                   Password
                 </label>
-                <input
-                  id="portal-password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition hover:border-slate-300 focus:border-lime-400 focus:ring-2 focus:ring-lime-400/40"
-                  {...register('password')}
-                />
+                <div className="relative">
+                  <input
+                    id="portal-password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 pr-11 text-slate-900 outline-none transition hover:border-slate-300 focus:border-lime-400 focus:ring-2 focus:ring-lime-400/40"
+                    {...register('password')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-0 px-3 text-slate-500 hover:text-slate-700"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4" aria-hidden="true">
+                        <path
+                          d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A11.9 11.9 0 0 1 12 5c6.5 0 10 7 10 7a18.4 18.4 0 0 1-3.1 4.2M6.6 6.6C3.7 8.3 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.4 4.9-1"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4" aria-hidden="true">
+                        <path
+                          d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
                 {errors.password ? (
                   <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
                 ) : null}

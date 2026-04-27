@@ -19,6 +19,12 @@ const STATUS_COLORS = {
   incomplete: 'bg-red-100 text-red-800',
 };
 
+function formatStatusLabel(status) {
+  return String(status || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function DocTypeIcon({ docType }) {
   const icons = {
     police_report: '🚔',
@@ -33,6 +39,49 @@ function DocTypeIcon({ docType }) {
     other: '📎',
   };
   return <span className="text-2xl">{icons[docType] || '📎'}</span>;
+}
+
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4" aria-hidden="true">
+      <path
+        d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4" aria-hidden="true">
+      <path
+        d="M12 4v10m0 0 4-4m-4 4-4-4M4 19h16"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4" aria-hidden="true">
+      <path
+        d="M4 7h16M9 7V5h6v2m-8 0 1 12h8l1-12M10 11v5m4-5v5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 export function DocumentCard({
@@ -74,7 +123,7 @@ export function DocumentCard({
           )}
         </div>
         <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${statusColorClass}`}>
-          {doc.document_status?.replace(/_/g, ' ')}
+          {formatStatusLabel(doc.document_status)}
         </span>
       </div>
 
@@ -99,17 +148,21 @@ export function DocumentCard({
             type="button"
             disabled={actionLoading}
             onClick={() => onView?.(doc)}
-            className="text-xs font-semibold text-slate-700 hover:underline disabled:opacity-50"
+            aria-label="View document"
+            title="View"
+            className="inline-flex items-center justify-center text-blue-600 hover:text-blue-700 disabled:opacity-50"
           >
-            View
+            <EyeIcon />
           </button>
           <button
             type="button"
             disabled={actionLoading}
             onClick={() => onDownload?.(doc)}
-            className="text-xs font-semibold text-lime-900 hover:underline disabled:opacity-50"
+            aria-label="Download document"
+            title="Download"
+            className="inline-flex items-center justify-center text-green-600 hover:text-green-700 disabled:opacity-50"
           >
-            Download
+            <DownloadIcon />
           </button>
           {confirmDelete ? (
             <div className="flex items-center gap-2">
@@ -133,9 +186,11 @@ export function DocumentCard({
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="text-xs text-red-600 hover:underline"
+              aria-label="Delete document"
+              title="Delete"
+              className="inline-flex items-center justify-center text-red-500 hover:text-red-600"
             >
-              Delete
+              <TrashIcon />
             </button>
           )}
         </div>
