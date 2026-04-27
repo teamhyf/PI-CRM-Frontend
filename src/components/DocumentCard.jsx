@@ -88,6 +88,7 @@ export function DocumentCard({
   doc,
   onDelete,
   onStatusChange,
+  onAiSummaryReview,
   onView,
   onDownload,
   actionLoading = false,
@@ -95,6 +96,9 @@ export function DocumentCard({
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [summaryReviewLoading, setSummaryReviewLoading] = useState(false);
+  const [editSummaryMode, setEditSummaryMode] = useState(false);
+  const [editedSummary, setEditedSummary] = useState(doc.ai_summary_final || doc.ai_summary || '');
 
   const label = DOC_TYPE_LABELS[doc.document_type] || doc.document_type;
   const statusColorClass = STATUS_COLORS[doc.document_status] || 'bg-gray-100 text-gray-700';
@@ -109,6 +113,30 @@ export function DocumentCard({
     }
   };
 
+  const handleApproveSummary = async () => {
+    if (!onAiSummaryReview) return;
+    setSummaryReviewLoading(true);
+    try {
+      await onAiSummaryReview(doc.id, { status: 'approved' });
+      setEditSummaryMode(false);
+    } finally {
+      setSummaryReviewLoading(false);
+    }
+  };
+
+  const handleSaveEditedSummary = async () => {
+    if (!onAiSummaryReview) return;
+    const value = String(editedSummary || '').trim();
+    if (!value) return;
+    setSummaryReviewLoading(true);
+    try {
+      await onAiSummaryReview(doc.id, { status: 'edited', reviewedSummary: value });
+      setEditSummaryMode(false);
+    } finally {
+      setSummaryReviewLoading(false);
+    }
+  };
+
   return (
     <div className="border border-gray-200 rounded-xl bg-white p-4 flex flex-col gap-3">
       <div className="flex items-start gap-3">
@@ -118,7 +146,67 @@ export function DocumentCard({
           <div className="text-xs text-gray-500 mt-0.5">{label} · {uploadedAt}</div>
           {doc.ai_summary && (
             <div className="mt-2 text-xs text-gray-600 bg-blue-50 border border-blue-100 rounded px-2 py-1">
-              <span className="font-semibold text-blue-700">AI: </span>{doc.ai_summary}
+              <span className="font-semibold text-blue-700">AI: </span>{doc.ai_summary_final || doc.ai_summary}
+              {showStatusDropdown && (
+                <span className="ml-2 inline-flex px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                  {formatStatusLabel(doc.ai_summary_review_status || 'pending_review')}
+                </span>
+              )}
+            </div>
+          )}
+          {doc.ai_summary && showStatusDropdown && (
+            <div className="mt-2 space-y-2">
+              {editSummaryMode ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={editedSummary}
+                    onChange={(e) => setEditedSummary(e.target.value)}
+                    rows={3}
+                    maxLength={1000}
+                    className="w-full text-xs rounded border border-slate-300 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    placeholder="Edit AI summary (key findings only)"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveEditedSummary}
+                      disabled={summaryReviewLoading || actionLoading || !String(editedSummary || '').trim()}
+                      className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditSummaryMode(false);
+                        setEditedSummary(doc.ai_summary_final || doc.ai_summary || '');
+                      }}
+                      className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-100"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleApproveSummary}
+                    disabled={summaryReviewLoading || actionLoading}
+                    className="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    Approve AI
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditSummaryMode(true)}
+                    disabled={summaryReviewLoading || actionLoading}
+                    className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                  >
+                    Edit AI
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

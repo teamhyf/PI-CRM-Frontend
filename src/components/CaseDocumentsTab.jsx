@@ -199,6 +199,25 @@ export default function CaseDocumentsTab({
     }
   };
 
+  const handleAiSummaryReview = async (docId, payload) => {
+    try {
+      const base = getBaseUrl();
+      const res = await fetch(`${base}${apiPrefix}/documents/${docId}/ai-summary-review`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(payload || {}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to update AI summary review');
+      await fetchDocuments();
+    } catch (err) {
+      alert(err.message || 'Failed to update AI summary review');
+    }
+  };
+
   const fetchDocumentBlob = async (docId, download = false) => {
     const base = getBaseUrl();
     const url = `${base}${apiPrefix}/documents/${docId}/file${download ? '?download=1' : ''}`;
@@ -397,6 +416,7 @@ export default function CaseDocumentsTab({
               doc={doc}
               onDelete={handleDelete}
               onStatusChange={handleStatusChange}
+              onAiSummaryReview={allowStatusChange ? handleAiSummaryReview : undefined}
               onView={handleView}
               onDownload={handleDownload}
               actionLoading={docActionLoadingId === doc.id}
