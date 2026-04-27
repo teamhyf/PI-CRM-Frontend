@@ -843,9 +843,10 @@ export function PortalCaseDetail() {
     setInjuriesError('');
     try {
       const base = getBaseUrl();
-      const isEditing = Number.isFinite(Number(editingInjuryId));
+      const parsedEditingId = Number(editingInjuryId);
+      const isEditing = Number.isFinite(parsedEditingId) && parsedEditingId > 0;
       const endpoint = isEditing
-        ? `${base}/api/portal/cases/${caseIdNum}/injuries/${editingInjuryId}`
+        ? `${base}/api/portal/cases/${caseIdNum}/injuries/${parsedEditingId}`
         : `${base}/api/portal/cases/${caseIdNum}/injuries`;
       const res = await fetch(endpoint, {
         method: isEditing ? 'PATCH' : 'POST',
