@@ -62,6 +62,7 @@ export default function SettlementTab({
   const [generatingDemandPacket, setGeneratingDemandPacket] = useState(false);
   const [demandPacketBlockers, setDemandPacketBlockers] = useState([]);
   const [demandPacketMeta, setDemandPacketMeta] = useState(null);
+  const [demandPacketGuidance, setDemandPacketGuidance] = useState(null);
 
   const [form, setForm] = useState({
     demand_status: 'not_started',
@@ -250,6 +251,7 @@ export default function SettlementTab({
       if (res.status === 409) {
         const blockers = Array.isArray(data.blockers) ? data.blockers : [];
         setDemandPacketBlockers(blockers);
+        setDemandPacketGuidance(data.manualGuidance || null);
         error('Demand packet generation blocked. Resolve blockers and try again.');
         return;
       }
@@ -257,6 +259,7 @@ export default function SettlementTab({
       if (!res.ok) throw new Error(data.error || 'Failed to generate demand packet');
 
       setDemandPacketMeta(data.document || null);
+      setDemandPacketGuidance(data.manualGuidance || null);
       if (data.duplicate) {
         success('Demand packet already up to date', 'No significant case updates since the latest packet.');
       } else if (data.generated) {
@@ -345,7 +348,7 @@ export default function SettlementTab({
                 disabled={generatingDemandPacket}
                 className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-4 py-2 text-sm font-semibold text-slate-900 shadow-md shadow-lime-400/20 hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {generatingDemandPacket ? 'Generating…' : 'Generate Demand Packet'}
+                {generatingDemandPacket ? 'Generating…' : 'Generate Demand Document'}
               </button>
               <button
                 type="button"
@@ -356,10 +359,27 @@ export default function SettlementTab({
                 Force Regenerate
               </button>
               <span className="text-xs text-gray-500">
-                Generates a draft `demand_packet` document and saves it under this case.
+                Manual action only. Generates a draft `demand_packet` document and saves it under this case.
               </span>
             </div>
           )}
+
+          {Array.isArray(demandPacketGuidance?.advisories) && demandPacketGuidance.advisories.length > 0 ? (
+            <div className="text-sm text-amber-800 bg-amber-50 rounded-lg p-3 ring-1 ring-amber-200/70">
+              <p className="font-semibold text-amber-900 mb-1">Demand Timing Guidance</p>
+              <ul className="list-disc ml-5 space-y-1">
+                {demandPacketGuidance.advisories.map((a, idx) => (
+                  <li key={`${a.code || 'advisory'}-${idx}`}>{a.message || 'Advisory for manual review.'}</li>
+                ))}
+              </ul>
+              <p className="text-xs text-amber-700 mt-2">
+                Treatment finalized: {demandPacketGuidance.treatmentFinalized ? 'Yes' : 'No'} ·
+                Billed: ${Number(demandPacketGuidance.totalBilled || 0).toLocaleString()} ·
+                BI Limit: {demandPacketGuidance.maxBiLimit != null ? `$${Number(demandPacketGuidance.maxBiLimit).toLocaleString()}` : '—'} ·
+                Target (40%): {demandPacketGuidance.targetMedicalThreshold != null ? `$${Number(demandPacketGuidance.targetMedicalThreshold).toLocaleString()}` : '—'}
+              </p>
+            </div>
+          ) : null}
 
           {Array.isArray(readiness.blockers) && readiness.blockers.length ? (
             <div className="text-sm text-red-800 bg-red-50 rounded-lg p-3 ring-1 ring-red-200/70">
